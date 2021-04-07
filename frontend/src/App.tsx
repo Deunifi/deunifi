@@ -1,8 +1,12 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import ConnectButton from './components/ConnectButton';
 
 function App() {
+
+
+
   return (
     <div className="App">
       <header className="App-header">
@@ -18,6 +22,7 @@ function App() {
         >
           Learn React
         </a>
+        <ConnectButton></ConnectButton>
       </header>
     </div>
   );
