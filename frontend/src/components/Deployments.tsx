@@ -1,50 +1,39 @@
 import { Contract } from "@ethersproject/contracts";
 import { useWeb3React } from "@web3-react/core";
 import { ethers } from "ethers";
-import React, { useEffect, useState } from "react";
-import { Greeter } from "./Greeter";
-
-interface IDeployments {
-    greeter?: Contract
-}
+import { useEffect, useState } from "react";
+import { useSigner, useProvider } from "./Connection";
 
 interface IContractDeployment {
     address: string,
     abi: any,
 }
 
-export const DeploymentsContext = React.createContext<IDeployments>({});
+// TODO Add other chanin ids or get this information dynamically
+const folderByChainId: any = {
+    1337: 'localhost',
+}
 
-export const Deployments: React.FC<{}> = () => {
+export function useDeploymentsFolder() {
 
     const web3React = useWeb3React<ethers.providers.Web3Provider>()
-    const [deployments, setDeployments] = useState<IDeployments>({})
+
+    const [deploymentsFolder, setDeploymentsFolder] = useState<string>()
 
     useEffect(() => {
 
         const doAsync = async () => {
 
-            if (!web3React.active)
+            if (!web3React.chainId){
+                setDeploymentsFolder(undefined)
                 return
+            }
+                
 
-            // TODO Change localhost directory dynamically depending on web3React.chainId value.
-            const GreeterDeployment: IContractDeployment = require('../hardhat/deployments/localhost/Greeter.json')
-
-            let greeter = new Contract(
-                GreeterDeployment.address,
-                GreeterDeployment.abi,
-                web3React.library
-            )
-
-            // TODO Use context for signer.
-            const signer = await web3React.library?.getSigner()
-
-            if (signer)
-                greeter = greeter.connect(signer)
-
-            setDeployments({
-                greeter
-            })
+            const folder = folderByChainId[web3React.chainId]
+            folder ? 
+                setDeploymentsFolder(folder) :
+                setDeploymentsFolder(undefined)
 
         }
 
@@ -52,10 +41,45 @@ export const Deployments: React.FC<{}> = () => {
 
     }, [web3React])
 
-    return (
-        <DeploymentsContext.Provider value={deployments}>
-            <Greeter></Greeter>
-        </DeploymentsContext.Provider>
-    )
+    return deploymentsFolder
 }
 
+export function useContract(contractName: string){
+
+    const [contract, setContract] = useState<Contract>()
+
+    const deploymentsFolder = useDeploymentsFolder()
+    const provider = useProvider()
+    const signer = useSigner()
+
+    useEffect(() => {
+
+        const doAsync = async () => {
+
+            if ((!deploymentsFolder) || (!provider)){
+                setContract(undefined)
+                return
+            }
+
+            const ContractJson: IContractDeployment = await import("../hardhat/deployments/"+deploymentsFolder+"/"+contractName+".json")
+
+            let contractInstance = new Contract(
+                ContractJson.address,
+                ContractJson.abi,
+                provider
+            )
+
+            if (signer)
+                contractInstance = contractInstance.connect(signer)
+
+            setContract(contractInstance)
+
+        }
+
+        doAsync()
+
+    }, [provider, deploymentsFolder, signer])
+
+    return contract
+
+}

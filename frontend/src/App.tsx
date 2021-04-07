@@ -1,13 +1,10 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
-import ConnectButton from './components/ConnectButton';
-import { Deployments, DeploymentsContext } from './components/Deployments'
+import ConnectButton from './components/Connection';
 import { Greeter } from './components/Greeter';
 
 function App() {
-
-
 
   return (
     <div className="App">
@@ -25,8 +22,7 @@ function App() {
           Learn React
         </a>
         <ConnectButton></ConnectButton>
-        <Deployments>
-        </Deployments>
+        <Greeter></Greeter>
       </header>
     </div>
   );

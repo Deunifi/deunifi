@@ -14,15 +14,33 @@ const injectedConnector = new InjectedConnector({
   ],
 })
 
-function ConnectButton() {
+export function useProvider(){
+  const web3React = useWeb3React<ethers.providers.Web3Provider>()
+  const [provider, setProvider] = useState<ethers.providers.Web3Provider>()
 
+  useEffect(() => {
+    setProvider(web3React.library)
+  }, [web3React])
+
+  return provider
+}
+
+export function useSigner(){
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
   const [signer, setSigner] = useState<ethers.providers.JsonRpcSigner>()
-  const [address, setAddress] = useState<string>()
 
   useEffect(() => {
     setSigner(web3React.library?.getSigner())
   }, [web3React])
+
+  return signer
+}
+
+function ConnectButton() {
+
+  const web3React = useWeb3React<ethers.providers.Web3Provider>()
+  const signer = useSigner()
+  const [address, setAddress] = useState<string>()
 
   useEffect(() => {
     const doAsync = async () => {

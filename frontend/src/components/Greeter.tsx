@@ -1,10 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { DeploymentsContext } from "./Deployments";
+import React, { useEffect, useState } from 'react';
+import { useContract } from "./Deployments";
 
 interface Props { }
 
 export const Greeter: React.FC<Props> = () => {
-    const { greeter } = useContext(DeploymentsContext)
+    const greeter = useContract('Greeter')
 
     const [message, setMessage] = useState("");
     const [inputGreeting, setInputGreeting] = useState("");
