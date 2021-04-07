@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useContract } from "./Deployments";
+import { Greeter as GreeterContract } from "../hardhat/types/Greeter"
 
 interface Props { }
 
 export const Greeter: React.FC<Props> = () => {
-    const greeter = useContract('Greeter')
+    const greeter = useContract('Greeter') as GreeterContract
 
     const [message, setMessage] = useState("");
     const [inputGreeting, setInputGreeting] = useState("");

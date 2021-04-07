@@ -1,6 +1,7 @@
 import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import 'hardhat-deploy';
+import "hardhat-typechain";
 
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -37,7 +38,11 @@ const config: HardhatUserConfig = {
   },
 
   paths:{
-    deployments: 'frontend/src/hardhat/deployments'
+    deployments: 'frontend/src/hardhat/deployments',
+  },
+
+  typechain:{
+    outDir: 'frontend/src/hardhat/types',
   }
 };
 
