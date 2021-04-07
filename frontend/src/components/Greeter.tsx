@@ -13,7 +13,9 @@ export const Greeter: React.FC<Props> = () => {
             if (!greeter) return
             console.log("Greeter is deployed at ", greeter.address)
             setMessage(await greeter.greet())
-
+            greeter.on('GreetingChanged', (...[sender, newGreeting]) => {
+                setMessage(newGreeting)
+            })
         };
         doAsync();
     }, [greeter])
@@ -24,9 +26,12 @@ export const Greeter: React.FC<Props> = () => {
             const tx = await greeter.setGreeting(inputGreeting)
             console.log("setGreeting tx", tx)
             await tx.wait()
-            console.log("New greeting mined, result: ", await greeter.greet())
+            const actualGreet = await greeter.greet()
+            console.log("New greeting mined, result: ", actualGreet)
+            setMessage(actualGreet)
         }
     }
+
     return (
         <div>
             <p>{message}</p>
