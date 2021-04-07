@@ -34,6 +34,10 @@ const config: HardhatUserConfig = {
     deployer:{
       default: 0
     }
+  },
+
+  paths:{
+    deployments: 'frontend/src/hardhat/deployments'
   }
 };
 
