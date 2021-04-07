@@ -20,9 +20,11 @@ task(
     })
 
 task(
-    "register-deployment",
+    "register-external-deployment",
     "Save the ABI obtained from etherscan, using ${address}, into contracts/abi/${filename}.json file.",
     async ({ name, address, abiaddress, networkname }, hre) => {
+
+        const { deployments } = hre
 
         const abiAddress = abiaddress ? abiaddress : address
         const res = await fetch(`https://api.etherscan.io/api?apiKey=${etherscan.apiKey}&module=contract&action=getabi&address=${abiAddress}`, {
@@ -31,9 +33,10 @@ task(
 
         const body = await res.json()
 
-        const dirname = `${hre.config.paths.deployments}/${networkname}`
+        const dirname = `external/deployments/${networkname}`
 
         const content = JSON.stringify({
+            name,
             address,
             abi: JSON.parse(body.result),
         }, null, 4)

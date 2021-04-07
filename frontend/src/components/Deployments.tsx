@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSigner, useProvider } from "./Connection";
 
 interface IContractDeployment {
+    name?: string,
     address: string,
     abi: any,
 }

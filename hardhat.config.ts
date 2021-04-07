@@ -15,8 +15,12 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
   }
 });
 
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
+task("use-external-contract", "Get an external contract.", async (args, hre) => {
+
+  const uniswapV2Factory = await hre.ethers.getContract('UniswapV2Factory')
+  console.log('uniswapV2Factory', uniswapV2Factory.address);
+});
+
 
 import { HardhatUserConfig } from "hardhat/config";
 
@@ -45,6 +49,7 @@ const config: HardhatUserConfig = {
   typechain:{
     outDir: 'frontend/src/hardhat/types',
   }
+
 };
 
 export default config;

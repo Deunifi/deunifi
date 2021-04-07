@@ -6,6 +6,12 @@ interface Props { }
 
 export const Greeter: React.FC<Props> = () => {
     const greeter = useContract('Greeter') as GreeterContract
+    const uniswapV2Factory = useContract('UniswapV2Factory')
+
+    useEffect(()=>{
+        if (uniswapV2Factory)
+            console.log('uniswapV2Factory', uniswapV2Factory.address);
+    }, [uniswapV2Factory])
 
     const [message, setMessage] = useState("");
     const [inputGreeting, setInputGreeting] = useState("");

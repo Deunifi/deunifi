@@ -9,6 +9,10 @@ describe("Greeter", function () {
 
     const greeter = (await ethers.getContract('Greeter')) as Greeter
 
+    const uniswapV2Factory = await ethers.getContract('UniswapV2Factory')
+    expect(uniswapV2Factory).to.not.undefined
+    
+
     expect(await greeter.greet()).to.equal("Hi!");
 
     await greeter.setGreeting("Hola, mundo!");
