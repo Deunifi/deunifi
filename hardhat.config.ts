@@ -2,6 +2,9 @@ import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
 import 'hardhat-deploy';
 import "hardhat-typechain";
+import "hardhat-gas-reporter"
+
+import { kovan, hardhat, etherscan, mainnet, mainnetForked } from "./private"
 
 import "./tasks/utils"
 
@@ -32,6 +35,13 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
       live: false
     },
+    kovan: {
+      url: kovan.url,
+      accounts: kovan.accounts,
+      gas: 2500000,
+      gasPrice: 2000000000,
+      live: false
+    },
   },
 
   solidity: "0.7.3",
@@ -48,7 +58,13 @@ const config: HardhatUserConfig = {
 
   typechain:{
     outDir: 'frontend/src/hardhat/types',
-  }
+  },
+
+  gasReporter: {
+    currency: 'CHF',
+    gasPrice: 21,
+    enabled: true,
+  },
 
 };
 
