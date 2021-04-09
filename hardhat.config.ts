@@ -44,7 +44,7 @@ const config: HardhatUserConfig = {
     },
   },
 
-  solidity: "0.7.3",
+  solidity: "0.7.6",
 
   namedAccounts: {
     deployer:{
