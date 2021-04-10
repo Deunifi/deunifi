@@ -4,7 +4,7 @@ import { useWeb3React } from "@web3-react/core";
 import { BigNumber, ethers } from "ethers";
 import { createContext, DependencyList, EffectCallback, useContext, useEffect, useRef, useState } from "react";
 import { isCallLikeExpression } from "typescript";
-import { useEffectAsyncInOrder } from "../hooks/useEffectAsyncInOrder";
+import { useEffectAsync } from "../hooks/useEffectAsync";
 import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
 
@@ -81,8 +81,8 @@ export function useVaults() {
     const dsProxyContainer = useDSProxyContainer()
     const manager = useContract('DssCdpManager')
 
-    useEffectAsyncInOrder(async () =>{
-                
+    useEffectAsync(async () => {
+
         const { dsProxy } = dsProxyContainer
 
         if (!dsProxy || !manager) {
@@ -119,7 +119,7 @@ export function useVaults() {
         // TODO Check if sort is needed.
         setVaults(vaults)
 
-        
+
     }, [dsProxyContainer, manager])
 
     return vaults
@@ -129,48 +129,48 @@ export function useVaults() {
 
 interface Props { }
 
-const VaultSelectionContext = createContext<{vault?: IVaultSelectionItem}>({})
-const {Provider} = VaultSelectionContext
+const VaultSelectionContext = createContext<{ vault?: IVaultSelectionItem }>({})
+const { Provider } = VaultSelectionContext
 
 export const useVaultContext = () => useContext(VaultSelectionContext)
 
-export const VaultSelection: React.FC<Props> = ({children}) => {
+export const VaultSelection: React.FC<Props> = ({ children }) => {
 
     const { dsProxy } = useDSProxyContainer()
     const vaults = useVaults()
     const [vault, setVault] = useState<IVaultSelectionItem>()
 
-    useEffect(() =>{
-
-        const doAsync = async () => {
-            if (vaults.length == 0){
-                setVault(undefined)
-            }else{
-                setVault(vaults[0])
-            }
+    useEffectAsync(async () => {
+        if (vaults.length == 0) {
+            setVault(undefined)
+        } else {
+            setVault(vaults[0])
         }
-
-        doAsync()
-
     }, [vaults])
 
     return (
         <div>
-            DSProxy: {dsProxy?.address}
-            <select 
-                name="Vault" 
-                id="vault" 
-                onChange={(e) => setVault(vaults[e.target.selectedIndex])}
-                >
-                {vaults.map(vault => (
-                    <option value={vault.cdp.toString()} key={vault.cdp.toString()}>
-                        #{vault.cdp.toString()} - {vault.ilk}
-                    </option>
-                ))}
-            </select>
-            <Provider value={{vault}}>
-                {children}
-            </Provider>
+            <ul>
+                <li>DSProxy: {dsProxy?.address}</li>
+                <li>
+                    <select
+                        name="Vault"
+                        id="vault"
+                        onChange={(e) => setVault(vaults[e.target.selectedIndex])}
+                    >
+                        {vaults.map(vault => (
+                            <option value={vault.cdp.toString()} key={vault.cdp.toString()}>
+                                #{vault.cdp.toString()} - {vault.ilk}
+                            </option>
+                        ))}
+                    </select>
+                </li>
+                <li>
+                    <Provider value={{ vault }}>
+                        {children}
+                    </Provider>
+                </li>
+            </ul>
         </div>
     )
 }
