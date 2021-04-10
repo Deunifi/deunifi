@@ -2,12 +2,13 @@ import { Contract } from "@ethersproject/contracts";
 import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
 import { useWeb3React } from "@web3-react/core";
 import { BigNumber, ethers } from "ethers";
-import { useEffect, useState } from "react";
+import { createContext, DependencyList, EffectCallback, useContext, useEffect, useRef, useState } from "react";
 import { isCallLikeExpression } from "typescript";
+import { useEffectAsyncInOrder } from "../hooks/useEffectAsyncInOrder";
 import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
 
-export function useDSProxyAddress(){
+export function useDSProxyAddress() {
 
     const [dsProxyAddress, setDSProxyAddress] = useState<string>()
 
@@ -18,12 +19,12 @@ export function useDSProxyAddress(){
 
         const doAsync = async () => {
 
-            if ((!signer) || (!proxyRegistry)){
+            if ((!signer) || (!proxyRegistry)) {
                 setDSProxyAddress(undefined)
                 return
             }
 
-            const dsProxyAddress: string = await proxyRegistry.proxies(await signer.getAddress())   
+            const dsProxyAddress: string = await proxyRegistry.proxies(await signer.getAddress())
             setDSProxyAddress(dsProxyAddress)
 
         }
@@ -37,9 +38,9 @@ export function useDSProxyAddress(){
 }
 
 
-export function useDSProxyContainer(){
+export function useDSProxyContainer() {
 
-    const [dsProxyContainer, setDSProxyContainer] = useState<{dsProxy?:Contract}>({})
+    const [dsProxyContainer, setDSProxyContainer] = useState<{ dsProxy?: Contract }>({})
 
     const dsProxyAddress = useDSProxyAddress()
     const dsProxy = useContract('DSProxy')
@@ -48,12 +49,12 @@ export function useDSProxyContainer(){
 
         const doAsync = async () => {
 
-            if (!dsProxy || !dsProxyAddress){
+            if (!dsProxy || !dsProxyAddress || dsProxyAddress === ethers.constants.AddressZero) {
                 setDSProxyContainer({})
                 return
             }
-                
-            
+
+
             setDSProxyContainer({
                 dsProxy: dsProxy.attach(dsProxyAddress)
             })
@@ -68,62 +69,57 @@ export function useDSProxyContainer(){
 
 }
 
-interface IVaultSelectionItem{
+interface IVaultSelectionItem {
     cdp: BigNumber,
     ilk: string,
 }
 
-export function useVaults(){
+export function useVaults() {
 
     const [vaults, setVaults] = useState<IVaultSelectionItem[]>([])
 
     const dsProxyContainer = useDSProxyContainer()
     const manager = useContract('DssCdpManager')
 
-    useEffect(() => {
-
+    useEffectAsyncInOrder(async () =>{
+                
         const { dsProxy } = dsProxyContainer
 
-        const doAsync = async () => {
-
-            if (!dsProxy || !manager){
-                setVaults([])
-                return
-            }
-            
-            const vaults: IVaultSelectionItem[] = []
-
-            // We get the first cdp for DSProxy
-            let cdp: BigNumber = await manager.first(dsProxy.address)
-            const toResolve = []
-
-            while (!cdp.isZero()){
-
-                // Then we asynchroneously get the ilk for cdp.
-                toResolve.push(
-                    (async () => {
-                        const ilk: string = parseBytes32String(await manager.ilks(cdp))
-                        vaults.push({
-                            cdp,
-                            ilk,
-                        })
-                    })()
-                )
-
-                // And then, we get next cdp for DSProxy
-                const {prev, next}: {prev: BigNumber, next: BigNumber} = await manager.list(cdp)
-                cdp = next
-            }
-
-            await Promise.all(toResolve)
-
-            // TODO Check if sort is needed.
-            setVaults(vaults)
-
+        if (!dsProxy || !manager) {
+            setVaults([])
+            return
         }
 
-        doAsync()
+        const vaults: IVaultSelectionItem[] = []
 
+        // We get the first cdp for DSProxy
+        let cdp: BigNumber = await manager.first(dsProxy.address)
+        const toResolve = []
+
+        while (!cdp.isZero()) {
+
+            // Then we asynchroneously get the ilk for cdp.
+            toResolve.push(
+                (async () => {
+                    const ilk: string = parseBytes32String(await manager.ilks(cdp))
+                    vaults.push({
+                        cdp,
+                        ilk,
+                    })
+                })()
+            )
+
+            // And then, we get next cdp for DSProxy
+            const { prev, next }: { prev: BigNumber, next: BigNumber } = await manager.list(cdp)
+            cdp = next
+        }
+
+        await Promise.all(toResolve)
+
+        // TODO Check if sort is needed.
+        setVaults(vaults)
+
+        
     }, [dsProxyContainer, manager])
 
     return vaults
@@ -133,21 +129,48 @@ export function useVaults(){
 
 interface Props { }
 
-export const VaultSelection: React.FC<Props> = () => {
-    
+const VaultSelectionContext = createContext<{vault?: IVaultSelectionItem}>({})
+const {Provider} = VaultSelectionContext
+
+export const useVaultContext = () => useContext(VaultSelectionContext)
+
+export const VaultSelection: React.FC<Props> = ({children}) => {
+
     const { dsProxy } = useDSProxyContainer()
     const vaults = useVaults()
+    const [vault, setVault] = useState<IVaultSelectionItem>()
+
+    useEffect(() =>{
+
+        const doAsync = async () => {
+            if (vaults.length == 0){
+                setVault(undefined)
+            }else{
+                setVault(vaults[0])
+            }
+        }
+
+        doAsync()
+
+    }, [vaults])
 
     return (
         <div>
             DSProxy: {dsProxy?.address}
-            <ul>
+            <select 
+                name="Vault" 
+                id="vault" 
+                onChange={(e) => setVault(vaults[e.target.selectedIndex])}
+                >
                 {vaults.map(vault => (
-                    <li key={vault.cdp.toString()}>
+                    <option value={vault.cdp.toString()} key={vault.cdp.toString()}>
                         #{vault.cdp.toString()} - {vault.ilk}
-                    </li>
-                ) )}
-            </ul>
+                    </option>
+                ))}
+            </select>
+            <Provider value={{vault}}>
+                {children}
+            </Provider>
         </div>
     )
 }
