@@ -2,6 +2,7 @@ import logo from './logo.svg';
 import './App.css';
 import ConnectButton from './components/Connection';
 import { Greeter } from './components/Greeter';
+import { Unifi } from './components/Unifi';
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
         </a>
         <ConnectButton></ConnectButton>
         <Greeter></Greeter>
+        <Unifi></Unifi>
       </header>
     </div>
   );
