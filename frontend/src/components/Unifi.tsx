@@ -8,7 +8,8 @@ export const Unifi: React.FC<Props> = () => {
     return (
         <div>
             <VaultSelection>
-                <VaultInfo></VaultInfo>
+                <VaultInfo>
+                </VaultInfo>
             </VaultSelection>
         </div>
     )
