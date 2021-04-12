@@ -11,7 +11,7 @@ interface Props { }
 const ONE_WAD = parseEther('1')
 const ONE_RAY = parseUnits('1', 27)
 
-interface IVaultInfo {
+export interface IVaultInfo {
     urn: string, // Urn address of vault in Vat
     ink: BigNumber, // Collateral in WAD
     dart: BigNumber, // Dai debt in WAD
@@ -22,12 +22,7 @@ interface IVaultInfo {
     liquidationPrice: BigNumber, // in WAD
 }
 
-const VaultInfoContext = createContext<{ vaultInfo: IVaultInfo }>({})
-const { Provider } = VaultInfoContext
-
-export const useVaultInfoContext = () => useContext(VaultInfoContext)
-
-const emptyVaultInfo = {
+export const emptyVaultInfo = {
     urn: "",
     ink: BigNumber.from(0),
     dart: BigNumber.from(0),
@@ -37,6 +32,11 @@ const emptyVaultInfo = {
     collateralizationRatio: BigNumber.from(0),
     liquidationPrice: BigNumber.from(0),
 }
+
+const VaultInfoContext = createContext<{ vaultInfo: IVaultInfo }>({ vaultInfo: emptyVaultInfo })
+const { Provider } = VaultInfoContext
+
+export const useVaultInfoContext = () => useContext(VaultInfoContext)
 
 export const VaultInfo: React.FC<Props> = ({children}) => {
 
@@ -59,13 +59,11 @@ export const VaultInfo: React.FC<Props> = ({children}) => {
 
         const bytes32Ilk = formatBytes32String(vault.ilk)
 
-        const { rate } = await vat.ilks(bytes32Ilk)
+        const { spot, rate }: { spot: BigNumber, rate: BigNumber } = await vat.ilks(bytes32Ilk)
 
         const { ink, art }: { ink: BigNumber, art: BigNumber } = await vat.urns(bytes32Ilk, urn)
 
         const dart = art.isZero() ? art : art.mul(rate).div(ONE_RAY).add(1)
-
-        const { spot }: { spot: BigNumber } = await vat.ilks(bytes32Ilk)
 
         const { mat }: { mat: BigNumber } = await spotter.ilks(bytes32Ilk)
 
