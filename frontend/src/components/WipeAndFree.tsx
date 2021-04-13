@@ -199,10 +199,13 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         })())
 
+
         const token0ToRecieve = 
-            params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply)
+            pairTotalSupply.isZero() ? BigNumber.from(0) 
+            : params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply)
         const token1ToRecieve = 
-            params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply)
+            pairTotalSupply.isZero() ? BigNumber.from(0) 
+            : params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply)
 
         const token0MinAmountToRecieve = token0ToRecieve.sub(token0AmountForDai)
         const token1MinAmountToRecieve = token1ToRecieve.sub(token1AmountForDai)

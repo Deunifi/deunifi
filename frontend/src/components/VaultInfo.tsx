@@ -164,11 +164,9 @@ export const VaultInfo: React.FC<Props> = ({children}) => {
         <div>
             <ul>
                 <li>#{vault?.cdp.toString()}</li>
-                <li>Ilk: {vault?.ilk} {vault?.ilk ? formatBytes32String(vault?.ilk) : ''}</li>
-                <li>Urn: {vaultInfo?.urn}</li>
+                <li>Ilk: {vault?.ilk}</li>
                 <li>Ink: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.ink)}</li>
                 <li>Dart: {vaultInfo?.dart ? formatEther(vaultInfo.dart) : 0}</li>
-                <li>Urn: {vaultInfo?.urn}</li>
                 <li>Price: {/*TODO Check if it is correct the number of decimals*/formatUnits(vaultInfo.price, 27)}</li>
                 <li>Liquidation Price: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.liquidationPrice)}</li>
                 <li>Collateralization Ratio: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.collateralizationRatio)}</li>
