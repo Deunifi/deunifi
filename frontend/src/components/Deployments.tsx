@@ -13,6 +13,7 @@ interface IContractDeployment {
 // TODO Add other chanin ids or get this information dynamically
 const folderByChainId: any = {
     1337: 'localhost',
+    1: 'mainnet',
 }
 
 export function useDeploymentsFolder() {
