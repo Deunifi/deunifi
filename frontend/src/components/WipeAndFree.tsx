@@ -76,6 +76,8 @@ interface IErrors {
     tooMuchCollateralToFree?: string
     notEnoughCollateralToCoverDai?: string,
     notEnoughCollateralToFree?: string,
+    notEnoughDaiToCoverFlashLoanAndFees?: string,
+    invalidCombinationOfDaiAmount?: string,
 }
 
 export const WipeAndFree: React.FC<Props> = ({ children }) => {
@@ -197,15 +199,19 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         })())
 
-        const token0ToRecieve = pairTotalSupply.isZero()? 
-            BigNumber.from(0) : 
+        const token0ToRecieve = 
             params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply)
-        const token1ToRecieve = pairTotalSupply.isZero()? 
-            BigNumber.from(0) : 
+        const token1ToRecieve = 
             params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply)
 
-        setToken0MinAmountToRecieve(token0ToRecieve.sub(token0AmountForDai))
-        setToken1MinAmountToRecieve(token1ToRecieve.sub(token1AmountForDai))
+        const token0MinAmountToRecieve = token0ToRecieve.sub(token0AmountForDai)
+        const token1MinAmountToRecieve = token1ToRecieve.sub(token1AmountForDai)
+        setToken0MinAmountToRecieve(
+            token0MinAmountToRecieve.isNegative() ? BigNumber.from(0) : token0MinAmountToRecieve
+        )
+        setToken1MinAmountToRecieve(
+            token1MinAmountToRecieve.isNegative() ? BigNumber.from(0) : token1MinAmountToRecieve
+        )
 
         const SLIPPAGE_TOLERANCE_UNIT = parseUnits('1', 6)
 
@@ -214,10 +220,16 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             .div(SLIPPAGE_TOLERANCE_UNIT)
 
         if (params.collateralToUseToPayFlashLoan.lt(minCollateralToRemoveWithTolerance))
-            errors.notEnoughCollateralToCoverDai = `The amount to remove from pool it is not enough. Minimal amount is ${formatEther(minCollateralToRemoveWithTolerance)}.`
+            if (minCollateralToRemoveWithTolerance.lt(vaultInfo.ink))
+                errors.notEnoughCollateralToCoverDai = `The amount to remove from pool it is not enough. Minimal amount is ${formatEther(minCollateralToRemoveWithTolerance)}.`
+            else
+                errors.invalidCombinationOfDaiAmount = `The combination of DAI amounts exeeds the available collateral in your vault. Please try with another combination.`
 
         if (params.collateralToFree.lt(params.collateralToUseToPayFlashLoan))
             errors.notEnoughCollateralToFree = `The collateral amount to free from vault it is not enough. Minimal amount is ${formatEther(params.collateralToUseToPayFlashLoan)}.`
+
+        if (daiLoanPlusFees.gt(params.daiFromTokenA.add(params.daiFromTokenB)))
+            errors.notEnoughDaiToCoverFlashLoanAndFees = `The amount of DAI from LP tokens is not enough. Need to cover ${formatEther(daiLoanPlusFees)}.`
 
         setErrors(errors)
 
@@ -244,6 +256,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 <label>
                     DAI From Flash Loan:
                     <input type="number" value={form.daiFromFlashLoan} name="daiFromFlashLoan" onChange={(e) => onChangeBigNumber(e)}/>
+                    <button onClick={(e)=>{
+                        e.preventDefault()
+                        setForm({...form, daiFromFlashLoan: formatEther(vaultInfo.dart)})
+                        setParams({...params, daiFromFlashLoan: vaultInfo.dart})
+                    }}>Max</button>
                 </label>
             </p>
 
@@ -266,11 +283,21 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 </label>
             </p>
 
+            <p>
+                {errors.notEnoughDaiToCoverFlashLoanAndFees ? <div>{errors.notEnoughDaiToCoverFlashLoanAndFees}<br></br></div> : ''}
+                {errors.invalidCombinationOfDaiAmount ? <div>{errors.invalidCombinationOfDaiAmount}<br></br></div> : ''}
+            </p>
+
 
             <p>
                 <label>
                     {vaultInfo.ilkInfo.symbol} To Remove From Pool:
                     <input type="number" value={form.collateralToUseToPayFlashLoan} name="collateralToUseToPayFlashLoan" onChange={(e) => onChangeBigNumber(e)}/>
+                    <button onClick={(e)=>{
+                        e.preventDefault()
+                        setForm({...form, collateralToUseToPayFlashLoan: formatUnits(vaultInfo.ink), collateralToFree: formatUnits(vaultInfo.ink)})
+                        setParams({...params, collateralToUseToPayFlashLoan: vaultInfo.ink, collateralToFree: vaultInfo.ink})
+                    }}>Max</button>
                     {errors.notEnoughCollateralToCoverDai ? <p>{errors.notEnoughCollateralToCoverDai}</p> : ''}
                     {errors.notEnoughCollateralToCoverDai? 
                         '': 
@@ -284,6 +311,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.symbol} To Free From Vault:
                     <input type="number" value={form.collateralToFree} name="collateralToFree" onChange={(e) => onChangeBigNumber(e)}/>
+                    <button onClick={(e)=>{
+                        e.preventDefault()
+                        setForm({...form, collateralToFree: formatUnits(vaultInfo.ink)})
+                        setParams({...params, collateralToFree: vaultInfo.ink})
+                    }}>Max</button>
                     {errors.tooMuchCollateralToFree ? <p>{errors.tooMuchCollateralToFree}</p> : ''}
                     {errors.notEnoughCollateralToFree ? <p>{errors.notEnoughCollateralToFree}</p> : ''}
                     {(errors.tooMuchCollateralToFree || errors.notEnoughCollateralToFree) ? 
