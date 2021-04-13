@@ -1,12 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { formatBytes32String } from '@ethersproject/strings';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
-import { Contract, errors } from 'ethers';
+import { Signer } from 'crypto';
+import { Contract, errors, ethers, PopulatedTransaction } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useEffectAsync } from '../hooks/useEffectAsync';
+import { useSigner } from './Connection';
 import { useContract } from './Deployments';
 import { emptyVaultInfo, IVaultInfo, useVaultInfoContext } from './VaultInfo';
-import { useVaultContext, VaultSelection } from './VaultSelection';
+import { useDSProxyContainer, useVaultContext, VaultSelection } from './VaultSelection';
+import { TransactionResponse } from "@ethersproject/abstract-provider";
 
 interface Props { }
 
@@ -248,6 +251,111 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         setForm({...form, [e.target.name]: e.target.value})
     }
 
+    const removePosition = useContract('RemovePosition')
+    const signer = useSigner()
+    const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
+    const {dsProxy} = useDSProxyContainer()
+    const dssProxyActions = useContract('DssProxyActions')
+    const manager = useContract('DssCdpManager')
+    const daiJoin = useContract('DaiJoin')
+
+    async function proxyExecute(
+        proxy: Contract, methodInProxy: string, 
+        target: Contract, methodInTarget: string, params: any[]): Promise<TransactionResponse>{
+    
+        const transaction: PopulatedTransaction = await target.populateTransaction[methodInTarget](...params)
+      
+        return await proxy[methodInProxy](target.address, transaction.data)
+      
+    }
+
+    function deadline(secondsFromNow: number): BigNumber {
+        return BigNumber.from(Math.floor(Date.now()/1000)+secondsFromNow)
+    }
+    
+    
+    const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>)=>{
+
+        e.preventDefault()
+
+        if (!removePosition || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy || 
+            !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
+            !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
+            !daiJoin)
+            return
+
+        const sender = await signer.getAddress()
+
+        const dataForExecuteOperationCallback = ethers.utils.defaultAbiCoder.encode([
+            'address',
+            'address',
+            'uint256',
+            'uint256',
+            'uint256',
+            'address',
+            'address',
+            'address',
+            'uint256',
+            'uint256',
+            'uint256',
+            'uint256',
+            'address[]',
+            'address[]',
+            'uint256',
+            'uint256',
+            'uint256',
+            'uint256',
+            'address',
+            'address',
+            'address',
+            'address',
+            'address',
+            'uint256',
+            'address',            
+        ],[
+            sender, // address sender
+            dai.address, // address debtToken;
+            params.daiFromSigner.add(params.daiFromFlashLoan), // daiToPay
+            params.daiFromSigner, // uint amountFromSenderInDebtToken;
+            params.daiFromFlashLoan, // uint amountFromLoanInDebtToken;
+            vaultInfo.ilkInfo.token0.contract.address, // address tokenA;
+            vaultInfo.ilkInfo.token1.contract.address, // address tokenB;
+            vaultInfo.ilkInfo.gem.address, // address pairToken;
+            params.collateralToFree, // uint collateralAmountToFree;
+            params.collateralToUseToPayFlashLoan, // uint collateralAmountToUseToPayDebt;
+            params.daiFromTokenA, // uint debtToCoverWithTokenA;
+            params.daiFromTokenB, // uint debtToCoverWithTokenB;
+            [vaultInfo.ilkInfo.token0.contract.address, dai.address], // address[] pathTokenAToDebtToken; TODO Load dinamically
+            [vaultInfo.ilkInfo.token1.contract.address, dai.address], // address[] pathTokenBToDebtToken; TODO Load dinamically
+            token0MinAmountToRecieve, // uint minTokenAToRecive;
+            token1MinAmountToRecieve, // uint minTokenAToRecive;
+            getLoanFee(params.daiFromFlashLoan), // uint loanFee
+            deadline(params.transactionDeadline.toNumber()*60),
+            dsProxy.address,
+            dssProxyActions.address,
+            manager.address,
+            vaultInfo.ilkInfo.gemJoin.address,
+            daiJoin.address,
+            vaultInfo.cdp,
+            router02.address,
+        ]
+        )
+
+        proxyExecute(
+            dsProxy, 'execute(address,bytes)',
+            removePosition, 'flashLoanFromDSProxy',[
+                sender,
+                removePosition.address,
+                params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
+                params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
+                await lendingPoolAddressesProvider.getLendingPool(),
+                params.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
+                params.daiFromFlashLoan.isZero() ? [] : [params.daiFromFlashLoan], // loanAmounts
+                [BigNumber.from(0)], //modes
+                dataForExecuteOperationCallback // Data to be used on executeOperation
+            ]
+        )
+    }
     return (
         <form>
             <p>
@@ -342,8 +450,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 </label>
             </p>
 
-            <input type="submit" value="Submit" />
+            <button onClick={(e) => doOperation(e)}>
+                Unifi :)
+            </button>
         </form>
 
     )
+
 }

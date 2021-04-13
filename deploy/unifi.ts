@@ -18,10 +18,12 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
         from: deployer
     });
 
+    const lendingPoolAddressesProvider = await hre.ethers.getContract('LendingPoolAddressesProvider')
+
     await deploy('RemovePosition', {
         from: deployer,
         gasLimit: 4000000,
-        args: [unifiLibrary.address, unifiLibrary.address], //TODO set correct addresses
+        args: [lendingPoolAddressesProvider.address], //TODO Add feeTo parameter
         libraries:{
             UnifiLibrary: unifiLibrary.address,
         }

@@ -61,6 +61,7 @@ interface RemovePositionInterface extends ethers.utils.Interface {
       {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -72,8 +73,8 @@ interface RemovePositionInterface extends ethers.utils.Interface {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -211,6 +212,7 @@ export class RemovePosition extends Contract {
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -222,8 +224,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -237,10 +239,11 @@ export class RemovePosition extends Contract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    "paybackDebt((address,address,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
+    "paybackDebt((address,address,uint256,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -252,8 +255,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -324,6 +327,7 @@ export class RemovePosition extends Contract {
     parameters: {
       sender: string;
       debtToken: string;
+      debtToPay: BigNumberish;
       amountFromSenderInDebtToken: BigNumberish;
       amountFromLoanInDebtToken: BigNumberish;
       tokenA: string;
@@ -335,8 +339,8 @@ export class RemovePosition extends Contract {
       debtToCoverWithTokenB: BigNumberish;
       pathTokenAToDebtToken: string[];
       pathTokenBToDebtToken: string[];
-      minTokenAToFree: BigNumberish;
-      minTokenBToFree: BigNumberish;
+      minTokenAToRecive: BigNumberish;
+      minTokenBToRecive: BigNumberish;
       loanFee: BigNumberish;
       deadline: BigNumberish;
       dsProxy: string;
@@ -350,10 +354,11 @@ export class RemovePosition extends Contract {
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  "paybackDebt((address,address,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
+  "paybackDebt((address,address,uint256,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
     parameters: {
       sender: string;
       debtToken: string;
+      debtToPay: BigNumberish;
       amountFromSenderInDebtToken: BigNumberish;
       amountFromLoanInDebtToken: BigNumberish;
       tokenA: string;
@@ -365,8 +370,8 @@ export class RemovePosition extends Contract {
       debtToCoverWithTokenB: BigNumberish;
       pathTokenAToDebtToken: string[];
       pathTokenBToDebtToken: string[];
-      minTokenAToFree: BigNumberish;
-      minTokenBToFree: BigNumberish;
+      minTokenAToRecive: BigNumberish;
+      minTokenBToRecive: BigNumberish;
       loanFee: BigNumberish;
       deadline: BigNumberish;
       dsProxy: string;
@@ -437,6 +442,7 @@ export class RemovePosition extends Contract {
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -448,8 +454,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -469,10 +475,11 @@ export class RemovePosition extends Contract {
       }
     >;
 
-    "paybackDebt((address,address,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
+    "paybackDebt((address,address,uint256,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -484,8 +491,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -565,6 +572,7 @@ export class RemovePosition extends Contract {
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -576,8 +584,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -591,10 +599,11 @@ export class RemovePosition extends Contract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    "paybackDebt((address,address,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
+    "paybackDebt((address,address,uint256,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -606,8 +615,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -683,6 +692,7 @@ export class RemovePosition extends Contract {
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -694,8 +704,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;
@@ -709,10 +719,11 @@ export class RemovePosition extends Contract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    "paybackDebt((address,address,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
+    "paybackDebt((address,address,uint256,uint256,uint256,address,address,address,uint256,uint256,uint256,uint256,address[],address[],uint256,uint256,uint256,uint256,address,address,address,address,address,uint256,address))"(
       parameters: {
         sender: string;
         debtToken: string;
+        debtToPay: BigNumberish;
         amountFromSenderInDebtToken: BigNumberish;
         amountFromLoanInDebtToken: BigNumberish;
         tokenA: string;
@@ -724,8 +735,8 @@ export class RemovePosition extends Contract {
         debtToCoverWithTokenB: BigNumberish;
         pathTokenAToDebtToken: string[];
         pathTokenBToDebtToken: string[];
-        minTokenAToFree: BigNumberish;
-        minTokenBToFree: BigNumberish;
+        minTokenAToRecive: BigNumberish;
+        minTokenBToRecive: BigNumberish;
         loanFee: BigNumberish;
         deadline: BigNumberish;
         dsProxy: string;

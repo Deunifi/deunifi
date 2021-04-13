@@ -19,6 +19,7 @@ interface ITokenInfo{
 }
 
 export interface IVaultInfo {
+    cdp: BigNumber,
     urn: string, // Urn address of vault in Vat
     ink: BigNumber, // Collateral in WAD
     dart: BigNumber, // Dai debt in WAD
@@ -41,6 +42,7 @@ export interface IVaultInfo {
 }
 
 export const emptyVaultInfo: IVaultInfo = {
+    cdp: BigNumber.from(0),
     urn: "",
     ink: BigNumber.from(0),
     dart: BigNumber.from(0),
@@ -137,6 +139,7 @@ export const VaultInfo: React.FC<Props> = ({children}) => {
         }
 
         setVaultInfo({
+            cdp: vault.cdp,
             urn,
             ink,
             dart,

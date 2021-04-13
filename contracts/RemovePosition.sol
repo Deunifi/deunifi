@@ -45,21 +45,21 @@ interface ILendingPool{
 
 contract RemovePosition is FlashLoanReceiverBase {
 
-    address immutable feeManager;
+    // address immutable feeManager;
 
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
-    constructor(ILendingPoolAddressesProvider provider, address _feeManager) FlashLoanReceiverBase(provider) public {
-        feeManager = _feeManager;
+    constructor(ILendingPoolAddressesProvider provider/*, address _feeManager*/) FlashLoanReceiverBase(provider) public {
+        // feeManager = _feeManager;
     }
 
     struct PayBackParameters {
         address sender;
-
         address debtToken;
-        uint amountFromSenderInDebtToken;
-        uint amountFromLoanInDebtToken;
+        uint debtToPay;
+        uint amountFromSenderInDebtToken; // TODO Verify if applies
+        uint amountFromLoanInDebtToken; // TODO Verify if applies
         address tokenA;
         address tokenB;
         address pairToken;
@@ -69,10 +69,9 @@ contract RemovePosition is FlashLoanReceiverBase {
         uint debtToCoverWithTokenB;
         address[] pathTokenAToDebtToken;
         address[] pathTokenBToDebtToken;
-        uint minTokenAToFree;
-        uint minTokenBToFree;
-
-        uint loanFee;
+        uint minTokenAToRecive;
+        uint minTokenBToRecive;
+        uint loanFee; // TODO Verify if applies
         uint deadline;
         address dsProxy;
         address dsProxyActions;
@@ -99,6 +98,7 @@ contract RemovePosition is FlashLoanReceiverBase {
         returns (bool)
     {
 
+        console.logBytes(params);
         ( PayBackParameters memory decodedData ) = abi.decode(params, (PayBackParameters));
 
         (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
@@ -112,6 +112,13 @@ contract RemovePosition is FlashLoanReceiverBase {
         if (pairRemaining > 0)
             IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, remainingTokenB);
 
+        // TODO add feeTo attribute and change decodedData.sender for feeTo.
+        // Service fee payment
+        IERC20(decodedData.debtToken).safeTransfer(decodedData.sender, decodedData.debtToPay.mul(3).div(10000));
+
+        // Loan fee payment
+        IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), decodedData.loanFee);
+
         return true;
     }
 
@@ -119,8 +126,7 @@ contract RemovePosition is FlashLoanReceiverBase {
     function paybackDebt(PayBackParameters memory parameters) public payable
         returns (uint freeTokenA, uint freeTokenB, uint freePairToken){
 
-        uint debtToPay = parameters.amountFromSenderInDebtToken
-            + parameters.amountFromLoanInDebtToken - parameters.loanFee;
+        uint debtToPay = parameters.debtToPay;
 
         UnifiLibrary.wipeAndFreeGem(
             parameters.dsProxy,
@@ -142,9 +148,9 @@ contract RemovePosition is FlashLoanReceiverBase {
                 parameters.pairToken,
                 parameters.collateralAmountToUseToPayDebt, // Amount of tokenA or liquidity to remove 
                                     // of pair(tokenA, tokenB)
-                parameters.minTokenAToFree, // Min amount remaining after swap tokenA for debtToken
+                0, // Min amount remaining after swap tokenA for debtToken
                             // (this has more sense when we are working with pairs)
-                parameters.minTokenBToFree, // Optional in case of Uniswap Pair Collateral
+                0, // Optional in case of Uniswap Pair Collateral
                 parameters.deadline,
                 parameters.debtToCoverWithTokenA, // amount in debt token
                 parameters.debtToCoverWithTokenB, // Optional in case of Uniswap Pair Collateral
@@ -152,6 +158,9 @@ contract RemovePosition is FlashLoanReceiverBase {
                 parameters.pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
             )
         );
+
+        require(remainingTokenA < parameters.minTokenAToRecive, 'Unifi: Remaining token A lower than min to recive');
+        require(remainingTokenB < parameters.minTokenBToRecive, 'Unifi: Remaining token A lower than min to recive');
 
         uint pairRemaining = 0;
 
@@ -164,6 +173,9 @@ contract RemovePosition is FlashLoanReceiverBase {
 
     }
 
+    /**
+    Executed as DSProxy.
+     */
     function flashLoanFromDSProxy(
         address owner, // Owner of DSProxy calling this function.
         address target, // Target contract that will resolve the flash loan.
@@ -198,7 +210,7 @@ contract RemovePosition is FlashLoanReceiverBase {
 
         IDSProxy(address(this)).setOwner(owner);
 
-        IFeeManager(feeManager).takeFeeFrom(owner, initialGas-gasleft()); // TODO feeToken.connect(owner).approve(feeManager,MAX)
+        // IFeeManager(feeManager).takeFeeFrom(owner, initialGas-gasleft()); // TODO feeToken.connect(owner).approve(feeManager,MAX)
 
     }
 
