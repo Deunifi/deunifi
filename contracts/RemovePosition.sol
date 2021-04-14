@@ -14,6 +14,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { UnifiLibrary } from "./UnifiLibrary.sol";
 
+// TODO Remove
 import "hardhat/console.sol";
 
 interface IFeeManager{
@@ -67,8 +68,9 @@ contract RemovePosition is FlashLoanReceiverBase {
         uint collateralAmountToUseToPayDebt;
         uint debtToCoverWithTokenA;
         uint debtToCoverWithTokenB;
-        address[] pathTokenAToDebtToken;
-        address[] pathTokenBToDebtToken;
+        // TODO remove comment and find solution for decoding address[]
+        // address[] pathTokenAToDebtToken;
+        // address[] pathTokenBToDebtToken;
         uint minTokenAToRecive;
         uint minTokenBToRecive;
         uint loanFee; // TODO Verify if applies
@@ -98,7 +100,6 @@ contract RemovePosition is FlashLoanReceiverBase {
         returns (bool)
     {
 
-        console.logBytes(params);
         ( PayBackParameters memory decodedData ) = abi.decode(params, (PayBackParameters));
 
         (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
@@ -112,12 +113,23 @@ contract RemovePosition is FlashLoanReceiverBase {
         if (pairRemaining > 0)
             IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, remainingTokenB);
 
-        // TODO add feeTo attribute and change decodedData.sender for feeTo.
+        // TODO add feeMannagerTo manage the fee payments.
         // Service fee payment
         IERC20(decodedData.debtToken).safeTransfer(decodedData.sender, decodedData.debtToPay.mul(3).div(10000));
 
         // Loan fee payment
-        IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), decodedData.loanFee);
+        // TODO Do dynamic
+        // for (uint i=0; i<amounts.length; i=i.add(1)){
+        //     IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[i].add(amounts[i]));
+        // }
+        IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
+
+        // console.log('address(LENDING_POOL)', address(LENDING_POOL));
+        // console.log('msg.sender', msg.sender);
+        // console.log('decodedData', decodedData.loanFee);
+        // console.log('premiums[0]', premiums[0]);
+        // console.log('amounts[0]', amounts[0]);
+        // console.log('IERC20(decodedData.debtToken).balanceOf(address(this))', IERC20(decodedData.debtToken).balanceOf(address(this)));
 
         return true;
     }
@@ -140,6 +152,14 @@ contract RemovePosition is FlashLoanReceiverBase {
             parameters.debtToken
         );
 
+        // TODO Remove once resolved the problem of decoding paths.
+        address[] memory pathTokenAToDebtToken = new address[](2);
+        pathTokenAToDebtToken[0] = parameters.tokenA;
+        pathTokenAToDebtToken[1] = parameters.debtToken;
+        address[] memory pathTokenBToDebtToken = new address[](2);
+        pathTokenBToDebtToken[0] = parameters.tokenB;
+        pathTokenBToDebtToken[1] = parameters.debtToken;
+
         (uint remainingTokenA, uint remainingTokenB) = UnifiLibrary.swapCollateralForTokens(
             UnifiLibrary.SwapCollateralForTokensParameters(
                 parameters.router02,
@@ -148,19 +168,19 @@ contract RemovePosition is FlashLoanReceiverBase {
                 parameters.pairToken,
                 parameters.collateralAmountToUseToPayDebt, // Amount of tokenA or liquidity to remove 
                                     // of pair(tokenA, tokenB)
-                0, // Min amount remaining after swap tokenA for debtToken
+                parameters.minTokenAToRecive, // Min amount remaining after swap tokenA for debtToken
                             // (this has more sense when we are working with pairs)
-                0, // Optional in case of Uniswap Pair Collateral
+                parameters.minTokenBToRecive, // Optional in case of Uniswap Pair Collateral
                 parameters.deadline,
                 parameters.debtToCoverWithTokenA, // amount in debt token
                 parameters.debtToCoverWithTokenB, // Optional in case of Uniswap Pair Collateral
-                parameters.pathTokenAToDebtToken, // Path to perform the swap.
-                parameters.pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
+                // TODO Use the paths pass as parameters.
+                // parameters.pathTokenAToDebtToken, // Path to perform the swap.
+                // parameters.pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
+                pathTokenAToDebtToken, // Path to perform the swap.
+                pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
             )
         );
-
-        require(remainingTokenA < parameters.minTokenAToRecive, 'Unifi: Remaining token A lower than min to recive');
-        require(remainingTokenB < parameters.minTokenBToRecive, 'Unifi: Remaining token A lower than min to recive');
 
         uint pairRemaining = 0;
 

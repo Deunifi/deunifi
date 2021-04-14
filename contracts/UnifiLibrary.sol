@@ -8,6 +8,9 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
+// TODO Remove
+import "hardhat/console.sol";
+
 uint256 constant UINT256_MAX = ~uint256(0);
 
 interface IDSProxy{
@@ -42,7 +45,7 @@ library UnifiLibrary {
     ) external {
 
         // TODO Do all approvements with MAX_UINT if applyes.
-        IERC20(daiToken).safeIncreaseAllowance(daiJoin, wadD);
+        IERC20(daiToken).safeIncreaseAllowance(dsProxy, wadD);
 
         IDSProxy(dsProxy).execute(
             dsProxyActions,
@@ -107,7 +110,7 @@ library UnifiLibrary {
             if (parameters.debtToCoverWithTokenB > 0){
                 
                 IERC20(parameters.tokenB).safeIncreaseAllowance(parameters.router02, amountB.sub(parameters.amountBMin));
-
+                
                 amountBCoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
                     parameters.debtToCoverWithTokenB,
                     amountB.sub(parameters.amountBMin), // amountInMax (Here we validate amountBMin)

@@ -100,14 +100,22 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     
     const daiFromTokenAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
-            const daiFromTokenA = parseBigNumber(e.target.value)
+            let value = e.target.value
+            let daiFromTokenA = parseBigNumber(value)
+            if (daiFromTokenA.gt(daiLoanPlusFees)){
+                daiFromTokenA = daiLoanPlusFees
+                value = formatEther(daiFromTokenA)
+            }else if (daiFromTokenA.isNegative()){
+                daiFromTokenA = BigNumber.from(0)
+                value = '0'
+            }
             const daiFromTokenB = daiLoanPlusFees.sub(daiFromTokenA)
             if (daiFromTokenB.eq(params.daiFromTokenB)){
-                setForm({...form, daiFromTokenA: e.target.value})
+                setForm({...form, daiFromTokenA: value})
                 return
             }
             setParams({...params, daiFromTokenA, daiFromTokenB})
-            setForm({...form, daiFromTokenA: e.target.value, daiFromTokenB: formatEther(daiFromTokenB)})
+            setForm({...form, daiFromTokenA: value, daiFromTokenB: formatEther(daiFromTokenB)})
         } catch (error) {
             setForm({...form, daiFromTokenA: e.target.value})
         }
@@ -115,14 +123,22 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const daiFromTokenBChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
-            const daiFromTokenB = parseBigNumber(e.target.value)
+            let value = e.target.value
+            let daiFromTokenB = parseBigNumber(value)
+            if (daiFromTokenB.gt(daiLoanPlusFees)){
+                daiFromTokenB = daiLoanPlusFees
+                value = formatEther(daiFromTokenB)
+            }else if (daiFromTokenB.isNegative()){
+                daiFromTokenB = BigNumber.from(0)
+                value = '0'
+            }
             const daiFromTokenA = daiLoanPlusFees.sub(daiFromTokenB)
             if (daiFromTokenA.eq(params.daiFromTokenA)){
-                setForm({...form, daiFromTokenB: e.target.value})
+                setForm({...form, daiFromTokenB: value})
                 return
             }
             setParams({...params, daiFromTokenA, daiFromTokenB})
-            setForm({...form, daiFromTokenB: e.target.value, daiFromTokenA: formatEther(daiFromTokenA)})
+            setForm({...form, daiFromTokenB: value, daiFromTokenA: formatEther(daiFromTokenA)})
         } catch (error) {
             setForm({...form, daiFromTokenB: e.target.value})            
         }
@@ -158,6 +174,20 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         if (params.collateralToFree.gt(vaultInfo.ink))
             errors.tooMuchCollateralToFree = `You are trying to free more collateral than available in your vault. Max collateral to free: ${formatEther(vaultInfo.ink)}`
 
+        const SLIPPAGE_TOLERANCE_UNIT = parseUnits('1', 6)
+
+        const increaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): BigNumber => {
+            return amount
+                .mul(SLIPPAGE_TOLERANCE_UNIT.add(tolerance))
+                .div(SLIPPAGE_TOLERANCE_UNIT)
+        }
+
+        const decreaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): BigNumber => {
+            return amount
+                .mul(SLIPPAGE_TOLERANCE_UNIT)
+                .div(SLIPPAGE_TOLERANCE_UNIT.add(tolerance))
+        }
+
         /**
          * Collateral -> TokenA, TokenB: 3) Collateral ~ TokenX / ReserveX
          * TokenA -> DAI TokenA: 1) getAmountsIn(DAI TokenA) to obtain TokenA
@@ -179,13 +209,20 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             // TODO In case of dai, should be the same amount.
             const token0AmountForDai: BigNumber = params.daiFromTokenA.isZero() ?
                 BigNumber.from(0)
-                : (await router02.getAmountsIn(
-                    params.daiFromTokenA, [token0.contract.address, dai.address]))[0];
+                : increaseWithTolerance( // Introduced swap operation tolerance
+                    (await router02.getAmountsIn(params.daiFromTokenA,
+                        [token0.contract.address, dai.address]))[0],
+                    params.slippageTolerance
+                    );
 
+            // TODO In case of dai, should be the same amount.
             const token1AmountForDai: BigNumber = params.daiFromTokenB.isZero() ?
                 BigNumber.from(0)
-                : (await router02.getAmountsIn(
-                    params.daiFromTokenB, [token1.contract.address, dai.address]))[0];
+                : increaseWithTolerance( // Introduced swap operation tolerance
+                    (await router02.getAmountsIn(params.daiFromTokenB,
+                        [token1.contract.address, dai.address]))[0],
+                    params.slippageTolerance
+                );
 
             const minLiquidityToRemoveForToken0 = token0AmountForDai
                 .mul(pairTotalSupply)
@@ -194,42 +231,54 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 .mul(pairTotalSupply)
                 .div(pairToken1Balance)
 
-            const minLiquidityToRemove = minLiquidityToRemoveForToken0.gt(minLiquidityToRemoveForToken1) ?
-                minLiquidityToRemoveForToken0
-                : minLiquidityToRemoveForToken1
+            const minLiquidityToRemove = increaseWithTolerance( // Introduced remove liquidity operation tolerance
+                minLiquidityToRemoveForToken0.gt(minLiquidityToRemoveForToken1) ?
+                    minLiquidityToRemoveForToken0
+                    : minLiquidityToRemoveForToken1,
+                params.slippageTolerance
+            )
             
-            return [minLiquidityToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, pairTotalSupply]
+            return [
+                minLiquidityToRemove,
+                token0AmountForDai, token1AmountForDai,
+                pairToken0Balance, pairToken1Balance, pairTotalSupply]
 
         })())
 
-
         const token0ToRecieve = 
             pairTotalSupply.isZero() ? BigNumber.from(0) 
-            : params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply)
+            : decreaseWithTolerance( // Introduced remove liquidity operation tolerance
+                params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply),
+                params.slippageTolerance
+            ) 
+
         const token1ToRecieve = 
             pairTotalSupply.isZero() ? BigNumber.from(0) 
-            : params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply)
+            : decreaseWithTolerance(  // Introduced remove liquidity operation tolerance
+                params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply),
+                params.slippageTolerance
+            )
 
-        const token0MinAmountToRecieve = token0ToRecieve.sub(token0AmountForDai)
-        const token1MinAmountToRecieve = token1ToRecieve.sub(token1AmountForDai)
+        const token0MinAmountToRecieve = token0ToRecieve
+            .sub(token0AmountForDai)
+
+        const token1MinAmountToRecieve = token1ToRecieve
+            .sub(token1AmountForDai)
+
         setToken0MinAmountToRecieve(
+            // When it is negative means there is a wron combination of covered DAI by tokens.
             token0MinAmountToRecieve.isNegative() ? BigNumber.from(0) : token0MinAmountToRecieve
         )
         setToken1MinAmountToRecieve(
+            // When it is negative means there is a wron combination of covered DAI by tokens.
             token1MinAmountToRecieve.isNegative() ? BigNumber.from(0) : token1MinAmountToRecieve
         )
 
-        const SLIPPAGE_TOLERANCE_UNIT = parseUnits('1', 6)
-
-        const minCollateralToRemoveWithTolerance = minCollateralToRemove
-            .mul(SLIPPAGE_TOLERANCE_UNIT.add(params.slippageTolerance))
-            .div(SLIPPAGE_TOLERANCE_UNIT)
-
-        if (params.collateralToUseToPayFlashLoan.lt(minCollateralToRemoveWithTolerance))
-            if (minCollateralToRemoveWithTolerance.lt(vaultInfo.ink))
-                errors.notEnoughCollateralToCoverDai = `The amount to remove from pool it is not enough. Minimal amount is ${formatEther(minCollateralToRemoveWithTolerance)}.`
+        if (params.collateralToUseToPayFlashLoan.lt(minCollateralToRemove))
+            if (minCollateralToRemove.lt(vaultInfo.ink))
+                errors.notEnoughCollateralToCoverDai = `The amount to remove from pool it is not enough. Minimal amount is ${formatEther(minCollateralToRemove)}.`
             else
-                errors.invalidCombinationOfDaiAmount = `The combination of DAI amounts exeeds the available collateral in your vault. Please try with another combination.`
+                errors.invalidCombinationOfDaiAmount = `The combination of DAI amounts exeeds the available collateral in your vault. Please try reducing the DAI covered with ${params.daiFromTokenA.gt(params.daiFromTokenB)? vaultInfo.ilkInfo.token0?.symbol : vaultInfo.ilkInfo.token1?.symbol}.`
 
         if (params.collateralToFree.lt(params.collateralToUseToPayFlashLoan))
             errors.notEnoughCollateralToFree = `The collateral amount to free from vault it is not enough. Minimal amount is ${formatEther(params.collateralToUseToPayFlashLoan)}.`
@@ -299,8 +348,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             'uint256',
             'uint256',
             'uint256',
-            'address[]',
-            'address[]',
+            // TODO Find a way to resolve decoding.
+            // 'address[]',
+            // 'address[]',
             'uint256',
             'uint256',
             'uint256',
@@ -325,8 +375,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             params.collateralToUseToPayFlashLoan, // uint collateralAmountToUseToPayDebt;
             params.daiFromTokenA, // uint debtToCoverWithTokenA;
             params.daiFromTokenB, // uint debtToCoverWithTokenB;
-            [vaultInfo.ilkInfo.token0.contract.address, dai.address], // address[] pathTokenAToDebtToken; TODO Load dinamically
-            [vaultInfo.ilkInfo.token1.contract.address, dai.address], // address[] pathTokenBToDebtToken; TODO Load dinamically
+            // TODO Resolve better path dinamically.
+            // TODO Find a way to resolve decoding.
+            // [vaultInfo.ilkInfo.token0.contract.address, dai.address], // address[] pathTokenAToDebtToken; TODO Load dinamically
+            // [vaultInfo.ilkInfo.token1.contract.address, dai.address], // address[] pathTokenBToDebtToken; TODO Load dinamically
             token0MinAmountToRecieve, // uint minTokenAToRecive;
             token1MinAmountToRecieve, // uint minTokenAToRecive;
             getLoanFee(params.daiFromFlashLoan), // uint loanFee
