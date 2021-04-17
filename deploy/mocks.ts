@@ -12,27 +12,19 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 
     const { deployer } = await getNamedAccounts();
 
-    await deploy('DssProxyActions', {
+    await deploy('LendingPoolAddressesProvider', {
         from: deployer,
         gasLimit: 9000000,
-        args: [],
-    });
-
-    const uniswapV2Factory = await hre.ethers.getContract('UniswapV2Factory')
-    const weth = await hre.ethers.getContract('WETH')
-
-    await deploy('UniswapV2Router02', {
-        from: deployer,
-        gasLimit: 9000000,
-        args: [uniswapV2Factory.address, weth.address, ]
+        args: [ ]
     });
 
 } as DeployFunction;
 
-deploy.tags = []
+deploy.tags = [ 'mocks' ]
 
 deploy.skip = async (env: HardhatRuntimeEnvironment) => {
-    return env.network.name !== 'localhost'
+    // We only create mock for hardhat network.
+    return (env.network.name !== 'hardhat')
 }
 
 export default deploy;

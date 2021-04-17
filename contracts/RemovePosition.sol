@@ -59,8 +59,6 @@ contract RemovePosition is FlashLoanReceiverBase {
         address sender;
         address debtToken;
         uint debtToPay;
-        uint amountFromSenderInDebtToken; // TODO Verify if applies
-        uint amountFromLoanInDebtToken; // TODO Verify if applies
         address tokenA;
         address tokenB;
         address pairToken;
@@ -68,9 +66,8 @@ contract RemovePosition is FlashLoanReceiverBase {
         uint collateralAmountToUseToPayDebt;
         uint debtToCoverWithTokenA;
         uint debtToCoverWithTokenB;
-        // TODO remove comment and find solution for decoding address[]
-        // address[] pathTokenAToDebtToken;
-        // address[] pathTokenBToDebtToken;
+        address[] pathTokenAToDebtToken;
+        address[] pathTokenBToDebtToken;
         uint minTokenAToRecive;
         uint minTokenBToRecive;
         uint loanFee; // TODO Verify if applies
@@ -111,7 +108,7 @@ contract RemovePosition is FlashLoanReceiverBase {
             IERC20(decodedData.tokenB).safeTransfer(decodedData.sender, remainingTokenB);
 
         if (pairRemaining > 0)
-            IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, remainingTokenB);
+            IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, pairRemaining);
 
         // TODO add feeMannagerTo manage the fee payments.
         // Service fee payment
@@ -123,13 +120,6 @@ contract RemovePosition is FlashLoanReceiverBase {
         //     IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[i].add(amounts[i]));
         // }
         IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
-
-        // console.log('address(LENDING_POOL)', address(LENDING_POOL));
-        // console.log('msg.sender', msg.sender);
-        // console.log('decodedData', decodedData.loanFee);
-        // console.log('premiums[0]', premiums[0]);
-        // console.log('amounts[0]', amounts[0]);
-        // console.log('IERC20(decodedData.debtToken).balanceOf(address(this))', IERC20(decodedData.debtToken).balanceOf(address(this)));
 
         return true;
     }

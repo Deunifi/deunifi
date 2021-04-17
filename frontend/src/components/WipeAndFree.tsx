@@ -149,6 +149,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const [token0MinAmountToRecieve, setToken0MinAmountToRecieve] = useState(BigNumber.from(0))
     const [token1MinAmountToRecieve, setToken1MinAmountToRecieve] = useState(BigNumber.from(0))
+    const [token0ToRecieve, setToken0ToRecieve] = useState(BigNumber.from(0))
+    const [token1ToRecieve, setToken1ToRecieve] = useState(BigNumber.from(0))
 
     useEffectAsync(async () => {
         
@@ -193,7 +195,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
          * TokenA -> DAI TokenA: 1) getAmountsIn(DAI TokenA) to obtain TokenA
          * TokenB -> DAI TokenB: 2) getAmountsIn(DAI TokenB) to obtain TokenB
          */
-        const [minCollateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, pairTotalSupply ] = await ((async () =>{
+        const [collateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, pairTotalSupply ] = await ((async () =>{
 
             const { univ2Pair, token0, token1 } = vaultInfo.ilkInfo
 
@@ -209,20 +211,14 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             // TODO In case of dai, should be the same amount.
             const token0AmountForDai: BigNumber = params.daiFromTokenA.isZero() ?
                 BigNumber.from(0)
-                : increaseWithTolerance( // Introduced swap operation tolerance
-                    (await router02.getAmountsIn(params.daiFromTokenA,
-                        [token0.contract.address, dai.address]))[0],
-                    params.slippageTolerance
-                    );
+                : (await router02.getAmountsIn(params.daiFromTokenA,
+                    [token0.contract.address, dai.address]))[0]
 
             // TODO In case of dai, should be the same amount.
             const token1AmountForDai: BigNumber = params.daiFromTokenB.isZero() ?
                 BigNumber.from(0)
-                : increaseWithTolerance( // Introduced swap operation tolerance
-                    (await router02.getAmountsIn(params.daiFromTokenB,
-                        [token1.contract.address, dai.address]))[0],
-                    params.slippageTolerance
-                );
+                : (await router02.getAmountsIn(params.daiFromTokenB,
+                    [token1.contract.address, dai.address]))[0]
 
             const minLiquidityToRemoveForToken0 = token0AmountForDai
                 .mul(pairTotalSupply)
@@ -231,12 +227,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 .mul(pairTotalSupply)
                 .div(pairToken1Balance)
 
-            const minLiquidityToRemove = increaseWithTolerance( // Introduced remove liquidity operation tolerance
+            const minLiquidityToRemove = 
                 minLiquidityToRemoveForToken0.gt(minLiquidityToRemoveForToken1) ?
                     minLiquidityToRemoveForToken0
-                    : minLiquidityToRemoveForToken1,
-                params.slippageTolerance
-            )
+                    : minLiquidityToRemoveForToken1
             
             return [
                 minLiquidityToRemove,
@@ -245,24 +239,37 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         })())
 
+        const minCollateralToRemove = increaseWithTolerance(
+            collateralToRemove,
+            params.slippageTolerance
+        )
+
         const token0ToRecieve = 
             pairTotalSupply.isZero() ? BigNumber.from(0) 
-            : decreaseWithTolerance( // Introduced remove liquidity operation tolerance
-                params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply),
-                params.slippageTolerance
-            ) 
+            : params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply)
 
+        setToken0ToRecieve(
+            token0ToRecieve.sub(token0AmountForDai).isNegative() ? BigNumber.from(0) : token0ToRecieve.sub(token0AmountForDai)
+        )
+    
         const token1ToRecieve = 
             pairTotalSupply.isZero() ? BigNumber.from(0) 
-            : decreaseWithTolerance(  // Introduced remove liquidity operation tolerance
-                params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply),
+            : params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply)
+
+        setToken1ToRecieve(
+            token1ToRecieve.sub(token1AmountForDai).isNegative() ? BigNumber.from(0) : token1ToRecieve.sub(token1AmountForDai)
+        )
+    
+        const token0MinAmountToRecieve = decreaseWithTolerance( // Introduced remove liquidity operation tolerance
+                token0ToRecieve,
                 params.slippageTolerance
             )
-
-        const token0MinAmountToRecieve = token0ToRecieve
             .sub(token0AmountForDai)
 
-        const token1MinAmountToRecieve = token1ToRecieve
+        const token1MinAmountToRecieve = decreaseWithTolerance( // Introduced remove liquidity operation tolerance
+                token1ToRecieve,
+                params.slippageTolerance
+            )
             .sub(token1AmountForDai)
 
         setToken0MinAmountToRecieve(
@@ -336,60 +343,59 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const sender = await signer.getAddress()
 
         const dataForExecuteOperationCallback = ethers.utils.defaultAbiCoder.encode([
-            'address',
-            'address',
-            'uint256',
-            'uint256',
-            'uint256',
-            'address',
-            'address',
-            'address',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-            // TODO Find a way to resolve decoding.
-            // 'address[]',
-            // 'address[]',
-            'uint256',
-            'uint256',
-            'uint256',
-            'uint256',
-            'address',
-            'address',
-            'address',
-            'address',
-            'address',
-            'uint256',
-            'address',            
+            `tuple(${[
+                'address',
+                'address',
+                'uint256',
+                'address',
+                'address',
+                'address',
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+                'address[]',
+                'address[]',
+                'uint256',
+                'uint256',
+                'uint256',
+                'uint256',
+                'address',
+                'address',
+                'address',
+                'address',
+                'address',
+                'uint256',
+                'address',   
+            ].join(',')})`,         
         ],[
-            sender, // address sender
-            dai.address, // address debtToken;
-            params.daiFromSigner.add(params.daiFromFlashLoan), // daiToPay
-            params.daiFromSigner, // uint amountFromSenderInDebtToken;
-            params.daiFromFlashLoan, // uint amountFromLoanInDebtToken;
-            vaultInfo.ilkInfo.token0.contract.address, // address tokenA;
-            vaultInfo.ilkInfo.token1.contract.address, // address tokenB;
-            vaultInfo.ilkInfo.gem.address, // address pairToken;
-            params.collateralToFree, // uint collateralAmountToFree;
-            params.collateralToUseToPayFlashLoan, // uint collateralAmountToUseToPayDebt;
-            params.daiFromTokenA, // uint debtToCoverWithTokenA;
-            params.daiFromTokenB, // uint debtToCoverWithTokenB;
-            // TODO Resolve better path dinamically.
-            // TODO Find a way to resolve decoding.
-            // [vaultInfo.ilkInfo.token0.contract.address, dai.address], // address[] pathTokenAToDebtToken; TODO Load dinamically
-            // [vaultInfo.ilkInfo.token1.contract.address, dai.address], // address[] pathTokenBToDebtToken; TODO Load dinamically
-            token0MinAmountToRecieve, // uint minTokenAToRecive;
-            token1MinAmountToRecieve, // uint minTokenAToRecive;
-            getLoanFee(params.daiFromFlashLoan), // uint loanFee
-            deadline(params.transactionDeadline.toNumber()*60),
-            dsProxy.address,
-            dssProxyActions.address,
-            manager.address,
-            vaultInfo.ilkInfo.gemJoin.address,
-            daiJoin.address,
-            vaultInfo.cdp,
-            router02.address,
+            [
+                sender, // address sender
+                dai.address, // address debtToken;
+                params.daiFromSigner.add(params.daiFromFlashLoan), // daiToPay
+                vaultInfo.ilkInfo.token0.contract.address, // address tokenA;
+                vaultInfo.ilkInfo.token1.contract.address, // address tokenB;
+                vaultInfo.ilkInfo.gem.address, // address pairToken;
+                params.collateralToFree, // uint collateralAmountToFree;
+                params.collateralToUseToPayFlashLoan, // uint collateralAmountToUseToPayDebt;
+                params.daiFromTokenA, // uint debtToCoverWithTokenA;
+                params.daiFromTokenB, // uint debtToCoverWithTokenB;
+                // TODO Resolve better path dinamically.
+                [vaultInfo.ilkInfo.token0.contract.address, dai.address], // address[] pathTokenAToDebtToken;
+                // TODO Resolve better path dinamically.
+                [vaultInfo.ilkInfo.token1.contract.address, dai.address], // address[] pathTokenBToDebtToken;
+                token0MinAmountToRecieve, // uint minTokenAToRecive;
+                token1MinAmountToRecieve, // uint minTokenAToRecive;
+                getLoanFee(params.daiFromFlashLoan), // uint loanFee
+                deadline(params.transactionDeadline.toNumber()*60),
+                dsProxy.address,
+                dssProxyActions.address,
+                manager.address,
+                vaultInfo.ilkInfo.gemJoin.address,
+                daiJoin.address,
+                vaultInfo.cdp,
+                router02.address,
+            ]
         ]
         )
 
@@ -465,8 +471,18 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                     {errors.notEnoughCollateralToCoverDai? 
                         '': 
                         <div>
-                            <div>Min Amount of {vaultInfo.ilkInfo.token0?.symbol} to recieve: {formatUnits(token0MinAmountToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol}<br></br></div>
-                            <div>Min Amount of {vaultInfo.ilkInfo.token1?.symbol} to recieve: {formatUnits(token1MinAmountToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol}<br></br></div>
+                            <div>
+                                Amount of {vaultInfo.ilkInfo.token0?.symbol} to recieve: 
+                                    {formatUnits(token0ToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol} (min: 
+                                        {formatUnits(token0MinAmountToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol})
+                                    <br></br>
+                            </div>
+                            <div>
+                                Amount of {vaultInfo.ilkInfo.token1?.symbol} to recieve: 
+                                    {formatUnits(token1ToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol} (min: 
+                                        {formatUnits(token1MinAmountToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol})
+                                    <br></br>
+                            </div>
                         </div>}
                 </label>
 

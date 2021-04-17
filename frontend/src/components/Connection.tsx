@@ -2,6 +2,7 @@ import { useWeb3React } from '@web3-react/core';
 import { ethers } from 'ethers'
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { useEffect, useState } from 'react';
+import { useEffectAsync } from '../hooks/useEffectAsync';
 
 const injectedConnector = new InjectedConnector({
   supportedChainIds: [
@@ -42,11 +43,8 @@ function ConnectButton() {
   const signer = useSigner()
   const [address, setAddress] = useState<string>()
 
-  useEffect(() => {
-    const doAsync = async () => {
+  useEffectAsync(async () => {
       setAddress(await signer?.getAddress())
-    }
-    doAsync()
   }, [signer])
 
 

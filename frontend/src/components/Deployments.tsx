@@ -2,6 +2,7 @@ import { Contract } from "@ethersproject/contracts";
 import { useWeb3React } from "@web3-react/core";
 import { ethers } from "ethers";
 import { useEffect, useState } from "react";
+import { useEffectAsync } from "../hooks/useEffectAsync";
 import { useSigner, useProvider } from "./Connection";
 
 interface IContractDeployment {
@@ -22,9 +23,7 @@ export function useDeploymentsFolder() {
 
     const [deploymentsFolder, setDeploymentsFolder] = useState<string>()
 
-    useEffect(() => {
-
-        const doAsync = async () => {
+    useEffectAsync(async () => {
 
             if (!web3React.chainId){
                 setDeploymentsFolder(undefined)
@@ -36,10 +35,6 @@ export function useDeploymentsFolder() {
             folder ? 
                 setDeploymentsFolder(folder) :
                 setDeploymentsFolder(undefined)
-
-        }
-
-        doAsync()
 
     }, [web3React])
 
@@ -54,9 +49,7 @@ export function useContract(contractName: string){
     const provider = useProvider()
     const signer = useSigner()
 
-    useEffect(() => {
-
-        const doAsync = async () => {
+    useEffectAsync(async () => {
 
             if ((!deploymentsFolder) || (!provider)){
                 setContract(undefined)
@@ -75,10 +68,6 @@ export function useContract(contractName: string){
                 contractInstance = contractInstance.connect(signer)
 
             setContract(contractInstance)
-
-        }
-
-        doAsync()
 
     }, [provider, deploymentsFolder, signer])
 

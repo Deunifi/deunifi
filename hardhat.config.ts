@@ -1,6 +1,7 @@
+import 'hardhat-deploy';
+import "@nomiclabs/hardhat-ethers";
 import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import 'hardhat-deploy';
 import "hardhat-gas-reporter"
 
 import { kovan, hardhat, etherscan, mainnet, mainnetForked } from "./private"
@@ -18,7 +19,6 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
 });
 
 task("use-external-contract", "Get an external contract.", async (args, hre) => {
-
   const uniswapV2Factory = await hre.ethers.getContract('UniswapV2Factory')
   console.log('uniswapV2Factory', uniswapV2Factory.address);
 });
@@ -72,6 +72,9 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer:{
       default: 0
+    },
+    other:{
+      default: 3
     }
   },
 
