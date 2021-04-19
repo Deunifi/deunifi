@@ -74,6 +74,20 @@ export const getServiceFee = (amount: BigNumber) => amount.mul(3).div(10000)
 
 export const parseBigNumber = (text:string, decimals=18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
 
+const SLIPPAGE_TOLERANCE_UNIT = parseUnits('1', 6)
+
+export const increaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): BigNumber => {
+    return amount
+        .mul(SLIPPAGE_TOLERANCE_UNIT.add(tolerance))
+        .div(SLIPPAGE_TOLERANCE_UNIT)
+}
+
+export const decreaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): BigNumber => {
+    return amount
+        .mul(SLIPPAGE_TOLERANCE_UNIT)
+        .div(SLIPPAGE_TOLERANCE_UNIT.add(tolerance))
+}
+
 interface IErrors {
     tooMuchDai?: string,
     tooMuchCollateralToFree?: string
@@ -175,20 +189,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         if (params.collateralToFree.gt(vaultInfo.ink))
             errors.tooMuchCollateralToFree = `You are trying to free more collateral than available in your vault. Max collateral to free: ${formatEther(vaultInfo.ink)}`
-
-        const SLIPPAGE_TOLERANCE_UNIT = parseUnits('1', 6)
-
-        const increaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): BigNumber => {
-            return amount
-                .mul(SLIPPAGE_TOLERANCE_UNIT.add(tolerance))
-                .div(SLIPPAGE_TOLERANCE_UNIT)
-        }
-
-        const decreaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): BigNumber => {
-            return amount
-                .mul(SLIPPAGE_TOLERANCE_UNIT)
-                .div(SLIPPAGE_TOLERANCE_UNIT.add(tolerance))
-        }
 
         /**
          * Collateral -> TokenA, TokenB: 3) Collateral ~ TokenX / ReserveX

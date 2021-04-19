@@ -12,10 +12,41 @@ interface Props { }
 const ONE_WAD = parseEther('1')
 const ONE_RAY = parseUnits('1', 27)
 
-interface ITokenInfo{
+/**
+ * 
+ * @param ink Collateral amount in WAD.
+ * @param dart Normalized debt in WAD.
+ * @param price Collateral price in RAY.
+ * @returns Collateralization ratio in WAD.
+ */
+export const getCollateralizationRatio = (ink: BigNumber, dart: BigNumber, price: BigNumber): BigNumber => {
+    return dart.isZero() ?
+        BigNumber.from(0)
+        : ink
+            .mul(price).mul(ONE_WAD)
+            .div(ONE_RAY).div(dart)
+}
+
+/**
+ * 
+ * @param ink Collateral amount in WAD.
+ * @param dart Normalized debt in WAD.
+ * @param mat Liquidation ratio in RAY.
+ * @returns Liquidation price in RAY.
+ */
+export const getLiquidationPrice = (ink: BigNumber, dart: BigNumber, mat: BigNumber) => {
+    return dart.isZero() ?
+        BigNumber.from(0)
+        : mat
+            .mul(dart)
+            .div(ink)
+}
+
+
+interface ITokenInfo {
     contract: Contract,
     symbol: string,
-    decimals: BigNumber,
+    decimals: number,
 }
 
 export interface IVaultInfo {
@@ -28,7 +59,7 @@ export interface IVaultInfo {
     price: BigNumber, // Market price in RAY
     collateralizationRatio: BigNumber, // in WAD
     liquidationPrice: BigNumber, // in WAD
-    ilkInfo:{
+    ilkInfo: {
         ilk: string,
         name: string,
         symbol: string,
@@ -51,7 +82,7 @@ export const emptyVaultInfo: IVaultInfo = {
     price: BigNumber.from(0),
     collateralizationRatio: BigNumber.from(0),
     liquidationPrice: BigNumber.from(0),
-    ilkInfo:{
+    ilkInfo: {
         ilk: '',
         name: '',
         symbol: '',
@@ -75,7 +106,7 @@ const getTokenInfo = async (erc20: Contract, address: string): Promise<ITokenInf
     }
 }
 
-export const VaultInfo: React.FC<Props> = ({children}) => {
+export const VaultInfo: React.FC<Props> = ({ children }) => {
 
     const { vault } = useVaultContext()
 
@@ -100,9 +131,9 @@ export const VaultInfo: React.FC<Props> = ({children}) => {
 
         const bytes32Ilk = formatBytes32String(vault.ilk)
 
-        
-        const [name, symbol, dec, gemAddress, ,joinAddress]
-            : [string, string, BigNumber, string, any,string]
+
+        const [name, symbol, dec, gemAddress, , joinAddress]
+            : [string, string, BigNumber, string, any, string]
             = await ilkRegistry.info(bytes32Ilk)
 
         const { spot, rate }: { spot: BigNumber, rate: BigNumber } = await vat.ilks(bytes32Ilk)
@@ -115,22 +146,14 @@ export const VaultInfo: React.FC<Props> = ({children}) => {
 
         const price = spot.mul(mat).div(ONE_RAY)
 
-        const collateralizationRatio = dart.isZero() ?
-            BigNumber.from(0)
-            : ink
-                .mul(price).mul(ONE_WAD)
-                .div(ONE_RAY).div(dart)
+        const collateralizationRatio = getCollateralizationRatio(ink, dart, price)
 
-        const liquidationPrice = dart.isZero() ?
-            BigNumber.from(0)
-            : price
-                .mul(mat).mul(ONE_WAD)
-                .div(ONE_RAY).div(collateralizationRatio)
+        const liquidationPrice = getLiquidationPrice(ink, dart, mat)
 
 
-        let univ2Pair: Contract|undefined = uniswapV2Pair.attach(gemAddress)
-        let token0, token1: ITokenInfo|undefined;
-        
+        let univ2Pair: Contract | undefined = uniswapV2Pair.attach(gemAddress)
+        let token0, token1: ITokenInfo | undefined;
+
         try {
             token0 = await getTokenInfo(gem, await univ2Pair.token0())
             token1 = await getTokenInfo(gem, await univ2Pair.token1())
@@ -148,7 +171,7 @@ export const VaultInfo: React.FC<Props> = ({children}) => {
             mat,
             collateralizationRatio,
             liquidationPrice,
-            ilkInfo:{
+            ilkInfo: {
                 ilk: vault.ilk,
                 name,
                 symbol,
@@ -171,7 +194,7 @@ export const VaultInfo: React.FC<Props> = ({children}) => {
                 <li>Ink: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.ink)}</li>
                 <li>Dart: {vaultInfo?.dart ? formatEther(vaultInfo.dart) : 0}</li>
                 <li>Price: {/*TODO Check if it is correct the number of decimals*/formatUnits(vaultInfo.price, 27)}</li>
-                <li>Liquidation Price: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.liquidationPrice)}</li>
+                <li>Liquidation Price: {/*TODO Check if it is correct the number of decimals*/formatUnits(vaultInfo.liquidationPrice, 27)}</li>
                 <li>Collateralization Ratio: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.collateralizationRatio)}</li>
                 <li>Liquidation Ratio: {/*TODO Check if it is correct the number of decimals*/formatUnits(vaultInfo.mat, 27)}</li>
             </ul>
