@@ -11,7 +11,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 // TODO Remove
 import "hardhat/console.sol";
 
-uint256 constant UINT256_MAX = ~uint256(0);
+uint256 constant HALF_MAX_UINT256 = (~uint256(0))/2;
 
 interface IDSProxy{
 
@@ -25,6 +25,11 @@ library UnifiLibrary {
 
     using SafeMath for uint;
     using SafeERC20 for IERC20;
+
+    function safeIncreaseHalfMaxUint(address token, address spender) internal {
+        if (IERC20(token).allowance(address(this), spender) < HALF_MAX_UINT256)
+            IERC20(token).safeIncreaseAllowance(spender, HALF_MAX_UINT256);
+    }
 
     /**
     Preconditions:
@@ -45,7 +50,8 @@ library UnifiLibrary {
     ) external {
 
         // TODO Do all approvements with MAX_UINT if applyes.
-        IERC20(daiToken).safeIncreaseAllowance(dsProxy, wadD);
+        // IERC20(daiToken).safeIncreaseAllowance(dsProxy, wadD);
+        safeIncreaseHalfMaxUint(daiToken, dsProxy);
 
         IDSProxy(dsProxy).execute(
             dsProxyActions,
@@ -95,7 +101,8 @@ library UnifiLibrary {
         if (parameters.tokenB!=address(0)){
 
             // TODO approveMaxIfNotApproved
-            IERC20(parameters.pairToken).safeIncreaseAllowance(parameters.router02, parameters.amountToUseToPayDebt);
+            // IERC20(parameters.pairToken).safeIncreaseAllowance(parameters.router02, parameters.amountToUseToPayDebt);
+            safeIncreaseHalfMaxUint(parameters.pairToken, parameters.router02);
 
             (amountA, amountB) = IUniswapV2Router02(parameters.router02).removeLiquidity(      
                 parameters.tokenA,
@@ -109,7 +116,8 @@ library UnifiLibrary {
 
             if (parameters.debtToCoverWithTokenB > 0){
                 
-                IERC20(parameters.tokenB).safeIncreaseAllowance(parameters.router02, amountB.sub(parameters.amountBMin));
+                // IERC20(parameters.tokenB).safeIncreaseAllowance(parameters.router02, amountB.sub(parameters.amountBMin));
+                safeIncreaseHalfMaxUint(parameters.tokenB, parameters.router02);
                 
                 amountBCoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
                     parameters.debtToCoverWithTokenB,
@@ -129,7 +137,8 @@ library UnifiLibrary {
 
         if (parameters.debtToCoverWithTokenA > 0){
 
-            IERC20(parameters.tokenA).safeIncreaseAllowance(parameters.router02, amountA.sub(parameters.amountAMin));
+            // IERC20(parameters.tokenA).safeIncreaseAllowance(parameters.router02, amountA.sub(parameters.amountAMin));
+            safeIncreaseHalfMaxUint(parameters.tokenA, parameters.router02);
 
             amountACoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
                 parameters.debtToCoverWithTokenA,

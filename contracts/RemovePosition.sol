@@ -51,6 +51,9 @@ contract RemovePosition is FlashLoanReceiverBase {
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
+    uint8 public constant WIPE_AND_FREE = 1;
+    uint8 public constant LOCK_AND_DRAW = 2;
+
     constructor(ILendingPoolAddressesProvider provider/*, address _feeManager*/) FlashLoanReceiverBase(provider) public {
         // feeManager = _feeManager;
     }
@@ -81,49 +84,166 @@ contract RemovePosition is FlashLoanReceiverBase {
         address router02;
     }
     
+    function lockGemAndDraw(
+        address gemToken,
+        address dsProxy,
+        address dsProxyActions,
+        address manager,
+        address jug,
+        address gemJoin,
+        address daiJoin, 
+        uint cdp,
+        uint collateralToLock,
+        uint daiToBorrow,
+        bool transferFrom
+        ) public {
 
-    /**
-        This function is called after your contract has received the flash loan amount
-     */
-    function executeOperation(
-        address[] calldata assets,
-        uint256[] calldata amounts,
-        uint256[] calldata premiums,
-        address initiator,
-        bytes calldata params
-    )
-        external
-        override
-        returns (bool)
-    {
+        UnifiLibrary.safeIncreaseHalfMaxUint(gemToken, dsProxy);
 
-        ( PayBackParameters memory decodedData ) = abi.decode(params, (PayBackParameters));
+        IDSProxy(dsProxy).execute(
+            dsProxyActions,
+            abi.encodeWithSignature("lockGemAndDraw(address,address,address,address,uint256,uint256,uint256,bool)",
+                manager, jug, gemJoin, daiJoin, cdp, collateralToLock, daiToBorrow, transferFrom)
+        );
 
-        (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
-
-        if (remainingTokenA > 0)
-            IERC20(decodedData.tokenA).safeTransfer(decodedData.sender, remainingTokenA);
-
-        if (remainingTokenB > 0)
-            IERC20(decodedData.tokenB).safeTransfer(decodedData.sender, remainingTokenB);
-
-        if (pairRemaining > 0)
-            IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, pairRemaining);
-
-        // TODO add feeMannagerTo manage the fee payments.
-        // Service fee payment
-        IERC20(decodedData.debtToken).safeTransfer(decodedData.sender, decodedData.debtToPay.mul(3).div(10000));
-
-        // Loan fee payment
-        // TODO Do dynamic
-        // for (uint i=0; i<amounts.length; i=i.add(1)){
-        //     IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[i].add(amounts[i]));
-        // }
-        IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
-
-        return true;
     }
 
+    struct LockAndDrawParameters{
+
+        address sender;
+
+        address debtToken;
+
+        address router02;
+
+        address token0;
+        uint256 debtTokenForToken0;
+        address[] pathFromDebtTokenToToken0;
+
+        address token1;
+        uint256 debtTokenForToken1;
+        address[] pathFromDebtTokenToToken1;
+
+        uint256 token0FromUser;
+        uint256 token1FromUser;
+
+        uint256 minCollateralToBuy;
+        uint256 collateralFromUser;
+
+        address gemToken;
+        address dsProxy;
+        address dsProxyActions;
+        address manager;
+        address jug;
+        address gemJoin;
+        address daiJoin;
+        uint256 cdp;
+        uint256 debtTokenToDraw;
+        bool transferFrom;
+
+        uint256 deadline;
+
+    }
+
+    function lockAndDrawOperation(bytes memory params) public payable{
+
+        ( LockAndDrawParameters memory parameters) = abi.decode(params, (LockAndDrawParameters));
+        
+        if (parameters.pathFromDebtTokenToToken0.length > 0 || parameters.pathFromDebtTokenToToken1.length > 0)
+            UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, parameters.router02);
+
+        uint token0FromDebtToken = 0;
+        uint token1FromDebtToken = 0;
+        uint boughtCollateral;
+
+        // Swap debt token for gems or one of tokens that compose gems.
+        if (parameters.debtTokenForToken0 > 0){
+
+            token0FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
+                parameters.debtTokenForToken0, // exact amount for token 'from'
+                0, // min amount to recive for token 'to'
+                parameters.pathFromDebtTokenToToken0, // path of swap
+                address(this), // reciver
+                parameters.deadline
+                )[parameters.pathFromDebtTokenToToken0.length-1];
+
+            boughtCollateral = token0FromDebtToken;
+
+        }
+
+        // Swap debt token the other token that compose gems.
+        if (parameters.debtTokenForToken1 > 0){
+
+            token1FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
+                parameters.debtTokenForToken1, // exact amount for token 'from'
+                0, // min amount to recive for token 'to'
+                parameters.pathFromDebtTokenToToken1, // path of swap
+                address(this), // reciver
+                parameters.deadline
+                )[parameters.pathFromDebtTokenToToken1.length-1];
+
+        }
+
+        if (parameters.token1FromUser.add(token1FromDebtToken) > 0){
+
+            UnifiLibrary.safeIncreaseHalfMaxUint(parameters.token0, parameters.router02);
+            UnifiLibrary.safeIncreaseHalfMaxUint(parameters.token1, parameters.router02);
+
+            ( uint token0Used, uint token1Used, uint addedLiquidity) = IUniswapV2Router02(parameters.router02).addLiquidity(
+                parameters.token0,
+                parameters.token1,
+                parameters.token0FromUser.add(token0FromDebtToken),
+                parameters.token1FromUser.add(token1FromDebtToken),
+                0,
+                0,
+                address(this), // reciver
+                parameters.deadline
+            );
+
+            boughtCollateral = addedLiquidity;
+
+            // Remaining tokens are returned to user.
+            
+            if (parameters.token0FromUser.add(token0FromDebtToken).sub(token0Used) > 0)
+                IERC20(parameters.token0).safeTransfer(
+                    parameters.sender,
+                    parameters.token0FromUser.add(token0FromDebtToken).sub(token0Used));
+
+            if (parameters.token1FromUser.add(token1FromDebtToken).sub(token1Used) > 0)
+                IERC20(parameters.token1).safeTransfer(
+                    parameters.sender,
+                    parameters.token1FromUser.add(token0FromDebtToken).sub(token1Used));
+
+
+        }
+
+        require(boughtCollateral >= parameters.minCollateralToBuy, "Easy Lending: Bought collateral lower than expected collateral to buy.");
+
+        lockGemAndDraw(
+            parameters.gemToken,
+            parameters.dsProxy,
+            parameters.dsProxyActions,
+            parameters.manager, 
+            parameters.jug,
+            parameters.gemJoin,
+            parameters.daiJoin, 
+            parameters.cdp,
+            parameters.collateralFromUser.add(boughtCollateral),
+            parameters.debtTokenToDraw,
+            parameters.transferFrom
+        );
+
+        collectFee(parameters.sender, parameters.debtToken, parameters.debtTokenToDraw);
+
+        // Approve lending pool to collect flash loan + fees.
+        UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, address(LENDING_POOL));
+
+    }
+
+    function collectFee(address sender, address debtToken, uint baseAmount) internal {
+        // TODO add feeMannagerTo manage the fee payments.
+        IERC20(debtToken).safeTransfer(sender, baseAmount.mul(3).div(10000));
+    }
 
     function paybackDebt(PayBackParameters memory parameters) public payable
         returns (uint freeTokenA, uint freeTokenB, uint freePairToken){
@@ -181,6 +301,68 @@ contract RemovePosition is FlashLoanReceiverBase {
 
         return (remainingTokenA, remainingTokenB, pairRemaining);
 
+    }
+
+    function wipeAndFreeOperation(bytes memory params) internal{
+
+        ( PayBackParameters memory decodedData ) = abi.decode(params, (PayBackParameters));
+
+        (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
+
+        if (remainingTokenA > 0)
+            IERC20(decodedData.tokenA).safeTransfer(decodedData.sender, remainingTokenA);
+
+        if (remainingTokenB > 0)
+            IERC20(decodedData.tokenB).safeTransfer(decodedData.sender, remainingTokenB);
+
+        if (pairRemaining > 0)
+            IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, pairRemaining);
+
+        // Service fee payment
+        collectFee(decodedData.sender, decodedData.debtToken, decodedData.debtToPay);
+
+        // Loan fee payment
+        // TODO Do dynamic
+        // for (uint i=0; i<amounts.length; i=i.add(1)){
+        //     IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[i].add(amounts[i]));
+        // }
+
+        // IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
+        UnifiLibrary.safeIncreaseHalfMaxUint(decodedData.debtToken, address(LENDING_POOL));
+
+    }
+
+    struct Operation{
+        uint8 operation;
+        bytes data;
+    }
+
+    /**
+        This function is called after your contract has received the flash loan amount
+     */
+    function executeOperation(
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums,
+        address initiator,
+        bytes calldata params
+    )
+        external
+        override
+        returns (bool)
+    {
+
+        // ( uint8 operation, bytes memory operationData) = abi.decode(params, (uint8, bytes));
+        ( Operation memory operation ) = abi.decode(params, (Operation));
+
+        if (operation.operation == WIPE_AND_FREE)
+            wipeAndFreeOperation(operation.data);
+        else if(operation.operation == LOCK_AND_DRAW)
+            lockAndDrawOperation(operation.data);
+        else
+            revert('Easy Vault: Invalid operation.');
+
+        return true;
     }
 
     /**

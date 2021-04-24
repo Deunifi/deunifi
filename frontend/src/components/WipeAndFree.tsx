@@ -10,6 +10,7 @@ import { useContract } from './Deployments';
 import { emptyVaultInfo, IVaultInfo, useVaultInfoContext } from './VaultInfo';
 import { useDSProxyContainer, useVaultContext, VaultSelection } from './VaultSelection';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
+import { encodeParamsForRemovePosition as encodeParamsForWipeAndFree } from '../utils/format';
 
 interface Props { }
 
@@ -70,7 +71,7 @@ const emptyWipeAndFreeForm: IWipeAndFreeForm = {
 
 export const getLoanFee = (amount: BigNumber) => amount.mul(9).div(10000)
 
-export const getServiceFee = (amount: BigNumber) => amount.mul(3).div(10000)
+export const addServiceFee = (baseAmount: BigNumber) => baseAmount.mul(10000).div(9997) // 0.03%
 
 export const parseBigNumber = (text:string, decimals=18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
 
@@ -86,6 +87,20 @@ export const decreaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): 
     return amount
         .mul(SLIPPAGE_TOLERANCE_UNIT)
         .div(SLIPPAGE_TOLERANCE_UNIT.add(tolerance))
+}
+
+export async function proxyExecute(
+    proxy: Contract, methodInProxy: string, 
+    target: Contract, methodInTarget: string, params: any[]): Promise<TransactionResponse>{
+
+    const transaction: PopulatedTransaction = await target.populateTransaction[methodInTarget](...params)
+  
+    return await proxy[methodInProxy](target.address, transaction.data)
+  
+}
+
+export function deadline(secondsFromNow: number): BigNumber {
+    return BigNumber.from(Math.floor(Date.now()/1000)+secondsFromNow)
 }
 
 interface IErrors {
@@ -172,15 +187,16 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         if (!lastDaiLoanFees.eq(daiLoanFees))
             setDaiLoanFees(lastDaiLoanFees)
         
-        const lastDaiServiceFee = getServiceFee(params.daiFromFlashLoan.add(params.daiFromSigner))
-        if (!lastDaiServiceFee.eq(daiServiceFee))
-            setDaiServiceFee(lastDaiServiceFee)
-
-        const lastDaiLoanPlusFees = params.daiFromFlashLoan
+        const lastDaiLoanPlusFeesWithNoServiceFees = params.daiFromFlashLoan
             .add(lastDaiLoanFees)
-            .add(lastDaiServiceFee)
+
+        const lastDaiLoanPlusFees = addServiceFee(lastDaiLoanPlusFeesWithNoServiceFees)
         if (!lastDaiLoanPlusFees.eq(daiLoanPlusFees))
             setDaiLoanPlusFees(lastDaiLoanPlusFees)
+
+        const lastDaiServiceFee = lastDaiLoanPlusFees.sub(lastDaiLoanPlusFeesWithNoServiceFees)
+        if (!lastDaiServiceFee.eq(daiServiceFee))
+            setDaiServiceFee(lastDaiServiceFee)
 
         let errors: IErrors = {}
 
@@ -315,21 +331,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const manager = useContract('DssCdpManager')
     const daiJoin = useContract('DaiJoin')
 
-    async function proxyExecute(
-        proxy: Contract, methodInProxy: string, 
-        target: Contract, methodInTarget: string, params: any[]): Promise<TransactionResponse>{
-    
-        const transaction: PopulatedTransaction = await target.populateTransaction[methodInTarget](...params)
-      
-        return await proxy[methodInProxy](target.address, transaction.data)
-      
-    }
-
-    function deadline(secondsFromNow: number): BigNumber {
-        return BigNumber.from(Math.floor(Date.now()/1000)+secondsFromNow)
-    }
-    
-    
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>)=>{
 
         e.preventDefault()
@@ -341,35 +342,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             return
 
         const sender = await signer.getAddress()
-
-        const dataForExecuteOperationCallback = ethers.utils.defaultAbiCoder.encode([
-            `tuple(${[
-                'address',
-                'address',
-                'uint256',
-                'address',
-                'address',
-                'address',
-                'uint256',
-                'uint256',
-                'uint256',
-                'uint256',
-                'address[]',
-                'address[]',
-                'uint256',
-                'uint256',
-                'uint256',
-                'uint256',
-                'address',
-                'address',
-                'address',
-                'address',
-                'address',
-                'uint256',
-                'address',   
-            ].join(',')})`,         
-        ],[
-            [
+        
+        const dataForExecuteOperationCallback = encodeParamsForWipeAndFree(
+                await removePosition.WIPE_AND_FREE(),
                 sender, // address sender
                 dai.address, // address debtToken;
                 params.daiFromSigner.add(params.daiFromFlashLoan), // daiToPay
@@ -395,8 +370,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 daiJoin.address,
                 vaultInfo.cdp,
                 router02.address,
-            ]
-        ]
         )
 
         proxyExecute(
@@ -414,6 +387,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             ]
         )
     }
+
     return (
         <form>
             <p>
