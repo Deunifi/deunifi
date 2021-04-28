@@ -19,10 +19,26 @@ interface Props { }
 export const OpenVault: React.FC<Props> = ({ children }) => {
 
     const proxyRegistry = useContract('ProxyRegistry')
+    const ilkRegistry = useContract('IlkRegistry')
 
     const { dsProxy } = useDSProxyContainer()
 
+    const [ilkList, setIlkList] = useState<string[]>([])
+    const [selectedIlk, setSelectedIlk] = useState<string>()
 
+    useEffectAsync(async () => {
+
+        if (!ilkRegistry)
+            return
+
+        const count = await ilkRegistry.count()
+
+        const list = await ilkRegistry['list()']()
+
+        setIlkList(list)
+
+
+    }, [ilkRegistry])
 
     return (
         <div>
@@ -34,6 +50,25 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
             }}>
                 Create Proxy
             </button>
+
+            <select
+                name="Ilk"
+                id="ilk"
+                onChange={(e) => setSelectedIlk(ilkList[e.target.selectedIndex])}
+            >
+                {ilkList.map(ilk => (
+                    <option value={ilk} key={ilk}>
+                        {parseBytes32String(ilk)}
+                    </option>
+                ))}
+            </select>
+
+            <button onClick={async (e) => {
+                e.preventDefault()
+            }}>
+                Create Vault
+            </button>
+
         </div>
     )
 }
