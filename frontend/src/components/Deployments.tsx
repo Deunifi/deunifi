@@ -17,6 +17,11 @@ const folderByChainId: any = {
     1: 'mainnet',
 }
 
+function folderByQueryParam(){
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('deploymentsFolder')
+}
+
 export function useDeploymentsFolder() {
 
     const web3React = useWeb3React<ethers.providers.Web3Provider>()
@@ -31,7 +36,7 @@ export function useDeploymentsFolder() {
             }
                 
 
-            const folder = folderByChainId[web3React.chainId]
+            const folder = folderByQueryParam() || folderByChainId[web3React.chainId]
             folder ? 
                 setDeploymentsFolder(folder) :
                 setDeploymentsFolder(undefined)
