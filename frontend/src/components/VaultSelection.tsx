@@ -14,20 +14,32 @@ export function useDSProxyAddress() {
 
     const signer = useSigner()
     const proxyRegistry = useContract('ProxyRegistry')
+    const proxyFactory = useContract('DSProxyFactory')
 
     useEffectAsync(async () => {
 
-            if ((!signer) || (!proxyRegistry)) {
+            if ((!signer) || (!proxyRegistry) || (!proxyFactory)) {
                 setDSProxyAddress(undefined)
                 return
             }
 
-            const dsProxyAddress: string = await proxyRegistry.proxies(await signer.getAddress())
+            const signerAddress = await signer.getAddress()
+            const dsProxyAddress: string = await proxyRegistry.proxies(signerAddress)
             setDSProxyAddress(dsProxyAddress)
 
-    }, [proxyRegistry, signer])
+            proxyFactory.on(
+                // event Created(address indexed sender, address indexed owner, address proxy, address cache);
+                proxyFactory.filters.Created(null, signerAddress),
+                (sender: string, owner: string, proxy: string, cache: string)=>{
+                    setDSProxyAddress(proxy)
+                }
+            )
 
-    return dsProxyAddress
+    }, [proxyRegistry, signer, proxyFactory])
+
+    const provider = useProvider()
+
+    return [dsProxyAddress, setDSProxyAddress]
 
 }
 
@@ -36,7 +48,7 @@ export function useDSProxyContainer() {
 
     const [dsProxyContainer, setDSProxyContainer] = useState<{ dsProxy?: Contract }>({})
 
-    const dsProxyAddress = useDSProxyAddress()
+    const [dsProxyAddress, ] = useDSProxyAddress()
     const dsProxy = useContract('DSProxy')
 
     useEffectAsync(async () => {
@@ -46,9 +58,8 @@ export function useDSProxyContainer() {
                 return
             }
 
-
             setDSProxyContainer({
-                dsProxy: dsProxy.attach(dsProxyAddress)
+                dsProxy: dsProxy.attach(dsProxyAddress as string),
             })
 
     }, [dsProxyAddress, dsProxy])
