@@ -9,7 +9,7 @@ task(
     "Etherscan gas tracker.",
     async ({ }, hre) => {
 
-        const res = await fetch(`https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${etherscan.apiKey}`, {
+        const res = await fetch(`https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${etherscan.mainnet.apiKey}`, {
             compress: false,
         })
 
@@ -22,18 +22,20 @@ task(
 task(
     "register-external-deployment",
     "Save the ABI obtained from etherscan, using ${address}, into contracts/abi/${filename}.json file.",
-    async ({ name, address, abiaddress, networkname }, hre) => {
+    async ({ name, address, abiaddress }, hre) => {
 
-        const { deployments } = hre
+        const { deployments, network } = hre
+
+
 
         const abiAddress = abiaddress ? abiaddress : address
-        const res = await fetch(`https://api.etherscan.io/api?apiKey=${etherscan.apiKey}&module=contract&action=getabi&address=${abiAddress}`, {
+        const res = await fetch(`https://${etherscan[network.name].domain}/api?apiKey=${etherscan[network.name].apiKey}&module=contract&action=getabi&address=${abiAddress}`, {
             compress: false,
         })
 
         const body = await res.json()
 
-        const dirname = `external/deployments/${networkname}`
+        const dirname = `external/deployments/${network.name}`
 
         const content = JSON.stringify({
             name,
@@ -48,4 +50,3 @@ task(
     .addParam("name", "Contract name.")
     .addParam("address", "The address of the contract in mainnet.")
     .addOptionalParam("abiaddress", "The address use to obtain tha abi.")
-    .addParam("networkname", "Network where is going to be registered the existant deployment.")

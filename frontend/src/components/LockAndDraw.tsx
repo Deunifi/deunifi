@@ -27,6 +27,7 @@ interface IFormFields {
     slippageTolerance: any, // ratio with 6 decimals
     transactionDeadline: any, // minutes
 
+    useETH: any,
 }
 
 interface IFormErrors extends IFormFields {
@@ -43,9 +44,10 @@ interface IFormErrors extends IFormFields {
     slippageTolerance: string, // ratio with 6 decimals
     transactionDeadline: string, // minutes
 
+    useETH: string,
 }
 
-const emptyFormErrors: ITextForm = {
+const emptyFormErrors: IFormErrors = {
     daiFromSigner: '',
     collateralFromUser: '',
 
@@ -57,6 +59,8 @@ const emptyFormErrors: ITextForm = {
 
     slippageTolerance: '',
     transactionDeadline: '',
+
+    useETH: '',
 }
 
 interface IClenedForm extends IFormFields {
@@ -73,6 +77,8 @@ interface IClenedForm extends IFormFields {
     slippageTolerance: BigNumber, // ratio with 6 decimals
     transactionDeadline: BigNumber, // minutes
 
+    useETH: boolean,
+
 }
 
 const emptyClenedForm: IClenedForm = {
@@ -88,6 +94,8 @@ const emptyClenedForm: IClenedForm = {
 
     slippageTolerance: parseUnits('.01', 6), // ratio with 6 decimals
     transactionDeadline: BigNumber.from(120), // minutes
+
+    useETH: true,
 }
 
 interface ITextForm extends IFormFields {
@@ -100,6 +108,8 @@ interface ITextForm extends IFormFields {
 
     slippageTolerance: string, // percentage with 4 decimals
     transactionDeadline: string, // minutes
+
+    useETH: boolean,
 }
 
 const emptyTextForm: ITextForm = {
@@ -114,6 +124,8 @@ const emptyTextForm: ITextForm = {
 
     slippageTolerance: formatUnits(emptyClenedForm.slippageTolerance, 4),
     transactionDeadline: emptyClenedForm.transactionDeadline.toString(),
+
+    useETH: true,
 }
 
 interface IExpectedResult {
@@ -199,15 +211,19 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         const tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
         expectedResult.daiForTokenA = tokenAToBuyWithDai.isZero() ?
-            ethers.constants.Zero
-            : (await router02.getAmountsIn(tokenAToBuyWithDai,
-                [dai.address, token0.address,]))[0] // TODO Use dynamic path
+            ethers.constants.Zero :
+            dai.address == token0.address ?
+                tokenAToBuyWithDai
+                : (await router02.getAmountsIn(tokenAToBuyWithDai,
+                    [dai.address, token0.address,]))[0] // TODO Use dynamic path
 
         const tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
         expectedResult.daiForTokenB = tokenBToBuyWithDai.isZero() ?
-            ethers.constants.Zero
-            : (await router02.getAmountsIn(tokenBToBuyWithDai,
-                [dai.address, token1.address,]))[0] // TODO Use dynamic path
+            ethers.constants.Zero :
+            dai.address == token1.address ?
+                tokenBToBuyWithDai
+                : (await router02.getAmountsIn(tokenBToBuyWithDai,
+                    [dai.address, token1.address,]))[0] // TODO Use dynamic path
 
         expectedResult.daiFromFlashLoan = expectedResult.daiForTokenA
             .add(expectedResult.daiForTokenB)
@@ -378,6 +394,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     const manager = useContract('DssCdpManager')
     const daiJoin = useContract('DaiJoin')
     const jug = useContract('Jug')
+    const weth = useContract('WETH')
 
 
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -387,7 +404,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         if (!removePosition || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy ||
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
-            !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug)
+            !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth)
             return
 
         const sender = await signer.getAddress()
@@ -422,6 +439,14 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             deadline(form.cleanedValues.transactionDeadline.toNumber() * 60), // deadline: BigNumber,
         )
 
+        const ethToUse = form.cleanedValues.useETH ? 
+        ( vaultInfo.ilkInfo.token0.contract.address == weth.address ?
+            form.cleanedValues.tokenAFromSigner
+            : ( vaultInfo.ilkInfo.token1.contract.address == weth.address ?
+                form.cleanedValues.tokenBFromSigner
+                    : ethers.constants.Zero ) )
+        : ethers.constants.Zero
+
         const ownerTokens: string[] = []
         const ownerTokensAmounts: BigNumber[] = []
 
@@ -434,6 +459,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         for (const [token, amount] of toTransfer){
             if (amount.isZero())
                 continue
+            if (form.cleanedValues.useETH && token == weth.address)
+                continue
             ownerTokens.push(token)
             ownerTokensAmounts.push(amount)
         }
@@ -441,16 +468,18 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         proxyExecute(
             dsProxy, 'execute(address,bytes)',
             removePosition, 'flashLoanFromDSProxy', [
-            sender,
-            removePosition.address,
-            ownerTokens, // owner tokens to transfer to target
-            ownerTokensAmounts, // owner token amounts to transfer to target
-            await lendingPoolAddressesProvider.getLendingPool(),
-            expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
-            expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
-            [BigNumber.from(0)], //modes
-            dataForExecuteOperationCallback // Data to be used on executeOperation
-        ]
+                sender,
+                removePosition.address,
+                ownerTokens, // owner tokens to transfer to target
+                ownerTokensAmounts, // owner token amounts to transfer to target
+                await lendingPoolAddressesProvider.getLendingPool(),
+                expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
+                expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
+                [BigNumber.from(0)], //modes
+                dataForExecuteOperationCallback, // Data to be used on executeOperation
+                weth.address
+            ],
+            ethToUse.isZero() ? {} : {value: ethToUse }
         )
 
     }
@@ -462,6 +491,16 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.symbol} From Account:
                     <input type="number" value={form.textValues.collateralFromUser} name="collateralFromUser" onChange={(e) => form.onChangeBigNumber(e)} />
+                </label>
+            </p>
+
+            <p>
+                <label>
+                    <input type="checkbox" checked={form.textValues.useETH} name="useETH" onChange={(e) => {
+                            form.setTextValues({...form.textValues, useETH: e.target.checked })
+                            form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
+                        }} />
+                    Use ETH
                 </label>
             </p>
 

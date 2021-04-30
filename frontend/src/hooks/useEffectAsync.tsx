@@ -21,13 +21,30 @@ export const useEffectAsync = (
 
         const doAsync = async() => {
 
-            // We wait for last call to be resolved
-            await lastCallRef.current;
+            try{
+
+                // We wait for last call to be resolved
+                await lastCallRef.current;
+
+            }catch(e){
+
+                console.error(e);
+
+            }
 
             // Now we create a promise for the actual execution to be resolved.
             lastCallRef.current = asyncFunction()
 
-            await lastCallRef.current;
+            try{
+
+                // We wait for last call to be resolved
+                await lastCallRef.current;
+
+            }catch(e){
+
+                console.error(e);
+
+            }
 
         }
 

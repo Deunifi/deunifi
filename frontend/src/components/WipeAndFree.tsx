@@ -91,11 +91,12 @@ export const decreaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): 
 
 export async function proxyExecute(
     proxy: Contract, methodInProxy: string, 
-    target: Contract, methodInTarget: string, params: any[]): Promise<TransactionResponse>{
+    target: Contract, methodInTarget: string, params: any[],
+    overrides: { value?: BigNumber } = {}): Promise<TransactionResponse>{
 
     const transaction: PopulatedTransaction = await target.populateTransaction[methodInTarget](...params)
   
-    return await proxy[methodInProxy](target.address, transaction.data)
+    return await proxy[methodInProxy](target.address, transaction.data, overrides)
   
 }
 
@@ -226,15 +227,19 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             
             // TODO In case of dai, should be the same amount.
             const token0AmountForDai: BigNumber = params.daiFromTokenA.isZero() ?
-                BigNumber.from(0)
-                : (await router02.getAmountsIn(params.daiFromTokenA,
-                    [token0.contract.address, dai.address]))[0]
+                BigNumber.from(0) :
+                    dai.address == token0.contract.address ?
+                        params.daiFromTokenA
+                        : (await router02.getAmountsIn(params.daiFromTokenA,
+                            [token0.contract.address, dai.address]))[0]
 
             // TODO In case of dai, should be the same amount.
             const token1AmountForDai: BigNumber = params.daiFromTokenB.isZero() ?
-                BigNumber.from(0)
-                : (await router02.getAmountsIn(params.daiFromTokenB,
-                    [token1.contract.address, dai.address]))[0]
+                BigNumber.from(0) :
+                dai.address == token1.contract.address ?
+                    params.daiFromTokenB
+                    : (await router02.getAmountsIn(params.daiFromTokenB,
+                        [token1.contract.address, dai.address]))[0]
 
             const minLiquidityToRemoveForToken0 = token0AmountForDai
                 .mul(pairTotalSupply)
@@ -383,7 +388,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 params.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
                 params.daiFromFlashLoan.isZero() ? [] : [params.daiFromFlashLoan], // loanAmounts
                 [BigNumber.from(0)], //modes
-                dataForExecuteOperationCallback // Data to be used on executeOperation
+                dataForExecuteOperationCallback, // Data to be used on executeOperation
+                ethers.constants.AddressZero
             ]
         )
     }

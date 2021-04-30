@@ -25,7 +25,7 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 deploy.tags = []
 
 deploy.skip = async (env: HardhatRuntimeEnvironment) => {
-    return env.network.live
+    return true
 }
 
 export default deploy;

@@ -14,6 +14,7 @@ interface IContractDeployment {
 // TODO Add other chanin ids or get this information dynamically
 const folderByChainId: any = {
     1337: 'localhost',
+    42: 'kovan',
     1: 'mainnet',
 }
 

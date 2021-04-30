@@ -9,6 +9,7 @@ import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
 import { useDSProxyContainer } from "./VaultSelection";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
+import { proxyExecute } from "./WipeAndFree";
 
 interface IIlkSelection {
     ilk: string,
@@ -17,6 +18,8 @@ interface IIlkSelection {
 interface Props { }
 
 export const OpenVault: React.FC<Props> = ({ children }) => {
+
+    const signer = useSigner()
 
     const proxyRegistry = useContract('ProxyRegistry')
     const ilkRegistry = useContract('IlkRegistry')
@@ -39,6 +42,9 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
 
     }, [ilkRegistry])
+
+    const dssProxyActions = useContract('DssProxyActions')
+    const manager = useContract('DssCdpManager')
 
     return (
         <div>
@@ -65,6 +71,22 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
             <button onClick={async (e) => {
                 e.preventDefault()
+                if (!dssProxyActions || !manager || !selectedIlk || !dsProxy || !signer)
+                    return
+                
+                const signerAddress = await signer.getAddress()
+
+                proxyExecute(
+                    dsProxy, 'execute(address,bytes)',
+                    dssProxyActions, 'open',[
+                        manager.address,
+                        selectedIlk,
+                        dsProxy.address
+                    ]
+                )
+        
+                // await dssProxyActions.open(manager.address, selectedIlk, dsProxy.address)
+
             }}>
                 Create Vault
             </button>

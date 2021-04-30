@@ -43,8 +43,9 @@ const config: HardhatUserConfig = {
       url: kovan.url,
       accounts: kovan.accounts,
       gas: 2500000,
-      gasPrice: 2000000000,
-      live: false
+      gasPrice: 5000000000,
+      live: false,
+      chainId: 42
     },
     mainnet: {
       url: mainnet.url.alchemy,

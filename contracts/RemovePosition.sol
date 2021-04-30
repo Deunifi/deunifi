@@ -14,6 +14,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { UnifiLibrary } from "./UnifiLibrary.sol";
 
+
 // TODO Remove
 import "hardhat/console.sol";
 
@@ -42,6 +43,10 @@ interface ILendingPool{
         bytes calldata params,
         uint16 referralCode
     ) external;
+}
+
+interface IWeth{
+    function deposit() external payable;
 }
 
 contract RemovePosition is FlashLoanReceiverBase {
@@ -159,13 +164,21 @@ contract RemovePosition is FlashLoanReceiverBase {
         // Swap debt token for gems or one of tokens that compose gems.
         if (parameters.debtTokenForToken0 > 0){
 
-            token0FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
-                parameters.debtTokenForToken0, // exact amount for token 'from'
-                0, // min amount to recive for token 'to'
-                parameters.pathFromDebtTokenToToken0, // path of swap
-                address(this), // reciver
-                parameters.deadline
-                )[parameters.pathFromDebtTokenToToken0.length-1];
+            if (parameters.debtToken == parameters.token0){
+
+                token0FromDebtToken = parameters.debtTokenForToken0;
+
+            } else {
+
+                token0FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
+                    parameters.debtTokenForToken0, // exact amount for token 'from'
+                    0, // min amount to recive for token 'to'
+                    parameters.pathFromDebtTokenToToken0, // path of swap
+                    address(this), // reciver
+                    parameters.deadline
+                    )[parameters.pathFromDebtTokenToToken0.length-1];
+
+            }
 
             boughtCollateral = token0FromDebtToken;
 
@@ -174,13 +187,21 @@ contract RemovePosition is FlashLoanReceiverBase {
         // Swap debt token the other token that compose gems.
         if (parameters.debtTokenForToken1 > 0){
 
-            token1FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
-                parameters.debtTokenForToken1, // exact amount for token 'from'
-                0, // min amount to recive for token 'to'
-                parameters.pathFromDebtTokenToToken1, // path of swap
-                address(this), // reciver
-                parameters.deadline
-                )[parameters.pathFromDebtTokenToToken1.length-1];
+            if (parameters.debtToken == parameters.token1){
+
+                token1FromDebtToken = parameters.debtTokenForToken1;
+
+            } else {
+
+                token1FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
+                    parameters.debtTokenForToken1, // exact amount for token 'from'
+                    0, // min amount to recive for token 'to'
+                    parameters.pathFromDebtTokenToToken1, // path of swap
+                    address(this), // reciver
+                    parameters.deadline
+                    )[parameters.pathFromDebtTokenToToken1.length-1];
+
+            }
 
         }
 
@@ -203,7 +224,7 @@ contract RemovePosition is FlashLoanReceiverBase {
             boughtCollateral = addedLiquidity;
 
             // Remaining tokens are returned to user.
-            
+
             if (parameters.token0FromUser.add(token0FromDebtToken).sub(token0Used) > 0)
                 IERC20(parameters.token0).safeTransfer(
                     parameters.sender,
@@ -212,8 +233,7 @@ contract RemovePosition is FlashLoanReceiverBase {
             if (parameters.token1FromUser.add(token1FromDebtToken).sub(token1Used) > 0)
                 IERC20(parameters.token1).safeTransfer(
                     parameters.sender,
-                    parameters.token1FromUser.add(token0FromDebtToken).sub(token1Used));
-
+                    parameters.token1FromUser.add(token1FromDebtToken).sub(token1Used));
 
         }
 
@@ -377,10 +397,18 @@ contract RemovePosition is FlashLoanReceiverBase {
         address[] memory loanTokens,
         uint[] memory loanAmounts,
         uint[] memory modes,
-        bytes memory data
+        bytes memory data,
+        address weth // When has to use ETH
         ) public payable{
 
         uint initialGas = gasleft();
+
+        if (msg.value > 0){
+            IWeth(weth).deposit{value: msg.value}();
+            IERC20(weth).safeTransfer(
+                target, msg.value
+            );
+        }
 
         IDSProxy(address(this)).setOwner(target);
 
