@@ -1,6 +1,7 @@
 import { task } from "hardhat/config";
 import { default as fetch } from 'node-fetch';
 import { etherscan } from "../private";
+import { TransactionResponse } from "@ethersproject/abstract-provider";
 
 import * as fs from "fs"
 
@@ -50,3 +51,46 @@ task(
     .addParam("name", "Contract name.")
     .addParam("address", "The address of the contract in mainnet.")
     .addOptionalParam("abiaddress", "The address use to obtain tha abi.")
+
+task(
+    "set-fee-manager",
+    "Sets fee manager.",
+    async ({ }, hre) => {
+
+        const { deployments, network } = hre
+
+        try {
+            const feeManager = await hre.ethers.getContract('FeeManager')
+            const unifi = await hre.ethers.getContract('RemovePosition')
+            if ((await unifi.feeManager()) != feeManager.address){
+                const transactionResponse: TransactionResponse = await unifi.setFeeManager(feeManager.address)
+                console.log(`Setting FeeManager (${feeManager.address}) in Unifi contract in transaction ${transactionResponse.hash}.`);
+                await transactionResponse.wait(1)    
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    
+    }
+)
+
+task(
+    "remove-fee-manager",
+    "Removes fee manager.",
+    async ({ }, hre) => {
+
+        const { deployments, network } = hre
+
+        try {
+            const unifi = await hre.ethers.getContract('RemovePosition')
+            if ((await unifi.feeManager()) != hre.ethers.constants.Zero){
+                const transactionResponse: TransactionResponse = await unifi.setFeeManager(hre.ethers.constants.AddressZero)
+                console.log(`Setting FeeManager (${hre.ethers.constants.AddressZero}) in Unifi contract in transaction ${transactionResponse.hash}.`);
+                await transactionResponse.wait(1)
+            }
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+)

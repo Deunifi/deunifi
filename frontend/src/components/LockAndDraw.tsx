@@ -3,13 +3,14 @@ import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
 import React, { useEffect, useState } from "react";
 import { useEffectAsync } from "../hooks/useEffectAsync";
+import { useServiceFee } from "../hooks/useServiceFee";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
 import { useForm, parseBigNumber, defaultSideEffect } from "../utils/forms";
 import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { useVaultInfoContext, getCollateralizationRatio, getLiquidationPrice } from "./VaultInfo";
 import { useDSProxyContainer } from "./VaultSelection";
-import { decreaseWithTolerance, getLoanFee, addServiceFee as addServiceFee, increaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
+import { decreaseWithTolerance, getLoanFee, increaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
 
 interface Props { }
 
@@ -180,10 +181,12 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     const router02 = useContract('UniswapV2Router02')
 
+    const { getServiceFee } = useServiceFee()
+
     useEffectAsync(async () => {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair) {
+            || !vaultInfo.ilkInfo.univ2Pair || !getServiceFee) {
             form.setErrors(undefined)
             return
         }
@@ -233,7 +236,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             .add(getLoanFee(expectedResult.daiFromFlashLoan))
 
         // Flash loan plus fees.
-        expectedResult.daiToDraw = addServiceFee(daiToDrawWithoutServiceFee)
+        expectedResult.daiToDraw = daiToDrawWithoutServiceFee
+            .add(await getServiceFee(expectedResult.daiFromFlashLoan))
 
         const { univ2Pair } = vaultInfo.ilkInfo
 
@@ -454,6 +458,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             [vaultInfo.ilkInfo.token0.contract.address, form.cleanedValues.tokenAFromSigner],
             [vaultInfo.ilkInfo.token1.contract.address, form.cleanedValues.tokenBFromSigner],
             [vaultInfo.ilkInfo.univ2Pair.address, form.cleanedValues.collateralFromUser],
+            [dai.address, form.cleanedValues.daiFromSigner],
         ]
 
         for (const [token, amount] of toTransfer){
@@ -550,6 +555,16 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                     DAI From Account:
                     <input type="number" value={form.textValues.daiFromSigner} name="daiFromSigner" onChange={(e) => daiFromSignerChange(e)} />
                 </label>
+                <button onClick={async (e)=>{
+                        // TODO Modularize logic and add for the rest of token to transfer from signer to main contract via DSProxy.
+                        e.preventDefault()
+                        if (!dai || !signer || !dsProxy)
+                            return
+                        await dai
+                            .connect(signer)
+                            .approve(dsProxy.address, ethers.constants.MaxUint256)
+                }}>Approve</button>
+
                 <br></br>
                 <label>
                     DAI From Flash Loan: {formatEther(expectedResult.daiFromFlashLoan)}

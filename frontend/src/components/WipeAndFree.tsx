@@ -11,6 +11,7 @@ import { emptyVaultInfo, IVaultInfo, useVaultInfoContext } from './VaultInfo';
 import { useDSProxyContainer, useVaultContext, VaultSelection } from './VaultSelection';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForRemovePosition as encodeParamsForWipeAndFree } from '../utils/format';
+import { useServiceFee } from '../hooks/useServiceFee';
 
 interface Props { }
 
@@ -70,8 +71,6 @@ const emptyWipeAndFreeForm: IWipeAndFreeForm = {
 }
 
 export const getLoanFee = (amount: BigNumber) => amount.mul(9).div(10000)
-
-export const addServiceFee = (baseAmount: BigNumber) => baseAmount.mul(10000).div(9997) // 0.03%
 
 export const parseBigNumber = (text:string, decimals=18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
 
@@ -182,6 +181,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const [token0ToRecieve, setToken0ToRecieve] = useState(BigNumber.from(0))
     const [token1ToRecieve, setToken1ToRecieve] = useState(BigNumber.from(0))
 
+    const { getServiceFee } = useServiceFee()
+
     useEffectAsync(async () => {
         
         const lastDaiLoanFees = getLoanFee(params.daiFromFlashLoan)
@@ -191,7 +192,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const lastDaiLoanPlusFeesWithNoServiceFees = params.daiFromFlashLoan
             .add(lastDaiLoanFees)
 
-        const lastDaiLoanPlusFees = addServiceFee(lastDaiLoanPlusFeesWithNoServiceFees)
+        if (!getServiceFee)
+            return
+
+        const lastDaiLoanPlusFees = lastDaiLoanPlusFeesWithNoServiceFees
+            .add(await getServiceFee(params.daiFromFlashLoan))
         if (!lastDaiLoanPlusFees.eq(daiLoanPlusFees))
             setDaiLoanPlusFees(lastDaiLoanPlusFees)
 

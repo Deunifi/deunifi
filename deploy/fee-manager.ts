@@ -1,6 +1,6 @@
 import { DeployFunction } from "hardhat-deploy/dist/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { TransactionResponse } from "@ethersproject/abstract-provider";
+import { BigNumber } from "@ethersproject/bignumber";
 
 const ONE_MILLON = 1000000
 
@@ -15,19 +15,17 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 
     const { deployer } = await getNamedAccounts();
 
-    const lendingPoolAddressesProvider = await hre.ethers.getContract('LendingPoolAddressesProvider')
-
-    await deploy('RemovePosition', {
+    const deployResult = await deploy('FeeManager', {
         from: deployer,
         gasLimit: 4000000,
-        args: [lendingPoolAddressesProvider.address], //TODO Add feeTo parameter
+        args: [BigNumber.from(3)]
     });
 
 } as DeployFunction;
 
-deploy.tags = []
+deploy.tags = ['fee']
 
-deploy.dependencies = [ 'mocks', 'fee' ]
+deploy.dependencies = [ 'mocks' ]
 
 deploy.skip = async (env: HardhatRuntimeEnvironment) => {
     return env.network.live

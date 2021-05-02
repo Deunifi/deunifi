@@ -11,16 +11,14 @@ import { ILendingPoolAddressesProvider, FlashLoanReceiverBase } from "./aave/Fla
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { UnifiLibrary } from "./UnifiLibrary.sol";
+import { IFeeManager } from "./IFeeManager.sol";
 
 
 // TODO Remove
 import "hardhat/console.sol";
-
-interface IFeeManager{
-    function takeFeeFrom(address from, uint gasConsumed) external;
-}
 
 interface IDSProxy{
 
@@ -47,11 +45,12 @@ interface ILendingPool{
 
 interface IWeth{
     function deposit() external payable;
+    function withdraw(uint amount) external;
 }
 
-contract RemovePosition is FlashLoanReceiverBase {
+contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
-    // address immutable feeManager;
+    address public feeManager;
 
     using SafeMath for uint;
     using SafeERC20 for IERC20;
@@ -59,8 +58,11 @@ contract RemovePosition is FlashLoanReceiverBase {
     uint8 public constant WIPE_AND_FREE = 1;
     uint8 public constant LOCK_AND_DRAW = 2;
 
-    constructor(ILendingPoolAddressesProvider provider/*, address _feeManager*/) FlashLoanReceiverBase(provider) public {
-        // feeManager = _feeManager;
+    constructor(ILendingPoolAddressesProvider provider) FlashLoanReceiverBase(provider) public {
+    }
+
+    function setFeeManager(address _feeManager) public onlyOwner{
+        feeManager = _feeManager;
     }
 
     struct PayBackParameters {
@@ -253,16 +255,9 @@ contract RemovePosition is FlashLoanReceiverBase {
             parameters.transferFrom
         );
 
-        collectFee(parameters.sender, parameters.debtToken, parameters.debtTokenToDraw);
-
         // Approve lending pool to collect flash loan + fees.
         UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, address(LENDING_POOL));
 
-    }
-
-    function collectFee(address sender, address debtToken, uint baseAmount) internal {
-        // TODO add feeMannagerTo manage the fee payments.
-        IERC20(debtToken).safeTransfer(sender, baseAmount.mul(3).div(10000));
     }
 
     function paybackDebt(PayBackParameters memory parameters) public payable
@@ -338,15 +333,6 @@ contract RemovePosition is FlashLoanReceiverBase {
         if (pairRemaining > 0)
             IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, pairRemaining);
 
-        // Service fee payment
-        collectFee(decodedData.sender, decodedData.debtToken, decodedData.debtToPay);
-
-        // Loan fee payment
-        // TODO Do dynamic
-        // for (uint i=0; i<amounts.length; i=i.add(1)){
-        //     IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[i].add(amounts[i]));
-        // }
-
         // IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
         UnifiLibrary.safeIncreaseHalfMaxUint(decodedData.debtToken, address(LENDING_POOL));
 
@@ -382,6 +368,16 @@ contract RemovePosition is FlashLoanReceiverBase {
         else
             revert('Easy Vault: Invalid operation.');
 
+        if (feeManager != address(0)){
+            for (uint i=0; i<assets.length; i=i.add(1)){
+                UnifiLibrary.safeIncreaseHalfMaxUint(assets[i], feeManager);
+                // console.log('owner, assets[i], amounts[i]', owner, assets[i], amounts[i]);
+                console.log('IERC20(assets[i]).balanceOf(address(this))', IERC20(assets[i]).balanceOf(address(this)));
+                console.log('feeManager', feeManager);
+                IFeeManager(feeManager).collectFee(assets[i], amounts[i]);
+            }
+        }
+
         return true;
     }
 
@@ -398,10 +394,8 @@ contract RemovePosition is FlashLoanReceiverBase {
         uint[] memory loanAmounts,
         uint[] memory modes,
         bytes memory data,
-        address weth // When has to use ETH
+        address weth // When has to use or recive ETH, else should be address(0)
         ) public payable{
-
-        uint initialGas = gasleft();
 
         if (msg.value > 0){
             IWeth(weth).deposit{value: msg.value}();
@@ -429,8 +423,14 @@ contract RemovePosition is FlashLoanReceiverBase {
         );
 
         IDSProxy(address(this)).setOwner(owner);
-
-        // IFeeManager(feeManager).takeFeeFrom(owner, initialGas-gasleft()); // TODO feeToken.connect(owner).approve(feeManager,MAX)
+        
+        if (weth != address(0)){
+            uint wethBalance = IERC20(weth).balanceOf(address(this));
+            if (wethBalance>0){
+                IWeth(weth).withdraw(wethBalance);
+                owner.call{value: wethBalance}("");
+            }
+        }
 
     }
 
