@@ -181,12 +181,12 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     const router02 = useContract('UniswapV2Router02')
 
-    const { getServiceFee } = useServiceFee()
+    const { getFinalAmount } = useServiceFee()
 
     useEffectAsync(async () => {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair || !getServiceFee) {
+            || !vaultInfo.ilkInfo.univ2Pair || !getFinalAmount) {
             form.setErrors(undefined)
             return
         }
@@ -236,8 +236,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             .add(getLoanFee(expectedResult.daiFromFlashLoan))
 
         // Flash loan plus fees.
-        expectedResult.daiToDraw = daiToDrawWithoutServiceFee
-            .add(await getServiceFee(expectedResult.daiFromFlashLoan))
+        expectedResult.daiToDraw = await getFinalAmount(daiToDrawWithoutServiceFee)
 
         const { univ2Pair } = vaultInfo.ilkInfo
 

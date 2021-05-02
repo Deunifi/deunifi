@@ -35,6 +35,11 @@ contract FeeManager is IFeeManager, Ownable{
         return amount.mul(feeRatio).div(10000);
     }
 
+    function getFinalAmount(uint amount) public view returns (uint){
+        // TODO Verify if owner() it is sender.
+        return amount.mul(10000).div(10000-feeRatio);
+    }
+
     // TODO Add sender as param.
     function collectFee(address debtToken, uint baseAmount) external override {
         uint fee = getFee(baseAmount);

@@ -45,7 +45,7 @@ interface ILendingPool{
 
 interface IWeth{
     function deposit() external payable;
-    function withdraw(uint amount) external;
+    function withdraw(uint wad) external;
 }
 
 contract RemovePosition is FlashLoanReceiverBase, Ownable {
@@ -60,6 +60,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
     constructor(ILendingPoolAddressesProvider provider) FlashLoanReceiverBase(provider) public {
     }
+
+    fallback () external payable {}
 
     function setFeeManager(address _feeManager) public onlyOwner{
         feeManager = _feeManager;
@@ -89,6 +91,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         address daiJoin;
         uint cdp;
         address router02;
+        address weth;
     }
     
     function lockGemAndDraw(
@@ -255,6 +258,10 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             parameters.transferFrom
         );
 
+        // Fee Service Payment
+        UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, feeManager);
+        IFeeManager(feeManager).collectFee(parameters.debtToken, parameters.debtTokenToDraw);
+
         // Approve lending pool to collect flash loan + fees.
         UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, address(LENDING_POOL));
 
@@ -324,6 +331,36 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
         (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
 
+        // Fee Service Payment
+        UnifiLibrary.safeIncreaseHalfMaxUint(decodedData.debtToken, feeManager);
+        IFeeManager(feeManager).collectFee(decodedData.debtToken, decodedData.debtToPay);
+
+        // Conversion from WETH to ETH when needed.
+        if (decodedData.weth != address(0)){
+
+            uint wethBalance = 0;
+
+            if (decodedData.tokenA == decodedData.weth){
+                wethBalance = remainingTokenA;
+                remainingTokenA = 0;
+            }
+
+            if (decodedData.tokenB == decodedData.weth){
+                wethBalance = remainingTokenB;
+                remainingTokenB = 0;
+            }
+
+            if (wethBalance>0){
+                console.log('wethBalance', wethBalance);
+                console.log('IERC20(decodedData.weth).balanceOf(address(this))', IERC20(decodedData.weth).balanceOf(address(this)));
+                console.log('decodedData.weth', decodedData.weth);
+                IWeth(decodedData.weth).withdraw(wethBalance);
+                console.log('IWeth(decodedData.weth).withdraw(wethBalance);');
+                decodedData.sender.call{value: wethBalance}("");
+                console.log('decodedData.sender.call{value: wethBalance}("");');
+            }
+        }
+
         if (remainingTokenA > 0)
             IERC20(decodedData.tokenA).safeTransfer(decodedData.sender, remainingTokenA);
 
@@ -367,16 +404,6 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             lockAndDrawOperation(operation.data);
         else
             revert('Easy Vault: Invalid operation.');
-
-        if (feeManager != address(0)){
-            for (uint i=0; i<assets.length; i=i.add(1)){
-                UnifiLibrary.safeIncreaseHalfMaxUint(assets[i], feeManager);
-                // console.log('owner, assets[i], amounts[i]', owner, assets[i], amounts[i]);
-                console.log('IERC20(assets[i]).balanceOf(address(this))', IERC20(assets[i]).balanceOf(address(this)));
-                console.log('feeManager', feeManager);
-                IFeeManager(feeManager).collectFee(assets[i], amounts[i]);
-            }
-        }
 
         return true;
     }
@@ -424,14 +451,6 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
         IDSProxy(address(this)).setOwner(owner);
         
-        if (weth != address(0)){
-            uint wethBalance = IERC20(weth).balanceOf(address(this));
-            if (wethBalance>0){
-                IWeth(weth).withdraw(wethBalance);
-                owner.call{value: wethBalance}("");
-            }
-        }
-
     }
 
 }

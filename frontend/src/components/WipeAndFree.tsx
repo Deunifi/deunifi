@@ -28,6 +28,7 @@ interface IWipeAndFreeParameters {
     slippageTolerance: BigNumber, // ratio with 6 decimals
     transactionDeadline: BigNumber, // minutes
 
+    reciveETH: boolean,
 }
 
 const emptyWipeAndFreeParameters: IWipeAndFreeParameters = {
@@ -41,6 +42,9 @@ const emptyWipeAndFreeParameters: IWipeAndFreeParameters = {
 
     slippageTolerance: parseUnits('.01',6), // ratio with 6 decimals
     transactionDeadline: BigNumber.from(120), // minutes
+
+    reciveETH: true,
+
 }
 
 interface IWipeAndFreeForm {
@@ -55,6 +59,8 @@ interface IWipeAndFreeForm {
 
     slippageTolerance: string, // percentage with 4 decimals
     transactionDeadline: string, // minutes
+
+    reciveETH: boolean,
 }
 
 const emptyWipeAndFreeForm: IWipeAndFreeForm = {
@@ -68,6 +74,7 @@ const emptyWipeAndFreeForm: IWipeAndFreeForm = {
 
     slippageTolerance: formatUnits(emptyWipeAndFreeParameters.slippageTolerance, 4),
     transactionDeadline: emptyWipeAndFreeParameters.transactionDeadline.toString(),
+    reciveETH: true,
 }
 
 export const getLoanFee = (amount: BigNumber) => amount.mul(9).div(10000)
@@ -340,6 +347,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')
     const daiJoin = useContract('DaiJoin')
+    const weth = useContract('WETH')
 
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>)=>{
 
@@ -348,7 +356,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         if (!removePosition || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy || 
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
-            !daiJoin)
+            !daiJoin || !weth)
             return
 
         const sender = await signer.getAddress()
@@ -380,6 +388,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 daiJoin.address,
                 vaultInfo.cdp,
                 router02.address,
+                params.reciveETH ? weth.address : ethers.constants.AddressZero
         )
 
         proxyExecute(
@@ -490,6 +499,17 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
                 </label>
             </p>
+
+            <p>
+                <label>
+                    <input type="checkbox" checked={form.reciveETH} name="useETH" onChange={(e) => {
+                            setForm({...form, reciveETH: e.target.checked })
+                            setParams({...params, reciveETH: e.target.checked })
+                        }} />
+                    Recive ETH
+                </label>
+            </p>
+
 
             <p>
                 <label>

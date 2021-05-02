@@ -28,7 +28,8 @@ export const encodeParamsForRemovePosition = (
     gemJoin: string,
     daiJoin: string,
     cdp: BigNumber,
-    router02: string
+    router02: string,
+    weth: string,
 ): string => {
 
     const operationData = ethers.utils.defaultAbiCoder.encode([
@@ -55,7 +56,8 @@ export const encodeParamsForRemovePosition = (
             'address',
             'address',
             'uint256',
-            'address',   
+            'address',
+            'address',
         ]),
     ],[
         [
@@ -82,6 +84,7 @@ export const encodeParamsForRemovePosition = (
             daiJoin,
             cdp,
             router02,
+            weth,
         ]
     ]
     )
