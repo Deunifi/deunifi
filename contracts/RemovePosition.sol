@@ -17,8 +17,8 @@ import { UnifiLibrary } from "./UnifiLibrary.sol";
 import { IFeeManager } from "./IFeeManager.sol";
 
 
-// TODO Remove
-import "hardhat/console.sol";
+// // TODO Remove
+// import "hardhat/console.sol";
 
 interface IDSProxy{
 
@@ -82,7 +82,6 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         address[] pathTokenBToDebtToken;
         uint minTokenAToRecive;
         uint minTokenBToRecive;
-        uint loanFee; // TODO Verify if applies
         uint deadline;
         address dsProxy;
         address dsProxyActions;
@@ -108,7 +107,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         bool transferFrom
         ) public {
 
-        UnifiLibrary.safeIncreaseHalfMaxUint(gemToken, dsProxy);
+        UnifiLibrary.safeIncreaseMaxUint(gemToken, dsProxy, collateralToLock);
 
         IDSProxy(dsProxy).execute(
             dsProxyActions,
@@ -160,7 +159,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         ( LockAndDrawParameters memory parameters) = abi.decode(params, (LockAndDrawParameters));
         
         if (parameters.pathFromDebtTokenToToken0.length > 0 || parameters.pathFromDebtTokenToToken1.length > 0)
-            UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, parameters.router02);
+            UnifiLibrary.safeIncreaseMaxUint(parameters.debtToken, parameters.router02, 
+                parameters.debtTokenForToken0.add(parameters.debtTokenForToken1));
 
         uint token0FromDebtToken = 0;
         uint token1FromDebtToken = 0;
@@ -212,8 +212,10 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
         if (parameters.token1FromUser.add(token1FromDebtToken) > 0){
 
-            UnifiLibrary.safeIncreaseHalfMaxUint(parameters.token0, parameters.router02);
-            UnifiLibrary.safeIncreaseHalfMaxUint(parameters.token1, parameters.router02);
+            UnifiLibrary.safeIncreaseMaxUint(parameters.token0, parameters.router02,
+                parameters.token0FromUser.add(token0FromDebtToken));
+            UnifiLibrary.safeIncreaseMaxUint(parameters.token1, parameters.router02,
+                parameters.token1FromUser.add(token1FromDebtToken));
 
             ( uint token0Used, uint token1Used, uint addedLiquidity) = IUniswapV2Router02(parameters.router02).addLiquidity(
                 parameters.token0,
@@ -259,11 +261,17 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         );
 
         // Fee Service Payment
-        UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, feeManager);
-        IFeeManager(feeManager).collectFee(parameters.debtToken, parameters.debtTokenToDraw);
+        UnifiLibrary.safeIncreaseMaxUint(parameters.debtToken, feeManager, 
+            parameters.debtTokenToDraw); // We are passing an amount higher so it is not necessary to calculate the fee.
+
+        if (feeManager!=address(0))
+            // TODO parameters.sender could be set to feeManager.owner() to do not pay fees, so it is a better option 
+            // to set it in flashLoanFromDSProxy using owner parameter.
+            IFeeManager(feeManager).collectFee(parameters.sender, parameters.debtToken, parameters.debtTokenToDraw);
 
         // Approve lending pool to collect flash loan + fees.
-        UnifiLibrary.safeIncreaseHalfMaxUint(parameters.debtToken, address(LENDING_POOL));
+        UnifiLibrary.safeIncreaseMaxUint(parameters.debtToken, address(LENDING_POOL), 
+            parameters.debtTokenToDraw); // We are passing an amount higher so it is not necessary to calculate the fee.
 
     }
 
@@ -284,14 +292,6 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             parameters.debtToken
         );
 
-        // TODO Remove once resolved the problem of decoding paths.
-        address[] memory pathTokenAToDebtToken = new address[](2);
-        pathTokenAToDebtToken[0] = parameters.tokenA;
-        pathTokenAToDebtToken[1] = parameters.debtToken;
-        address[] memory pathTokenBToDebtToken = new address[](2);
-        pathTokenBToDebtToken[0] = parameters.tokenB;
-        pathTokenBToDebtToken[1] = parameters.debtToken;
-
         (uint remainingTokenA, uint remainingTokenB) = UnifiLibrary.swapCollateralForTokens(
             UnifiLibrary.SwapCollateralForTokensParameters(
                 parameters.router02,
@@ -306,11 +306,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
                 parameters.deadline,
                 parameters.debtToCoverWithTokenA, // amount in debt token
                 parameters.debtToCoverWithTokenB, // Optional in case of Uniswap Pair Collateral
-                // TODO Use the paths pass as parameters.
-                // parameters.pathTokenAToDebtToken, // Path to perform the swap.
-                // parameters.pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
-                pathTokenAToDebtToken, // Path to perform the swap.
-                pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
+                parameters.pathTokenAToDebtToken, // Path to perform the swap.
+                parameters.pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
             )
         );
 
@@ -332,8 +329,11 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
 
         // Fee Service Payment
-        UnifiLibrary.safeIncreaseHalfMaxUint(decodedData.debtToken, feeManager);
-        IFeeManager(feeManager).collectFee(decodedData.debtToken, decodedData.debtToPay);
+        UnifiLibrary.safeIncreaseMaxUint(decodedData.debtToken, feeManager, 
+            decodedData.debtToPay); // We are passing an amount higher so it is not necessary to calculate the fee.
+
+        if (feeManager!=address(0))
+            IFeeManager(feeManager).collectFee(decodedData.sender, decodedData.debtToken, decodedData.debtToPay);
 
         // Conversion from WETH to ETH when needed.
         if (decodedData.weth != address(0)){
@@ -351,13 +351,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             }
 
             if (wethBalance>0){
-                console.log('wethBalance', wethBalance);
-                console.log('IERC20(decodedData.weth).balanceOf(address(this))', IERC20(decodedData.weth).balanceOf(address(this)));
-                console.log('decodedData.weth', decodedData.weth);
                 IWeth(decodedData.weth).withdraw(wethBalance);
-                console.log('IWeth(decodedData.weth).withdraw(wethBalance);');
                 decodedData.sender.call{value: wethBalance}("");
-                console.log('decodedData.sender.call{value: wethBalance}("");');
             }
         }
 
@@ -371,7 +366,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, pairRemaining);
 
         // IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
-        UnifiLibrary.safeIncreaseHalfMaxUint(decodedData.debtToken, address(LENDING_POOL));
+        UnifiLibrary.safeIncreaseMaxUint(decodedData.debtToken, address(LENDING_POOL), 
+            decodedData.debtToPay.mul(2)); // We are passing an amount higher so it is not necessary to calculate the fee.
 
     }
 

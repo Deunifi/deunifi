@@ -181,12 +181,12 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     const router02 = useContract('UniswapV2Router02')
 
-    const { getFinalAmount } = useServiceFee()
+    const { getGrossAmountFromNetAmount } = useServiceFee()
 
     useEffectAsync(async () => {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair || !getFinalAmount) {
+            || !vaultInfo.ilkInfo.univ2Pair) {
             form.setErrors(undefined)
             return
         }
@@ -236,7 +236,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             .add(getLoanFee(expectedResult.daiFromFlashLoan))
 
         // Flash loan plus fees.
-        expectedResult.daiToDraw = await getFinalAmount(daiToDrawWithoutServiceFee)
+        expectedResult.daiToDraw = await getGrossAmountFromNetAmount(daiToDrawWithoutServiceFee)
 
         const { univ2Pair } = vaultInfo.ilkInfo
 
@@ -518,7 +518,6 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                     {vaultInfo.ilkInfo.token0?.symbol} From Account:
                     <input type="number" value={form.textValues.tokenAFromSigner} name="tokenAFromSigner" onChange={(e) => tokenAFromSignerChange(e)} />
                     <button onClick={async (e)=>{
-                        // TODO Modularize logic and add for the rest of token to transfer from signer to main contract via DSProxy.
                         e.preventDefault()
                         if (!vaultInfo.ilkInfo.token0 || !signer || !dsProxy)
                             return
@@ -555,7 +554,6 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                     <input type="number" value={form.textValues.daiFromSigner} name="daiFromSigner" onChange={(e) => daiFromSignerChange(e)} />
                 </label>
                 <button onClick={async (e)=>{
-                        // TODO Modularize logic and add for the rest of token to transfer from signer to main contract via DSProxy.
                         e.preventDefault()
                         if (!dai || !signer || !dsProxy)
                             return

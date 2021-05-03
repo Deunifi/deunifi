@@ -20,7 +20,7 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
     await deploy('RemovePosition', {
         from: deployer,
         gasLimit: 5000000,
-        args: [lendingPoolAddressesProvider.address], //TODO Add feeTo parameter
+        args: [lendingPoolAddressesProvider.address],
     });
 
 } as DeployFunction;

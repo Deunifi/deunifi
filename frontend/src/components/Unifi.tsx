@@ -12,10 +12,10 @@ export const Unifi: React.FC<Props> = () => {
         <div>
             <VaultSelection>
                 <VaultInfo>
-                    <WipeAndFree>
-                    </WipeAndFree>
                     <OpenVault>
                     </OpenVault>
+                    <WipeAndFree>
+                    </WipeAndFree>
                     <LockAndDraw>
                     </LockAndDraw>
                 </VaultInfo>

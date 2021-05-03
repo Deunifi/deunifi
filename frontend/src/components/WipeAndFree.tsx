@@ -188,7 +188,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const [token0ToRecieve, setToken0ToRecieve] = useState(BigNumber.from(0))
     const [token1ToRecieve, setToken1ToRecieve] = useState(BigNumber.from(0))
 
-    const { getServiceFee } = useServiceFee()
+    const { getFeeFromGrossAmount } = useServiceFee()
 
     useEffectAsync(async () => {
         
@@ -199,11 +199,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const lastDaiLoanPlusFeesWithNoServiceFees = params.daiFromFlashLoan
             .add(lastDaiLoanFees)
 
-        if (!getServiceFee)
-            return
-
         const lastDaiLoanPlusFees = lastDaiLoanPlusFeesWithNoServiceFees
-            .add(await getServiceFee(params.daiFromFlashLoan))
+            .add(await getFeeFromGrossAmount(params.daiFromFlashLoan))
         if (!lastDaiLoanPlusFees.eq(daiLoanPlusFees))
             setDaiLoanPlusFees(lastDaiLoanPlusFees)
 
@@ -237,7 +234,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             const pairToken1Balance: BigNumber = await token1.contract.balanceOf(univ2Pair.address)
     
             
-            // TODO In case of dai, should be the same amount.
             const token0AmountForDai: BigNumber = params.daiFromTokenA.isZero() ?
                 BigNumber.from(0) :
                     dai.address == token0.contract.address ?
@@ -245,7 +241,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         : (await router02.getAmountsIn(params.daiFromTokenA,
                             [token0.contract.address, dai.address]))[0]
 
-            // TODO In case of dai, should be the same amount.
             const token1AmountForDai: BigNumber = params.daiFromTokenB.isZero() ?
                 BigNumber.from(0) :
                 dai.address == token1.contract.address ?
@@ -379,7 +374,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 [vaultInfo.ilkInfo.token1.contract.address, dai.address], // address[] pathTokenBToDebtToken;
                 token0MinAmountToRecieve, // uint minTokenAToRecive;
                 token1MinAmountToRecieve, // uint minTokenAToRecive;
-                getLoanFee(params.daiFromFlashLoan), // uint loanFee
                 deadline(params.transactionDeadline.toNumber()*60),
                 dsProxy.address,
                 dssProxyActions.address,
@@ -428,10 +422,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             </p>
 
             <p>
-                {errors.tooMuchDai ? <div>{errors.tooMuchDai}<br></br></div> : ''}
-                {daiLoanFees.isZero() ? '' : <div>Flash Loan Fees (0.09%): {formatEther(daiLoanFees)} DAI<br></br></div>}
-                {daiServiceFee.isZero() ? '' : <div>Service Fee (0.03%): {formatEther(daiServiceFee)} DAI<br></br></div>}
-                {daiLoanPlusFees.isZero() ? '' : <div>Total Dai to get from collateral: {formatEther(daiLoanPlusFees)} DAI<br></br></div>}
+                {errors.tooMuchDai ? <span>{errors.tooMuchDai}<br></br></span> : ''}
+                {daiLoanFees.isZero() ? '' : <span>Flash Loan Fees (0.09%): {formatEther(daiLoanFees)} DAI<br></br></span>}
+                {daiServiceFee.isZero() ? '' : <span>Service Fee (0.03%): {formatEther(daiServiceFee)} DAI<br></br></span>}
+                {daiLoanPlusFees.isZero() ? '' : <span>Total Dai to get from collateral: {formatEther(daiLoanPlusFees)} DAI<br></br></span>}
             </p>
 
             <p>
@@ -447,8 +441,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             </p>
 
             <p>
-                {errors.notEnoughDaiToCoverFlashLoanAndFees ? <div>{errors.notEnoughDaiToCoverFlashLoanAndFees}<br></br></div> : ''}
-                {errors.invalidCombinationOfDaiAmount ? <div>{errors.invalidCombinationOfDaiAmount}<br></br></div> : ''}
+                {errors.notEnoughDaiToCoverFlashLoanAndFees ? <span>{errors.notEnoughDaiToCoverFlashLoanAndFees}<br></br></span> : ''}
+                {errors.invalidCombinationOfDaiAmount ? <span>{errors.invalidCombinationOfDaiAmount}<br></br></span> : ''}
             </p>
 
 
@@ -461,23 +455,24 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         setForm({...form, collateralToUseToPayFlashLoan: formatUnits(vaultInfo.ink), collateralToFree: formatUnits(vaultInfo.ink)})
                         setParams({...params, collateralToUseToPayFlashLoan: vaultInfo.ink, collateralToFree: vaultInfo.ink})
                     }}>Max</button>
-                    {errors.notEnoughCollateralToCoverDai ? <p>{errors.notEnoughCollateralToCoverDai}</p> : ''}
+                    <br></br>
+
                     {errors.notEnoughCollateralToCoverDai? 
-                        '': 
-                        <div>
-                            <div>
+                        errors.notEnoughCollateralToCoverDai: 
+                        <span>
+                            <span>
                                 Amount of {vaultInfo.ilkInfo.token0?.symbol} to recieve: 
                                     {formatUnits(token0ToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol} (min: 
                                         {formatUnits(token0MinAmountToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol})
                                     <br></br>
-                            </div>
-                            <div>
+                            </span>
+                            <span>
                                 Amount of {vaultInfo.ilkInfo.token1?.symbol} to recieve: 
                                     {formatUnits(token1ToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol} (min: 
                                         {formatUnits(token1MinAmountToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol})
-                                    <br></br>
-                            </div>
-                        </div>}
+                            </span>
+                        </span>}
+                    <br></br>
                 </label>
 
                 <br></br>
@@ -489,13 +484,14 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         setForm({...form, collateralToFree: formatUnits(vaultInfo.ink)})
                         setParams({...params, collateralToFree: vaultInfo.ink})
                     }}>Max</button>
-                    {errors.tooMuchCollateralToFree ? <p>{errors.tooMuchCollateralToFree}</p> : ''}
-                    {errors.notEnoughCollateralToFree ? <p>{errors.notEnoughCollateralToFree}</p> : ''}
+                    {errors.tooMuchCollateralToFree ? <span><br></br>{errors.tooMuchCollateralToFree}</span> : ''}
+                    {errors.notEnoughCollateralToFree ? <span><br></br>{errors.notEnoughCollateralToFree}</span> : ''}
                     {(errors.tooMuchCollateralToFree || errors.notEnoughCollateralToFree) ? 
                         '': 
-                        <div>
-                            <div>Amount of {vaultInfo.ilkInfo.symbol} to recieve: {formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)} {vaultInfo.ilkInfo.symbol}<br></br></div>
-                        </div>}
+                        <span>
+                            <br></br>
+                            <span>Amount of {vaultInfo.ilkInfo.symbol} to recieve: {formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)} {vaultInfo.ilkInfo.symbol}<br></br></span>
+                        </span>}
 
                 </label>
             </p>

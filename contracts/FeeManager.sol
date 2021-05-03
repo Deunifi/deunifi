@@ -29,20 +29,20 @@ contract FeeManager is IFeeManager, Ownable{
             IERC20(token).safeTransfer(to, amount);
     }
 
-    // TODO Add sender as param.
-    function getFee(uint amount) public view returns (uint){
-        // TODO Verify if owner() it is sender.
+    function getFeeFromGrossAmount(address sender, uint amount) public view returns (uint){
+        if (sender == owner())
+            return 0;
         return amount.mul(feeRatio).div(10000);
     }
 
-    function getFinalAmount(uint amount) public view returns (uint){
-        // TODO Verify if owner() it is sender.
+    function getGrossAmountFromNetAmount(address sender, uint amount) public view returns (uint){
+        if (sender == owner())
+            return amount;
         return amount.mul(10000).div(10000-feeRatio);
     }
 
-    // TODO Add sender as param.
-    function collectFee(address debtToken, uint baseAmount) external override {
-        uint fee = getFee(baseAmount);
+    function collectFee(address sender, address debtToken, uint baseAmount) external override {
+        uint fee = getFeeFromGrossAmount(sender, baseAmount);
         if (fee>0)
             IERC20(debtToken).safeTransferFrom(msg.sender, address(this), fee);
     }

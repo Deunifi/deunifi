@@ -1,6 +1,7 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
 import { DependencyList, MutableRefObject, useEffect, useRef, useState } from "react";
+import { useSigner } from "../components/Connection";
 import { useContract } from "../components/Deployments";
 import { useEffectAsync } from "./useEffectAsync";
 
@@ -8,16 +9,18 @@ type EffectAsyncCallback = () => Promise<void>;
 
 type FeeCalculationFunction = (amount: BigNumber) => Promise<BigNumber>
 type FinalAmountCalculationFunction = (amount: BigNumber) => Promise<BigNumber>
-const calculationFunctionZero: FeeCalculationFunction = async (amount:BigNumber) => ethers.constants.Zero
+const zeroFunction: FeeCalculationFunction = async (amount:BigNumber) => ethers.constants.Zero
+const identityFunction: FeeCalculationFunction = async (amount:BigNumber) => amount
+
 
 interface ServiceFee{
-    getServiceFee: FeeCalculationFunction
-    getFinalAmount: FinalAmountCalculationFunction
+    getFeeFromGrossAmount: FeeCalculationFunction
+    getGrossAmountFromNetAmount: FinalAmountCalculationFunction
 }
 
-const initialServiceFee: ServiceFee = {
-    getServiceFee: calculationFunctionZero,
-    getFinalAmount: calculationFunctionZero
+const zeroServiceFee: ServiceFee = {
+    getFeeFromGrossAmount: zeroFunction,
+    getGrossAmountFromNetAmount: identityFunction
 }
 
 /**
@@ -32,29 +35,31 @@ export const useServiceFee = () => {
 
     const feeManager = useContract('FeeManager') // feeManager ABI should be available, no matters if it is deployed.
     const removePosition = useContract('RemovePosition')
-    const [serviceFee, setServiceFee] = useState<ServiceFee>(initialServiceFee)
+
+    const signer = useSigner()
+    const [serviceFee, setServiceFee] = useState<ServiceFee>(zeroServiceFee)
 
     useEffectAsync(async () => {
-
         
-        if (!feeManager || !removePosition){
-            // TODO enable undefined
-            setServiceFee(initialServiceFee)
+        if (!feeManager || !removePosition || !signer){
+            setServiceFee(zeroServiceFee)
             return
         }
 
         const feeManagerAddress = await removePosition.feeManager()
 
         if (feeManagerAddress == ethers.constants.AddressZero){
-            setServiceFee(initialServiceFee)
+            setServiceFee(zeroServiceFee)
             return
         }
             
         const feeManagerAttached = await feeManager.attach(feeManagerAddress)
 
+        const signerAddress = await signer.getAddress();
+
         setServiceFee( {
-            getServiceFee: async (amount:BigNumber) => await feeManagerAttached.getFee(amount),
-            getFinalAmount: async (amount:BigNumber) => await feeManagerAttached.getFinalAmount(amount),
+            getFeeFromGrossAmount: async (amount:BigNumber) => await feeManagerAttached.getFeeFromGrossAmount(signerAddress, amount),
+            getGrossAmountFromNetAmount: async (amount:BigNumber) => await feeManagerAttached.getGrossAmountFromNetAmount(signerAddress, amount),
         })
 
     }, [feeManager, removePosition])

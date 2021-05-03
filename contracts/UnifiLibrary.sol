@@ -8,8 +8,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-// TODO Remove
-import "hardhat/console.sol";
+// // TODO Remove
+// import "hardhat/console.sol";
 
 uint256 constant MAX_UINT256 = ~uint256(0);
 
@@ -26,9 +26,8 @@ library UnifiLibrary {
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
-    // TODO add amount parameter.
-    function safeIncreaseHalfMaxUint(address token, address spender) internal {
-        if (IERC20(token).allowance(address(this), spender) < MAX_UINT256){ // TODO Change MAX_UINT256 for amount parameter.
+    function safeIncreaseMaxUint(address token, address spender, uint amount) internal {
+        if (IERC20(token).allowance(address(this), spender) < amount){
             IERC20(token).safeApprove(spender, 0);
             IERC20(token).safeApprove(spender, MAX_UINT256);
         } 
@@ -52,9 +51,7 @@ library UnifiLibrary {
         address daiToken
     ) internal {
 
-        // TODO Do all approvements with MAX_UINT if applyes.
-        // IERC20(daiToken).safeIncreaseAllowance(dsProxy, wadD);
-        safeIncreaseHalfMaxUint(daiToken, dsProxy);
+        safeIncreaseMaxUint(daiToken, dsProxy, wadD);
 
         IDSProxy(dsProxy).execute(
             dsProxyActions,
@@ -103,9 +100,7 @@ library UnifiLibrary {
 
         if (parameters.tokenB!=address(0)){
 
-            // TODO approveMaxIfNotApproved
-            // IERC20(parameters.pairToken).safeIncreaseAllowance(parameters.router02, parameters.amountToUseToPayDebt);
-            safeIncreaseHalfMaxUint(parameters.pairToken, parameters.router02);
+            safeIncreaseMaxUint(parameters.pairToken, parameters.router02, parameters.amountToUseToPayDebt);
 
             (amountA, amountB) = IUniswapV2Router02(parameters.router02).removeLiquidity(      
                 parameters.tokenA,
@@ -119,19 +114,21 @@ library UnifiLibrary {
 
             if (parameters.debtToCoverWithTokenB > 0){
                 
-                if (parameters.tokenB == parameters.pathTokenBToDebtToken[parameters.pathTokenBToDebtToken.length-1]){
+                if (parameters.pathTokenBToDebtToken.length == 0 || 
+                    parameters.tokenB == parameters.pathTokenBToDebtToken[parameters.pathTokenBToDebtToken.length-1]){
 
                     amountBCoveringDebt = parameters.debtToCoverWithTokenB;
 
                 } else {
 
                     // IERC20(parameters.tokenB).safeIncreaseAllowance(parameters.router02, amountB.sub(parameters.amountBMin));
-                    safeIncreaseHalfMaxUint(parameters.tokenB, parameters.router02);
+                    safeIncreaseMaxUint(parameters.tokenB, parameters.router02, 
+                        amountB.mul(2));  // We are passing an amount higher because we do not know how much is going to be spent.
                     
                     amountBCoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
                         parameters.debtToCoverWithTokenB,
                         amountB.sub(parameters.amountBMin), // amountInMax (Here we validate amountBMin)
-                        parameters.pathTokenBToDebtToken, // TODO if path empty do not have to swap.
+                        parameters.pathTokenBToDebtToken,
                         address(this),
                         parameters.deadline
                     )[0];
@@ -149,19 +146,21 @@ library UnifiLibrary {
 
         if (parameters.debtToCoverWithTokenA > 0){
 
-                if (parameters.tokenA == parameters.pathTokenAToDebtToken[parameters.pathTokenAToDebtToken.length-1]){
+                if (parameters.pathTokenAToDebtToken.length == 0 || 
+                    parameters.tokenA == parameters.pathTokenAToDebtToken[parameters.pathTokenAToDebtToken.length-1]){
 
                     amountACoveringDebt = parameters.debtToCoverWithTokenA;
 
                 } else {
 
                     // IERC20(parameters.tokenA).safeIncreaseAllowance(parameters.router02, amountA.sub(parameters.amountAMin));
-                    safeIncreaseHalfMaxUint(parameters.tokenA, parameters.router02);
+                    safeIncreaseMaxUint(parameters.tokenA, parameters.router02,
+                        amountA.mul(2)); // We are passing an amount higher because we do not know how much is going to be spent.
 
                     amountACoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
                         parameters.debtToCoverWithTokenA,
                         amountA.sub(parameters.amountAMin), // amountInMax (Here we validate amountAMin)
-                        parameters.pathTokenAToDebtToken, // TODO if path empty do not have to swap.
+                        parameters.pathTokenAToDebtToken,
                         address(this),
                         parameters.deadline
                     )[0];

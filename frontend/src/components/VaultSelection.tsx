@@ -85,7 +85,7 @@ export function useVaults() {
         const { dsProxy } = dsProxyContainer
 
         if (!dsProxy || !manager) {
-            setVaults([])
+            setVaults(prev => [])
             return
         }
 
@@ -116,8 +116,7 @@ export function useVaults() {
         await Promise.all(toResolve)
 
         // TODO Check if sort is needed.
-        setVaults(vaults)
-
+        setVaults(prev => vaults)
 
     }, [dsProxyContainer, manager])
 
