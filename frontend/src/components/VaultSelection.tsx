@@ -48,8 +48,8 @@ export function useDSProxyContainer() {
 
     const [dsProxyContainer, setDSProxyContainer] = useState<{ dsProxy?: Contract }>({})
 
-    const [dsProxyAddress, ] = useDSProxyAddress()
     const dsProxy = useContract('DSProxy')
+    const [dsProxyAddress, ] = useDSProxyAddress()
 
     useEffectAsync(async () => {
 

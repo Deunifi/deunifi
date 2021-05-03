@@ -10,10 +10,10 @@ interface Props { }
 export const Unifi: React.FC<Props> = () => {
     return (
         <div>
+            <OpenVault>
+            </OpenVault>
             <VaultSelection>
                 <VaultInfo>
-                    <OpenVault>
-                    </OpenVault>
                     <WipeAndFree>
                     </WipeAndFree>
                     <LockAndDraw>

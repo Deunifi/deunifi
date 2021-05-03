@@ -48,49 +48,56 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
     return (
         <div>
-            <button onClick={async (e) => {
-                e.preventDefault()
-                if (dsProxy || !proxyRegistry)
-                    return;
-                const transactionResponse: TransactionResponse = await proxyRegistry['build()']()
-            }}>
-                Create Proxy
-            </button>
+            <p>
+                <label>
 
-            <select
-                name="Ilk"
-                id="ilk"
-                onChange={(e) => setSelectedIlk(ilkList[e.target.selectedIndex])}
-            >
-                {ilkList.map(ilk => (
-                    <option value={ilk} key={ilk}>
-                        {parseBytes32String(ilk)}
-                    </option>
-                ))}
-            </select>
+                    <button onClick={async (e) => {
+                        e.preventDefault()
+                        if (dsProxy || !proxyRegistry)
+                            return;
+                        const transactionResponse: TransactionResponse = await proxyRegistry['build()']()
+                    }}>
+                        Create Proxy
+                    </button>
+                </label>
 
-            <button onClick={async (e) => {
-                e.preventDefault()
-                if (!dssProxyActions || !manager || !selectedIlk || !dsProxy || !signer)
-                    return
-                
-                const signerAddress = await signer.getAddress()
+            </p>
 
-                proxyExecute(
-                    dsProxy, 'execute(address,bytes)',
-                    dssProxyActions, 'open',[
-                        manager.address,
-                        selectedIlk,
-                        dsProxy.address
-                    ]
-                )
-        
-                // await dssProxyActions.open(manager.address, selectedIlk, dsProxy.address)
+            <p>
+                <select
+                    name="Ilk"
+                    id="ilk"
+                    onChange={(e) => setSelectedIlk(ilkList[e.target.selectedIndex])}
+                >
+                    {ilkList.map(ilk => (
+                        <option value={ilk} key={ilk}>
+                            {parseBytes32String(ilk)}
+                        </option>
+                    ))}
+                </select>
 
-            }}>
-                Create Vault
-            </button>
+                <button onClick={async (e) => {
+                    e.preventDefault()
+                    if (!dssProxyActions || !manager || !selectedIlk || !dsProxy || !signer)
+                        return
+                    
+                    const signerAddress = await signer.getAddress()
 
+                    proxyExecute(
+                        dsProxy, 'execute(address,bytes)',
+                        dssProxyActions, 'open',[
+                            manager.address,
+                            selectedIlk,
+                            dsProxy.address
+                        ]
+                    )
+            
+                    // await dssProxyActions.open(manager.address, selectedIlk, dsProxy.address)
+
+                }}>
+                    Create Vault
+                </button>
+            </p>
         </div>
     )
 }
