@@ -12,6 +12,7 @@ import { useDSProxyContainer, useVaultContext, VaultSelection } from './VaultSel
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForRemovePosition as encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
+import { useSwapService } from '../hooks/useSwapService';
 
 interface Props { }
 
@@ -23,7 +24,9 @@ interface IWipeAndFreeParameters {
 
     collateralToUseToPayFlashLoan: BigNumber,
     daiFromTokenA: BigNumber,
+    pathFromTokenAToDai: string[]
     daiFromTokenB: BigNumber,
+    pathFromTokenBToDai: string[]
 
     slippageTolerance: BigNumber, // ratio with 6 decimals
     transactionDeadline: BigNumber, // minutes
@@ -38,7 +41,9 @@ const emptyWipeAndFreeParameters: IWipeAndFreeParameters = {
 
     collateralToUseToPayFlashLoan: BigNumber.from(0),
     daiFromTokenA: BigNumber.from(0),
+    pathFromTokenAToDai: [],
     daiFromTokenB: BigNumber.from(0),
+    pathFromTokenBToDai: [],
 
     slippageTolerance: parseUnits('.01',6), // ratio with 6 decimals
     transactionDeadline: BigNumber.from(120), // minutes
@@ -126,6 +131,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     // const spotter = useContract('Spotter')
 
     const { vaultInfo } = useVaultInfoContext()
+    const swapService = useSwapService()
     const [params, setParams] = useState<IWipeAndFreeParameters>(emptyWipeAndFreeParameters)
     const [form, setForm] = useState<IWipeAndFreeForm>(emptyWipeAndFreeForm)
     
@@ -234,19 +240,15 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             const pairToken1Balance: BigNumber = await token1.contract.balanceOf(univ2Pair.address)
     
             
-            const token0AmountForDai: BigNumber = params.daiFromTokenA.isZero() ?
-                BigNumber.from(0) :
-                    dai.address == token0.contract.address ?
-                        params.daiFromTokenA
-                        : (await router02.getAmountsIn(params.daiFromTokenA,
-                            [token0.contract.address, dai.address]))[0]
+            const swapFromTokenAToDaiResult = await swapService.getAmountsIn(
+                token0.contract.address, dai.address, params.daiFromTokenA)
+            const token0AmountForDai: BigNumber = swapFromTokenAToDaiResult.amountFrom
+            params.pathFromTokenAToDai = swapFromTokenAToDaiResult.path
 
-            const token1AmountForDai: BigNumber = params.daiFromTokenB.isZero() ?
-                BigNumber.from(0) :
-                dai.address == token1.contract.address ?
-                    params.daiFromTokenB
-                    : (await router02.getAmountsIn(params.daiFromTokenB,
-                        [token1.contract.address, dai.address]))[0]
+            const swapFromTokenBToDaiResult = await swapService.getAmountsIn(
+                token1.contract.address, dai.address, params.daiFromTokenB)
+            const token1AmountForDai: BigNumber = swapFromTokenBToDaiResult.amountFrom
+            params.pathFromTokenBToDai = swapFromTokenBToDaiResult.path
 
             const minLiquidityToRemoveForToken0 = token0AmountForDai
                 .mul(pairTotalSupply)
@@ -368,10 +370,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 params.collateralToUseToPayFlashLoan, // uint collateralAmountToUseToPayDebt;
                 params.daiFromTokenA, // uint debtToCoverWithTokenA;
                 params.daiFromTokenB, // uint debtToCoverWithTokenB;
-                // TODO Resolve better path dinamically.
-                [vaultInfo.ilkInfo.token0.contract.address, dai.address], // address[] pathTokenAToDebtToken;
-                // TODO Resolve better path dinamically.
-                [vaultInfo.ilkInfo.token1.contract.address, dai.address], // address[] pathTokenBToDebtToken;
+                params.pathFromTokenAToDai, // address[] pathTokenAToDebtToken;
+                params.pathFromTokenBToDai, // address[] pathTokenBToDebtToken;
                 token0MinAmountToRecieve, // uint minTokenAToRecive;
                 token1MinAmountToRecieve, // uint minTokenAToRecive;
                 deadline(params.transactionDeadline.toNumber()*60),
@@ -432,11 +432,15 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 <label>
                     DAI Covered With {vaultInfo.ilkInfo.token0?.symbol}:
                     <input type="number" value={form.daiFromTokenA} name="daiFromSigner" onChange={ (e) => daiFromTokenAChange(e) }/>
+                    <br></br>
+                    [{params.pathFromTokenAToDai.join(', ')}]
                 </label>
                 <br></br>
                 <label>
                     DAI Covered With {vaultInfo.ilkInfo.token1?.symbol}:
                     <input type="number" value={form.daiFromTokenB} name="daiFromFlashLoan"  onChange={ (e) => daiFromTokenBChange(e) }/>
+                    <br></br>
+                    [{params.pathFromTokenBToDai.join(', ')}]
                 </label>
             </p>
 
