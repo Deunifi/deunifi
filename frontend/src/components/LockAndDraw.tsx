@@ -1,9 +1,10 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { ethers } from "ethers";
+import { Contract, ethers } from "ethers";
 import React, { useEffect, useState } from "react";
 import { useEffectAsync } from "../hooks/useEffectAsync";
 import { useServiceFee } from "../hooks/useServiceFee";
+import { useSwapService } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
 import { useForm, parseBigNumber, defaultSideEffect } from "../utils/forms";
 import { useSigner } from "./Connection";
@@ -131,7 +132,9 @@ const emptyTextForm: ITextForm = {
 
 interface IExpectedResult {
     daiForTokenA: BigNumber,
+    pathFromDaiToTokenA: string[]
     daiForTokenB: BigNumber,
+    pathFromDaiToTokenB: string[]
     daiFromFlashLoan: BigNumber,
 
     daiToDraw: BigNumber,
@@ -152,7 +155,9 @@ interface IExpectedResult {
 const emptyExpectedResult: IExpectedResult = {
 
     daiForTokenA: ethers.constants.Zero,
+    pathFromDaiToTokenA: [],
     daiForTokenB: ethers.constants.Zero,
+    pathFromDaiToTokenB: [],
     daiFromFlashLoan: ethers.constants.Zero,
 
     daiToDraw: ethers.constants.Zero,
@@ -180,6 +185,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(emptyExpectedResult)
 
     const router02 = useContract('UniswapV2Router02')
+    const swapService = useSwapService()
 
     const { getGrossAmountFromNetAmount } = useServiceFee()
 
@@ -213,20 +219,16 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         const expectedResult = emptyExpectedResult
 
         const tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
-        expectedResult.daiForTokenA = tokenAToBuyWithDai.isZero() ?
-            ethers.constants.Zero :
-            dai.address == token0.address ?
-                tokenAToBuyWithDai
-                : (await router02.getAmountsIn(tokenAToBuyWithDai,
-                    [dai.address, token0.address,]))[0] // TODO Use dynamic path
+        const tokenAFromResult = await swapService.getAmountsIn(
+            dai.address, token0.address, tokenAToBuyWithDai)
+        expectedResult.daiForTokenA = tokenAFromResult.amountFrom
+        expectedResult.pathFromDaiToTokenA = tokenAFromResult.path
 
         const tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
-        expectedResult.daiForTokenB = tokenBToBuyWithDai.isZero() ?
-            ethers.constants.Zero :
-            dai.address == token1.address ?
-                tokenBToBuyWithDai
-                : (await router02.getAmountsIn(tokenBToBuyWithDai,
-                    [dai.address, token1.address,]))[0] // TODO Use dynamic path
+        const tokenBFromResult = await swapService.getAmountsIn(
+            dai.address, token1.address, tokenBToBuyWithDai)
+        expectedResult.daiForTokenB = tokenBFromResult.amountFrom
+        expectedResult.pathFromDaiToTokenB = tokenBFromResult.path
 
         expectedResult.daiFromFlashLoan = expectedResult.daiForTokenA
             .add(expectedResult.daiForTokenB)
@@ -421,10 +423,10 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             router02.address, // router02: string,
             vaultInfo.ilkInfo.token0.contract.address, // token0: string,
             expectedResult.daiForTokenA, // debtTokenForToken0: BigNumber,
-            [dai.address, vaultInfo.ilkInfo.token0.contract.address], // TODO Define path dinamically // pathFromDebtTokenToToken0: string[],
+            expectedResult.pathFromDaiToTokenA, // pathFromDebtTokenToToken0: string[],
             vaultInfo.ilkInfo.token1.contract.address, // token1: string,
             expectedResult.daiForTokenB, // debtTokenForToken1: BigNumber,
-            [dai.address, vaultInfo.ilkInfo.token1.contract.address], // TODO Define path dinamically // pathFromDebtTokenToToken1: string[],
+            expectedResult.pathFromDaiToTokenB, // pathFromDebtTokenToToken1: string[],
             form.cleanedValues.tokenAFromSigner, // token0FromUser: BigNumber,
             form.cleanedValues.tokenBFromSigner, // token1FromUser: BigNumber,
             expectedResult.minCollateralToLock.sub(form.cleanedValues.collateralFromUser), // minCollateralToBuy: BigNumber,
@@ -525,6 +527,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                             .connect(signer)
                             .approve(dsProxy.address, ethers.constants.MaxUint256)
                     }}>Approve</button>
+                    <br></br>
+                    [{expectedResult.pathFromDaiToTokenA.join(', ')}]
                 </label>
             </p>
 
@@ -545,6 +549,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                             .connect(signer)
                             .approve(dsProxy.address, ethers.constants.MaxUint256)
                     }}>Approve</button>
+                    <br></br>
+                    [{expectedResult.pathFromDaiToTokenB.join(', ')}]
                 </label>
             </p>
 
