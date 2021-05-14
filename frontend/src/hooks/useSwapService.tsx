@@ -22,7 +22,7 @@ interface IGetAmountsInResult{
 }
 
 type GetAmountsInFunction = (tokenFrom: string, tokenTo: string, amountTo: BigNumber) => Promise<IGetAmountsInResult>
-const initialGetAmountsInResult: IGetAmountsInResult = { path:[], amountFrom: ethers.constants.Zero, psm: { buyGem: false, sellGem: false } }
+export const initialGetAmountsInResult: IGetAmountsInResult = { path:[], amountFrom: ethers.constants.Zero, psm: { buyGem: false, sellGem: false } }
 const zeroFunction: GetAmountsInFunction = async () => initialGetAmountsInResult
 
 const pathExists = async (factory:Contract, path: string[]): Promise<boolean> => {

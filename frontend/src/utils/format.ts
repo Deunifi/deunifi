@@ -29,6 +29,14 @@ export const encodeParamsForRemovePosition = (
     cdp: BigNumber,
     router02: string,
     weth: string,
+
+    // PSM swap parameters
+    tokenToSwapWithPsm: string,
+    tokenJoinForSwapWithPsm: string,
+    psm: string,
+    psmSellGemAmount: BigNumber,
+    expectedDebtTokenFromPsmSellGemOperation: BigNumber,
+
 ): string => {
 
     const operationData = ethers.utils.defaultAbiCoder.encode([
@@ -56,6 +64,11 @@ export const encodeParamsForRemovePosition = (
             'uint256',
             'address',
             'address',
+            'address',
+            'address',
+            'address',
+            'uint256',
+            'uint256',    
         ]),
     ],[
         [
@@ -82,6 +95,11 @@ export const encodeParamsForRemovePosition = (
             cdp,
             router02,
             weth,
+            tokenToSwapWithPsm,
+            tokenJoinForSwapWithPsm,
+            psm,
+            psmSellGemAmount,
+            expectedDebtTokenFromPsmSellGemOperation
         ]
     ]
     )

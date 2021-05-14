@@ -21,6 +21,11 @@ interface IDSProxy{
 
 }
 
+interface IPsm{
+    function buyGem(address usr, uint256 gemAmt) external;
+    function sellGem(address usr, uint256 gemAmt) external;
+}
+
 library UnifiLibrary {
 
     using SafeMath for uint;
@@ -76,6 +81,12 @@ library UnifiLibrary {
         uint debtToCoverWithTokenB; // Optional in case of Uniswap Pair Collateral
         address[] pathTokenAToDebtToken; // Path to perform the swap.
         address[] pathTokenBToDebtToken; // Optional in case of Uniswap Pair Collateral
+
+        address tokenToSwapWithPsm;
+        address tokenJoinForSwapWithPsm;
+        address psm;
+        uint256 psmSellGemAmount;
+        uint256 expectedDebtTokenFromPsmSellGemOperation;
     }
 
     /**
@@ -114,24 +125,36 @@ library UnifiLibrary {
 
             if (parameters.debtToCoverWithTokenB > 0){
                 
-                if (parameters.pathTokenBToDebtToken.length == 0 || 
-                    parameters.tokenB == parameters.pathTokenBToDebtToken[parameters.pathTokenBToDebtToken.length-1]){
+                if (parameters.pathTokenBToDebtToken.length == 0){
 
                     amountBCoveringDebt = parameters.debtToCoverWithTokenB;
 
                 } else {
 
-                    // IERC20(parameters.tokenB).safeIncreaseAllowance(parameters.router02, amountB.sub(parameters.amountBMin));
-                    safeIncreaseMaxUint(parameters.tokenB, parameters.router02, 
-                        amountB.mul(2));  // We are passing an amount higher because we do not know how much is going to be spent.
-                    
-                    amountBCoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
-                        parameters.debtToCoverWithTokenB,
-                        amountB.sub(parameters.amountBMin), // amountInMax (Here we validate amountBMin)
-                        parameters.pathTokenBToDebtToken,
-                        address(this),
-                        parameters.deadline
-                    )[0];
+                    if (parameters.tokenToSwapWithPsm == parameters.tokenB){
+
+                        safeIncreaseMaxUint(parameters.tokenB, parameters.tokenJoinForSwapWithPsm, 
+                            parameters.psmSellGemAmount);
+
+                        IPsm(parameters.psm).sellGem(address(this), parameters.psmSellGemAmount);
+
+                        amountBCoveringDebt = parameters.expectedDebtTokenFromPsmSellGemOperation;
+
+                    }else{
+
+                        // IERC20(parameters.tokenB).safeIncreaseAllowance(parameters.router02, amountB.sub(parameters.amountBMin));
+                        safeIncreaseMaxUint(parameters.tokenB, parameters.router02, 
+                            amountB.mul(2));  // We are passing an amount higher because we do not know how much is going to be spent.
+                        
+                        amountBCoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
+                            parameters.debtToCoverWithTokenB,
+                            amountB.sub(parameters.amountBMin), // amountInMax (Here we validate amountBMin)
+                            parameters.pathTokenBToDebtToken,
+                            address(this),
+                            parameters.deadline
+                        )[0];
+
+                    }
 
                 }
 
@@ -146,24 +169,36 @@ library UnifiLibrary {
 
         if (parameters.debtToCoverWithTokenA > 0){
 
-                if (parameters.pathTokenAToDebtToken.length == 0 || 
-                    parameters.tokenA == parameters.pathTokenAToDebtToken[parameters.pathTokenAToDebtToken.length-1]){
+                if (parameters.pathTokenAToDebtToken.length == 0){
 
                     amountACoveringDebt = parameters.debtToCoverWithTokenA;
 
                 } else {
 
-                    // IERC20(parameters.tokenA).safeIncreaseAllowance(parameters.router02, amountA.sub(parameters.amountAMin));
-                    safeIncreaseMaxUint(parameters.tokenA, parameters.router02,
-                        amountA.mul(2)); // We are passing an amount higher because we do not know how much is going to be spent.
+                    if (parameters.tokenToSwapWithPsm == parameters.tokenA){
 
-                    amountACoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
-                        parameters.debtToCoverWithTokenA,
-                        amountA.sub(parameters.amountAMin), // amountInMax (Here we validate amountAMin)
-                        parameters.pathTokenAToDebtToken,
-                        address(this),
-                        parameters.deadline
-                    )[0];
+                        safeIncreaseMaxUint(parameters.tokenA, parameters.tokenJoinForSwapWithPsm, 
+                            parameters.psmSellGemAmount);
+
+                        IPsm(parameters.psm).sellGem(address(this), parameters.psmSellGemAmount);
+
+                        amountACoveringDebt = parameters.expectedDebtTokenFromPsmSellGemOperation;
+
+                    }else{
+
+                        // IERC20(parameters.tokenA).safeIncreaseAllowance(parameters.router02, amountA.sub(parameters.amountAMin));
+                        safeIncreaseMaxUint(parameters.tokenA, parameters.router02,
+                            amountA.mul(2)); // We are passing an amount higher because we do not know how much is going to be spent.
+
+                        amountACoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
+                            parameters.debtToCoverWithTokenA,
+                            amountA.sub(parameters.amountAMin), // amountInMax (Here we validate amountAMin)
+                            parameters.pathTokenAToDebtToken,
+                            address(this),
+                            parameters.deadline
+                        )[0];
+
+                    }
 
                 }
 

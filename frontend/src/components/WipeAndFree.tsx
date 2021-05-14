@@ -12,7 +12,7 @@ import { useDSProxyContainer, useVaultContext, VaultSelection } from './VaultSel
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForRemovePosition as encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
-import { useSwapService } from '../hooks/useSwapService';
+import { useSwapService, initialGetAmountsInResult } from '../hooks/useSwapService';
 
 interface Props { }
 
@@ -124,6 +124,20 @@ interface IErrors {
     invalidCombinationOfDaiAmount?: string,
 }
 
+interface IExpectedResult{
+    usePsmForToken0: boolean,
+    usePsmForToken1: boolean,
+    token0AmountForDai: BigNumber,
+    token1AmountForDai: BigNumber,
+}
+
+const initialExpectedResult: IExpectedResult = {
+    usePsmForToken0: false,
+    usePsmForToken1: false,
+    token0AmountForDai: ethers.constants.Zero,
+    token1AmountForDai: ethers.constants.Zero,
+}
+
 export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     // const manager = useContract('DssCdpManager')
@@ -139,6 +153,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const [daiLoanFees, setDaiLoanFees] = useState<BigNumber>(BigNumber.from(0))
     const [daiServiceFee, setDaiServiceFee] = useState<BigNumber>(BigNumber.from(0))
     const [errors, setErrors] = useState<IErrors>({})
+
+    const [expectedResult, setExpectedResult] = useState<IExpectedResult>(initialExpectedResult)
     
     const daiFromTokenAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -198,6 +214,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     useEffectAsync(async () => {
         
+        setExpectedResult(initialExpectedResult)
+
         const lastDaiLoanFees = getLoanFee(params.daiFromFlashLoan)
         if (!lastDaiLoanFees.eq(daiLoanFees))
             setDaiLoanFees(lastDaiLoanFees)
@@ -227,19 +245,27 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
          * TokenA -> DAI TokenA: 1) getAmountsIn(DAI TokenA) to obtain TokenA
          * TokenB -> DAI TokenB: 2) getAmountsIn(DAI TokenB) to obtain TokenB
          */
-        const [collateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, pairTotalSupply ] = await ((async () =>{
+        const {collateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, pairTotalSupply, swapFromTokenAToDaiResult, swapFromTokenBToDaiResult} = await ((async () =>{
 
             const { univ2Pair, token0, token1 } = vaultInfo.ilkInfo
 
             if (!univ2Pair || !token0 || !token1 || !dai || !router02){
-                return [BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0),]
+                return {
+                    collateralToRemove: BigNumber.from(0),
+                    token0AmountForDai: BigNumber.from(0),
+                    token1AmountForDai: BigNumber.from(0),
+                    pairToken0Balance: BigNumber.from(0),
+                    pairToken1Balance: BigNumber.from(0),
+                    pairTotalSupply: BigNumber.from(0),
+                    swapFromTokenAToDaiResult: initialGetAmountsInResult,
+                    swapFromTokenBToDaiResult: initialGetAmountsInResult
+                }
             }
 
             const pairTotalSupply: BigNumber = await univ2Pair.totalSupply()
             const pairToken0Balance: BigNumber = await token0.contract.balanceOf(univ2Pair.address)
             const pairToken1Balance: BigNumber = await token1.contract.balanceOf(univ2Pair.address)
     
-            
             const swapFromTokenAToDaiResult = await swapService.getAmountsIn(
                 token0.contract.address, dai.address, params.daiFromTokenA)
             const token0AmountForDai: BigNumber = swapFromTokenAToDaiResult.amountFrom
@@ -257,15 +283,17 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 .mul(pairTotalSupply)
                 .div(pairToken1Balance)
 
-            const minLiquidityToRemove = 
+            const collateralToRemove = 
                 minLiquidityToRemoveForToken0.gt(minLiquidityToRemoveForToken1) ?
                     minLiquidityToRemoveForToken0
                     : minLiquidityToRemoveForToken1
             
-            return [
-                minLiquidityToRemove,
+            return {
+                collateralToRemove,
                 token0AmountForDai, token1AmountForDai,
-                pairToken0Balance, pairToken1Balance, pairTotalSupply]
+                pairToken0Balance, pairToken1Balance, pairTotalSupply,
+                swapFromTokenAToDaiResult, swapFromTokenBToDaiResult
+            }
 
         })())
 
@@ -325,6 +353,13 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         setErrors(errors)
 
+        setExpectedResult({ 
+            usePsmForToken0: swapFromTokenAToDaiResult.psm.sellGem,
+            usePsmForToken1: swapFromTokenBToDaiResult.psm.sellGem,
+            token0AmountForDai,
+            token1AmountForDai,
+        })
+
     }, [params])
 
     const onChangeBigNumber = (e: React.ChangeEvent<HTMLInputElement>, decimals: number=18) => {
@@ -345,6 +380,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const manager = useContract('DssCdpManager')
     const daiJoin = useContract('DaiJoin')
     const weth = useContract('WETH')
+    const dssPsm = useContract('DssPsm')
 
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>)=>{
 
@@ -353,10 +389,12 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         if (!removePosition || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy || 
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
-            !daiJoin || !weth)
+            !daiJoin || !weth || !dssPsm)
             return
 
         const sender = await signer.getAddress()
+
+        const gemJoinAddress = await dssPsm.gemJoin()
         
         const dataForExecuteOperationCallback = encodeParamsForWipeAndFree(
                 await removePosition.WIPE_AND_FREE(),
@@ -382,7 +420,18 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 daiJoin.address,
                 vaultInfo.cdp,
                 router02.address,
-                params.reciveETH ? weth.address : ethers.constants.AddressZero
+                params.reciveETH ? weth.address : ethers.constants.AddressZero,
+                expectedResult.usePsmForToken0 ? vaultInfo.ilkInfo.token0.contract.address : 
+                    expectedResult.usePsmForToken1 ? vaultInfo.ilkInfo.token1.contract.address :
+                        ethers.constants.AddressZero,
+                gemJoinAddress,
+                dssPsm.address,
+                expectedResult.usePsmForToken0 ? expectedResult.token0AmountForDai : 
+                    expectedResult.usePsmForToken1 ? expectedResult.token1AmountForDai :
+                        ethers.constants.Zero,
+                expectedResult.usePsmForToken0 ? params.daiFromTokenA : 
+                    expectedResult.usePsmForToken1 ? params.daiFromTokenA :
+                        ethers.constants.Zero,
         )
 
         proxyExecute(

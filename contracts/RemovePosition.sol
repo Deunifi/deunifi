@@ -50,6 +50,7 @@ interface IWeth{
 
 interface IPsm{
     function buyGem(address usr, uint256 gemAmt) external;
+    function sellGem(address usr, uint256 gemAmt) external;
 }
 
 contract RemovePosition is FlashLoanReceiverBase, Ownable {
@@ -95,6 +96,13 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         uint cdp;
         address router02;
         address weth;
+
+        // PSM swap parameters
+        address tokenToSwapWithPsm;
+        address tokenJoinForSwapWithPsm;
+        address psm;
+        uint256 psmSellGemAmount;
+        uint256 expectedDebtTokenFromPsmSellGemOperation;
     }
     
     function lockGemAndDraw(
@@ -371,7 +379,12 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
                 parameters.debtToCoverWithTokenA, // amount in debt token
                 parameters.debtToCoverWithTokenB, // Optional in case of Uniswap Pair Collateral
                 parameters.pathTokenAToDebtToken, // Path to perform the swap.
-                parameters.pathTokenBToDebtToken // Optional in case of Uniswap Pair Collateral
+                parameters.pathTokenBToDebtToken, // Optional in case of Uniswap Pair Collateral
+                parameters.tokenToSwapWithPsm,
+                parameters.tokenJoinForSwapWithPsm,
+                parameters.psm,
+                parameters.psmSellGemAmount,
+                parameters.expectedDebtTokenFromPsmSellGemOperation
             )
         );
 
