@@ -48,6 +48,10 @@ interface IWeth{
     function withdraw(uint wad) external;
 }
 
+interface IPsm{
+    function buyGem(address usr, uint256 gemAmt) external;
+}
+
 contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
     address public feeManager;
@@ -124,14 +128,19 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         address debtToken;
 
         address router02;
+        address psm;
 
         address token0;
         uint256 debtTokenForToken0;
+        uint256 token0FromDebtToken;
         address[] pathFromDebtTokenToToken0;
+        bool usePsmForToken0;
 
         address token1;
         uint256 debtTokenForToken1;
+        uint256 token1FromDebtToken;
         address[] pathFromDebtTokenToToken1;
+        bool usePsmForToken1;
 
         uint256 token0FromUser;
         uint256 token1FromUser;
@@ -154,13 +163,48 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
     }
 
+    function approveDebtToken(uint256 pathFromDebtTokenToToken0Length, uint256 pathFromDebtTokenToToken1Length,
+        address debtToken, address router02, address psm,
+        uint256 debtTokenForToken0, uint256 debtTokenForToken1,
+        bool usePsmForToken0, bool usePsmForToken1) internal {
+        
+        uint256 amountToApproveRouter02 = 0;
+        uint256 amountToApprovePsm = 0;
+
+        if (pathFromDebtTokenToToken0Length > 0){
+            if (usePsmForToken0)
+                amountToApprovePsm = amountToApprovePsm.add(debtTokenForToken0);
+            else
+                amountToApproveRouter02 = amountToApproveRouter02.add(debtTokenForToken0);
+        }
+
+        if (pathFromDebtTokenToToken1Length > 0){
+            if (usePsmForToken1)
+                amountToApprovePsm = amountToApprovePsm.add(debtTokenForToken1);
+            else
+                amountToApproveRouter02 = amountToApproveRouter02.add(debtTokenForToken1);
+        }
+
+        if (amountToApproveRouter02 > 0){
+            UnifiLibrary.safeIncreaseMaxUint(debtToken, router02, 
+                amountToApproveRouter02);
+        }
+
+        if (amountToApprovePsm > 0){
+            UnifiLibrary.safeIncreaseMaxUint(debtToken, psm, 
+                amountToApprovePsm);
+        }
+
+    }
+
     function lockAndDrawOperation(bytes memory params) public payable{
 
         ( LockAndDrawParameters memory parameters) = abi.decode(params, (LockAndDrawParameters));
         
-        if (parameters.pathFromDebtTokenToToken0.length > 0 || parameters.pathFromDebtTokenToToken1.length > 0)
-            UnifiLibrary.safeIncreaseMaxUint(parameters.debtToken, parameters.router02, 
-                parameters.debtTokenForToken0.add(parameters.debtTokenForToken1));
+        approveDebtToken(parameters.pathFromDebtTokenToToken0.length, parameters.pathFromDebtTokenToToken1.length,
+            parameters.debtToken, parameters.router02, parameters.psm,
+            parameters.debtTokenForToken0, parameters.debtTokenForToken1,
+            parameters.usePsmForToken0, parameters.usePsmForToken1);
 
         uint token0FromDebtToken = 0;
         uint token1FromDebtToken = 0;
@@ -175,13 +219,23 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
             } else {
 
-                token0FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
-                    parameters.debtTokenForToken0, // exact amount for token 'from'
-                    0, // min amount to recive for token 'to'
-                    parameters.pathFromDebtTokenToToken0, // path of swap
-                    address(this), // reciver
-                    parameters.deadline
-                    )[parameters.pathFromDebtTokenToToken0.length-1];
+                if (parameters.usePsmForToken0){
+
+                    token0FromDebtToken = parameters.token0FromDebtToken;
+                    
+                    IPsm(parameters.psm).buyGem(address(this), token0FromDebtToken);
+
+                }else{
+
+                    token0FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
+                        parameters.debtTokenForToken0, // exact amount for token 'from'
+                        0, // min amount to recive for token 'to'
+                        parameters.pathFromDebtTokenToToken0, // path of swap
+                        address(this), // reciver
+                        parameters.deadline
+                        )[parameters.pathFromDebtTokenToToken0.length-1];
+
+                }
 
             }
 
@@ -198,13 +252,23 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
             } else {
 
-                token1FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
-                    parameters.debtTokenForToken1, // exact amount for token 'from'
-                    0, // min amount to recive for token 'to'
-                    parameters.pathFromDebtTokenToToken1, // path of swap
-                    address(this), // reciver
-                    parameters.deadline
-                    )[parameters.pathFromDebtTokenToToken1.length-1];
+                if (parameters.usePsmForToken1){
+
+                    token1FromDebtToken = parameters.token1FromDebtToken;
+                    
+                    IPsm(parameters.psm).buyGem(address(this), token1FromDebtToken);
+
+                }else{
+
+                    token1FromDebtToken = IUniswapV2Router02(parameters.router02).swapExactTokensForTokens(
+                        parameters.debtTokenForToken1, // exact amount for token 'from'
+                        0, // min amount to recive for token 'to'
+                        parameters.pathFromDebtTokenToToken1, // path of swap
+                        address(this), // reciver
+                        parameters.deadline
+                        )[parameters.pathFromDebtTokenToToken1.length-1];
+
+                }
 
             }
 

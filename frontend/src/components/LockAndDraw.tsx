@@ -131,10 +131,16 @@ const emptyTextForm: ITextForm = {
 }
 
 interface IExpectedResult {
+    
     daiForTokenA: BigNumber,
+    tokenAToBuyWithDai: BigNumber,
     pathFromDaiToTokenA: string[]
+    usePsmForTokenA: boolean,
+
     daiForTokenB: BigNumber,
+    tokenBToBuyWithDai: BigNumber,
     pathFromDaiToTokenB: string[]
+    usePsmForTokenB: boolean,
     daiFromFlashLoan: BigNumber,
 
     daiToDraw: BigNumber,
@@ -155,9 +161,15 @@ interface IExpectedResult {
 const emptyExpectedResult: IExpectedResult = {
 
     daiForTokenA: ethers.constants.Zero,
+    tokenAToBuyWithDai: ethers.constants.Zero,
     pathFromDaiToTokenA: [],
+    usePsmForTokenA: false,
+
     daiForTokenB: ethers.constants.Zero,
+    tokenBToBuyWithDai: ethers.constants.Zero,
     pathFromDaiToTokenB: [],
+    usePsmForTokenB: false,
+
     daiFromFlashLoan: ethers.constants.Zero,
 
     daiToDraw: ethers.constants.Zero,
@@ -218,17 +230,19 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         const expectedResult = emptyExpectedResult
 
-        const tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
+        expectedResult.tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
         const tokenAFromResult = await swapService.getAmountsIn(
-            dai.address, token0.address, tokenAToBuyWithDai)
+            dai.address, token0.address, expectedResult.tokenAToBuyWithDai)
         expectedResult.daiForTokenA = tokenAFromResult.amountFrom
         expectedResult.pathFromDaiToTokenA = tokenAFromResult.path
+        expectedResult.usePsmForTokenA = tokenAFromResult.psm.buyGem
 
-        const tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
+        expectedResult.tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
         const tokenBFromResult = await swapService.getAmountsIn(
-            dai.address, token1.address, tokenBToBuyWithDai)
+            dai.address, token1.address, expectedResult.tokenBToBuyWithDai)
         expectedResult.daiForTokenB = tokenBFromResult.amountFrom
         expectedResult.pathFromDaiToTokenB = tokenBFromResult.path
+        expectedResult.usePsmForTokenB = tokenBFromResult.psm.buyGem
 
         expectedResult.daiFromFlashLoan = expectedResult.daiForTokenA
             .add(expectedResult.daiForTokenB)
@@ -400,6 +414,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     const daiJoin = useContract('DaiJoin')
     const jug = useContract('Jug')
     const weth = useContract('WETH')
+    const dssPsm = useContract('DssPsm')
 
 
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -409,7 +424,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         if (!removePosition || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy ||
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
-            !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth)
+            !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth || !dssPsm)
             return
 
         const sender = await signer.getAddress()
@@ -421,12 +436,17 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             sender, // sender: string,
             dai.address, // debtToken: string,
             router02.address, // router02: string,
+            dssPsm.address, // psm: string,
             vaultInfo.ilkInfo.token0.contract.address, // token0: string,
             expectedResult.daiForTokenA, // debtTokenForToken0: BigNumber,
+            expectedResult.tokenAToBuyWithDai,
             expectedResult.pathFromDaiToTokenA, // pathFromDebtTokenToToken0: string[],
+            expectedResult.usePsmForTokenA, // usePsmForToken0: boolean,
             vaultInfo.ilkInfo.token1.contract.address, // token1: string,
             expectedResult.daiForTokenB, // debtTokenForToken1: BigNumber,
+            expectedResult.tokenBToBuyWithDai,
             expectedResult.pathFromDaiToTokenB, // pathFromDebtTokenToToken1: string[],
+            expectedResult.usePsmForTokenB, // usePsmForToken1: boolean,
             form.cleanedValues.tokenAFromSigner, // token0FromUser: BigNumber,
             form.cleanedValues.tokenBFromSigner, // token1FromUser: BigNumber,
             expectedResult.minCollateralToLock.sub(form.cleanedValues.collateralFromUser), // minCollateralToBuy: BigNumber,
