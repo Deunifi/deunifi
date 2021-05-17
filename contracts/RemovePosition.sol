@@ -13,8 +13,9 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-import { UnifiLibrary } from "./UnifiLibrary.sol";
 import { IFeeManager } from "./IFeeManager.sol";
+
+uint256 constant MAX_UINT256 = ~uint256(0);
 
 
 // // TODO Remove
@@ -117,9 +118,9 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         uint collateralToLock,
         uint daiToBorrow,
         bool transferFrom
-        ) public {
+        ) internal {
 
-        UnifiLibrary.safeIncreaseMaxUint(gemToken, dsProxy, collateralToLock);
+        safeIncreaseMaxUint(gemToken, dsProxy, collateralToLock);
 
         IDSProxy(dsProxy).execute(
             dsProxyActions,
@@ -194,18 +195,18 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         }
 
         if (amountToApproveRouter02 > 0){
-            UnifiLibrary.safeIncreaseMaxUint(debtToken, router02, 
+            safeIncreaseMaxUint(debtToken, router02, 
                 amountToApproveRouter02);
         }
 
         if (amountToApprovePsm > 0){
-            UnifiLibrary.safeIncreaseMaxUint(debtToken, psm, 
+            safeIncreaseMaxUint(debtToken, psm, 
                 amountToApprovePsm);
         }
 
     }
 
-    function lockAndDrawOperation(bytes memory params) public payable{
+    function lockAndDrawOperation(bytes memory params) internal{
 
         ( LockAndDrawParameters memory parameters) = abi.decode(params, (LockAndDrawParameters));
         
@@ -284,9 +285,9 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
         if (parameters.token1FromUser.add(token1FromDebtToken) > 0){
 
-            UnifiLibrary.safeIncreaseMaxUint(parameters.token0, parameters.router02,
+            safeIncreaseMaxUint(parameters.token0, parameters.router02,
                 parameters.token0FromUser.add(token0FromDebtToken));
-            UnifiLibrary.safeIncreaseMaxUint(parameters.token1, parameters.router02,
+            safeIncreaseMaxUint(parameters.token1, parameters.router02,
                 parameters.token1FromUser.add(token1FromDebtToken));
 
             ( uint token0Used, uint token1Used, uint addedLiquidity) = IUniswapV2Router02(parameters.router02).addLiquidity(
@@ -333,7 +334,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         );
 
         // Fee Service Payment
-        UnifiLibrary.safeIncreaseMaxUint(parameters.debtToken, feeManager, 
+        safeIncreaseMaxUint(parameters.debtToken, feeManager, 
             parameters.debtTokenToDraw); // We are passing an amount higher so it is not necessary to calculate the fee.
 
         if (feeManager!=address(0))
@@ -342,17 +343,17 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             IFeeManager(feeManager).collectFee(parameters.sender, parameters.debtToken, parameters.debtTokenToDraw);
 
         // Approve lending pool to collect flash loan + fees.
-        UnifiLibrary.safeIncreaseMaxUint(parameters.debtToken, address(LENDING_POOL), 
+        safeIncreaseMaxUint(parameters.debtToken, address(LENDING_POOL), 
             parameters.debtTokenToDraw); // We are passing an amount higher so it is not necessary to calculate the fee.
 
     }
 
-    function paybackDebt(PayBackParameters memory parameters) public payable
+    function paybackDebt(PayBackParameters memory parameters) internal
         returns (uint freeTokenA, uint freeTokenB, uint freePairToken){
 
         uint debtToPay = parameters.debtToPay;
 
-        UnifiLibrary.wipeAndFreeGem(
+        wipeAndFreeGem(
             parameters.dsProxy,
             parameters.dsProxyActions,
             parameters.manager,
@@ -364,8 +365,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             parameters.debtToken
         );
 
-        (uint remainingTokenA, uint remainingTokenB) = UnifiLibrary.swapCollateralForTokens(
-            UnifiLibrary.SwapCollateralForTokensParameters(
+        (uint remainingTokenA, uint remainingTokenB) = swapCollateralForTokens(
+            SwapCollateralForTokensParameters(
                 parameters.router02,
                 parameters.tokenA,
                 parameters.tokenB, // Optional in case of Uniswap Pair Collateral
@@ -399,6 +400,186 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
     }
 
+    function safeIncreaseMaxUint(address token, address spender, uint amount) internal {
+        if (IERC20(token).allowance(address(this), spender) < amount){
+            IERC20(token).safeApprove(spender, 0);
+            IERC20(token).safeApprove(spender, MAX_UINT256);
+        } 
+    }
+
+    /**
+    Preconditions:
+    - this should have enough `wadD` DAI.
+    - DAI.allowance(this, daiJoin) >= wadD
+    - All addresses should correspond with the expected contracts.
+    */
+    function wipeAndFreeGem(
+        address dsProxy,
+        address dsProxyActions,
+        address manager,
+        address gemJoin,
+        address daiJoin,
+        uint256 cdp,
+        uint256 wadC,
+        uint256 wadD,
+        address daiToken
+    ) internal {
+
+        safeIncreaseMaxUint(daiToken, dsProxy, wadD);
+
+        IDSProxy(dsProxy).execute(
+            dsProxyActions,
+            abi.encodeWithSignature("wipeAndFreeGem(address,address,address,uint256,uint256,uint256)",
+                manager, gemJoin, daiJoin, cdp, wadC, wadD)
+        );
+
+    }
+    
+    struct SwapCollateralForTokensParameters{
+        address router02; // Uniswap V2 Router
+        address tokenA; // Token to be swap for debtToken
+        address tokenB; // Optional in case of Uniswap Pair Collateral
+        address pairToken;
+        uint amountToUseToPayDebt; // Amount of tokenA or liquidity to remove 
+                                   // of pair(tokenA, tokenB)
+        uint amountAMin; // Min amount remaining after swap tokenA for debtToken
+                         // (this has more sense when we are working with pairs)
+        uint amountBMin; // Optional in case of Uniswap Pair Collateral
+        uint deadline;
+        uint debtToCoverWithTokenA; // amount in debt token
+        uint debtToCoverWithTokenB; // Optional in case of Uniswap Pair Collateral
+        address[] pathTokenAToDebtToken; // Path to perform the swap.
+        address[] pathTokenBToDebtToken; // Optional in case of Uniswap Pair Collateral
+
+        address tokenToSwapWithPsm;
+        address tokenJoinForSwapWithPsm;
+        address psm;
+        uint256 psmSellGemAmount;
+        uint256 expectedDebtTokenFromPsmSellGemOperation;
+    }
+
+    /**
+    Preconditions:
+    - this should have enough amountToUseToPayDebt, 
+        tokenA for debtToCoverWithTokenA and 
+        tokenb for debtToCoverWithTokenB and 
+    - pair(tokenA, tokenB).allowance(this, router02) >= amountToUseToPayDebt.
+    - tokenA.allowance(this, router02) >= (debtToCoverWithTokenA in token A)
+    - tokenB.allowance(this, router02) >= (debtToCoverWithTokenB in token B)
+    - All addresses should correspond with the expected contracts.
+    - pair(tokenA, tokenB) should be a valid Uniswap V2 pair.
+    */
+    function swapCollateralForTokens(
+        SwapCollateralForTokensParameters memory parameters
+    ) internal returns (uint remainingTokenA, uint remainingTokenB) {
+        
+        uint amountA = 0;
+        uint amountB = 0;
+        uint amountACoveringDebt = 0;
+        uint amountBCoveringDebt = 0;
+
+        if (parameters.tokenB!=address(0)){
+
+            safeIncreaseMaxUint(parameters.pairToken, parameters.router02, parameters.amountToUseToPayDebt);
+
+            (amountA, amountB) = IUniswapV2Router02(parameters.router02).removeLiquidity(      
+                parameters.tokenA,
+                parameters.tokenB,
+                parameters.amountToUseToPayDebt,
+                0, // Min amount of token A to recive
+                0, // Min amount of token B to recive
+                address(this),
+                parameters.deadline
+            );
+
+            if (parameters.debtToCoverWithTokenB > 0){
+                
+                if (parameters.pathTokenBToDebtToken.length == 0){
+
+                    amountBCoveringDebt = parameters.debtToCoverWithTokenB;
+
+                } else {
+
+                    if (parameters.tokenToSwapWithPsm == parameters.tokenB){
+
+                        safeIncreaseMaxUint(parameters.tokenB, parameters.tokenJoinForSwapWithPsm, 
+                            parameters.psmSellGemAmount);
+
+                        IPsm(parameters.psm).sellGem(address(this), parameters.psmSellGemAmount);
+
+                        amountBCoveringDebt = parameters.expectedDebtTokenFromPsmSellGemOperation;
+
+                    }else{
+
+                        // IERC20(parameters.tokenB).safeIncreaseAllowance(parameters.router02, amountB.sub(parameters.amountBMin));
+                        safeIncreaseMaxUint(parameters.tokenB, parameters.router02, 
+                            amountB.mul(2));  // We are passing an amount higher because we do not know how much is going to be spent.
+                        
+                        amountBCoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
+                            parameters.debtToCoverWithTokenB,
+                            amountB.sub(parameters.amountBMin), // amountInMax (Here we validate amountBMin)
+                            parameters.pathTokenBToDebtToken,
+                            address(this),
+                            parameters.deadline
+                        )[0];
+
+                    }
+
+                }
+
+            }
+
+        }else{
+
+            // In case we are not dealing with a pair, we need 
+            amountA = parameters.amountToUseToPayDebt;
+
+        }
+
+        if (parameters.debtToCoverWithTokenA > 0){
+
+                if (parameters.pathTokenAToDebtToken.length == 0){
+
+                    amountACoveringDebt = parameters.debtToCoverWithTokenA;
+
+                } else {
+
+                    if (parameters.tokenToSwapWithPsm == parameters.tokenA){
+
+                        safeIncreaseMaxUint(parameters.tokenA, parameters.tokenJoinForSwapWithPsm, 
+                            parameters.psmSellGemAmount);
+
+                        IPsm(parameters.psm).sellGem(address(this), parameters.psmSellGemAmount);
+
+                        amountACoveringDebt = parameters.expectedDebtTokenFromPsmSellGemOperation;
+
+                    }else{
+
+                        // IERC20(parameters.tokenA).safeIncreaseAllowance(parameters.router02, amountA.sub(parameters.amountAMin));
+                        safeIncreaseMaxUint(parameters.tokenA, parameters.router02,
+                            amountA.mul(2)); // We are passing an amount higher because we do not know how much is going to be spent.
+
+                        amountACoveringDebt = IUniswapV2Router02(parameters.router02).swapTokensForExactTokens(
+                            parameters.debtToCoverWithTokenA,
+                            amountA.sub(parameters.amountAMin), // amountInMax (Here we validate amountAMin)
+                            parameters.pathTokenAToDebtToken,
+                            address(this),
+                            parameters.deadline
+                        )[0];
+
+                    }
+
+                }
+
+        }
+
+        return (
+            amountA.sub(amountACoveringDebt),
+            amountB.sub(amountBCoveringDebt)
+            );
+
+    }
+
     function wipeAndFreeOperation(bytes memory params) internal{
 
         ( PayBackParameters memory decodedData ) = abi.decode(params, (PayBackParameters));
@@ -406,7 +587,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
 
         // Fee Service Payment
-        UnifiLibrary.safeIncreaseMaxUint(decodedData.debtToken, feeManager, 
+        safeIncreaseMaxUint(decodedData.debtToken, feeManager, 
             decodedData.debtToPay); // We are passing an amount higher so it is not necessary to calculate the fee.
 
         if (feeManager!=address(0))
@@ -443,7 +624,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, pairRemaining);
 
         // IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
-        UnifiLibrary.safeIncreaseMaxUint(decodedData.debtToken, address(LENDING_POOL), 
+        safeIncreaseMaxUint(decodedData.debtToken, address(LENDING_POOL), 
             decodedData.debtToPay.mul(2)); // We are passing an amount higher so it is not necessary to calculate the fee.
 
     }
