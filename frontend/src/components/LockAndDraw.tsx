@@ -10,7 +10,7 @@ import { useForm, parseBigNumber, defaultSideEffect } from "../utils/forms";
 import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { useVaultInfoContext, getCollateralizationRatio, getLiquidationPrice } from "./VaultInfo";
-import { useDSProxyContainer } from "./VaultSelection";
+import { useDSProxyContainer, VaultSelection } from "./VaultSelection";
 import { decreaseWithTolerance, getLoanFee, increaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
 
 interface Props { }
@@ -156,6 +156,11 @@ interface IExpectedResult {
     liquidationPrice: BigNumber,
     maxLiquidationPrice: BigNumber,
 
+    needsGemApproval: boolean,
+    needsToken0Approval: boolean,
+    needsToken1Approval: boolean,
+    needsDebtTokenApproval: boolean,
+
 }
 
 const emptyExpectedResult: IExpectedResult = {
@@ -185,6 +190,11 @@ const emptyExpectedResult: IExpectedResult = {
     liquidationPrice: ethers.constants.Zero,
     maxLiquidationPrice: ethers.constants.Zero,
 
+    needsGemApproval: false,
+    needsToken0Approval: false,
+    needsToken1Approval: false,
+    needsDebtTokenApproval: false,
+
 }
 
 export const LockAndDraw: React.FC<Props> = ({ children }) => {
@@ -204,7 +214,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     useEffectAsync(async () => {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem) {
+            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy) {
             form.setErrors(undefined)
             return
         }
@@ -238,7 +248,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         if (token1BalanceOfSigner.lt(form.cleanedValues.tokenBFromSigner))
             errors.tokenBFromSigner = `You do not have enough ${vaultInfo.ilkInfo.token1.symbol} in your balance.`
 
-        const expectedResult = emptyExpectedResult
+        const expectedResult = { ...emptyExpectedResult }
 
         if (form.cleanedValues.tokenAFromSigner.gt(form.cleanedValues.tokenAToLock)){
             errors.tokenAFromSigner = `${vaultInfo.ilkInfo.token0.symbol} from signer could not be higher than ${vaultInfo.ilkInfo.token0.symbol} to lock.`
@@ -335,7 +345,29 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 vaultInfo.mat
             )
 
-        setExpectedResult({ ...expectedResult })
+        const needsApproval = async (token: Contract, owner: string, spender: string, amount: BigNumber, weth: string, useEth: boolean): Promise<boolean> => {
+            if (amount.isZero())
+                return false
+            if (token.address == weth && useEth)
+                return false
+            const allowance: BigNumber = await token.allowance(owner, spender)
+            return allowance.lt(amount);
+        }
+
+        [
+            expectedResult.needsGemApproval,
+            expectedResult.needsToken0Approval,
+            expectedResult.needsToken1Approval,
+            expectedResult.needsDebtTokenApproval
+
+        ] = await Promise.all([
+            needsApproval(vaultInfo.ilkInfo.gem, signerAddress, dsProxy.address, form.cleanedValues.collateralFromUser, weth.address, form.cleanedValues.useETH),
+            needsApproval(vaultInfo.ilkInfo.token0.contract, signerAddress, dsProxy.address, form.cleanedValues.tokenAFromSigner, weth.address, form.cleanedValues.useETH),
+            needsApproval(vaultInfo.ilkInfo.token1.contract, signerAddress, dsProxy.address, form.cleanedValues.tokenBFromSigner, weth.address, form.cleanedValues.useETH),
+            needsApproval(dai, signerAddress, dsProxy.address, form.cleanedValues.daiFromSigner, weth.address, form.cleanedValues.useETH),
+        ])
+
+        setExpectedResult(expectedResult)
         form.setErrors(errors)
 
     }, [form.cleanedValues, signer, dai, vaultInfo, router02])
@@ -539,14 +571,14 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.symbol} From Account:
                     <input type="number" value={form.textValues.collateralFromUser} name="collateralFromUser" onChange={(e) => form.onChangeBigNumber(e)} />
-                    <button onClick={async (e)=>{
+                    { expectedResult.needsGemApproval ? <button onClick={async (e)=>{
                         e.preventDefault()
                         if (!vaultInfo.ilkInfo.gem || !signer || !dsProxy)
                             return
                         await vaultInfo.ilkInfo.gem
                             .connect(signer)
                             .approve(dsProxy.address, ethers.constants.MaxUint256)
-                    }}>Approve</button>
+                    }}>Approve</button> : '' }
                     {form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : '' }
                 </label>
             </p>
@@ -571,14 +603,15 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.token0?.symbol} From Account:
                     <input type="number" value={form.textValues.tokenAFromSigner} name="tokenAFromSigner" onChange={(e) => tokenAFromSignerChange(e)} />
-                    <button onClick={async (e)=>{
-                        e.preventDefault()
-                        if (!vaultInfo.ilkInfo.token0 || !signer || !dsProxy)
-                            return
-                        await vaultInfo.ilkInfo.token0.contract
-                            .connect(signer)
-                            .approve(dsProxy.address, ethers.constants.MaxUint256)
-                    }}>Approve</button>
+                    { expectedResult.needsToken0Approval ?
+                        <button onClick={async (e)=>{
+                            e.preventDefault()
+                            if (!vaultInfo.ilkInfo.token0 || !signer || !dsProxy)
+                                return
+                            await vaultInfo.ilkInfo.token0.contract
+                                .connect(signer)
+                                .approve(dsProxy.address, ethers.constants.MaxUint256)
+                        }}>Approve</button> : '' }
                     {form.errors?.tokenAFromSigner? <span><br></br>{form.errors?.tokenAFromSigner}</span> : '' }
                     <br></br>
                     [{expectedResult.pathFromDaiToTokenA.join(', ')}]
@@ -595,14 +628,15 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.token1?.symbol} From Account:
                     <input type="number" value={form.textValues.tokenBFromSigner} name="tokenBFromSigner" onChange={(e) => tokenBFromSignerChange(e)} />
-                    <button onClick={async (e)=>{
-                        e.preventDefault()
-                        if (!vaultInfo.ilkInfo.token1 || !signer || !dsProxy)
-                            return
-                        await vaultInfo.ilkInfo.token1.contract
-                            .connect(signer)
-                            .approve(dsProxy.address, ethers.constants.MaxUint256)
-                    }}>Approve</button>
+                    { expectedResult.needsToken1Approval ?
+                        <button onClick={async (e)=>{
+                            e.preventDefault()
+                            if (!vaultInfo.ilkInfo.token1 || !signer || !dsProxy)
+                                return
+                            await vaultInfo.ilkInfo.token1.contract
+                                .connect(signer)
+                                .approve(dsProxy.address, ethers.constants.MaxUint256)
+                        }}>Approve</button> : '' }
                     {form.errors?.tokenBFromSigner? <span><br></br>{form.errors?.tokenBFromSigner}</span> : '' }
                     <br></br>
                     [{expectedResult.pathFromDaiToTokenB.join(', ')}]
@@ -614,14 +648,15 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                     DAI From Account:
                     <input type="number" value={form.textValues.daiFromSigner} name="daiFromSigner" onChange={(e) => daiFromSignerChange(e)} />
                 </label>
-                <button onClick={async (e)=>{
-                        e.preventDefault()
-                        if (!dai || !signer || !dsProxy)
-                            return
-                        await dai
-                            .connect(signer)
-                            .approve(dsProxy.address, ethers.constants.MaxUint256)
-                }}>Approve</button>
+                { expectedResult.needsDebtTokenApproval ?
+                    <button onClick={async (e)=>{
+                            e.preventDefault()
+                            if (!dai || !signer || !dsProxy)
+                                return
+                            await dai
+                                .connect(signer)
+                                .approve(dsProxy.address, ethers.constants.MaxUint256)
+                    }}>Approve</button> : '' }
                 {form.errors?.daiFromSigner? <span><br></br>{form.errors?.daiFromSigner}</span> : '' }
 
                 <br></br>
