@@ -204,7 +204,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     useEffectAsync(async () => {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair) {
+            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem) {
             form.setErrors(undefined)
             return
         }
@@ -214,30 +214,52 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         const signerAddress = await signer.getAddress()
 
-        const errors: IFormErrors = emptyFormErrors
+        const errors: IFormErrors = { ...emptyFormErrors }
+
+        const gemBalanceOfSigner = await vaultInfo.ilkInfo.gem.balanceOf(signerAddress)
+        if (gemBalanceOfSigner.lt(form.cleanedValues.collateralFromUser))
+            errors.collateralFromUser = `You do not have enough ${vaultInfo.ilkInfo.symbol} in your balance.`
 
         const daiBalanceOfSigner = await dai.balanceOf(signerAddress)
         if (daiBalanceOfSigner.lt(form.cleanedValues.daiFromSigner))
             errors.daiFromSigner = "You do not have enough DAI in your balance."
 
-        const token0BalanceOfSigner = await token0.balanceOf(signerAddress)
+        const token0BalanceOfSigner = 
+            (token0.address == weth.address && form.cleanedValues.useETH) ?
+            await signer.getBalance()
+            : await token0.balanceOf(signerAddress)
         if (token0BalanceOfSigner.lt(form.cleanedValues.tokenAFromSigner))
             errors.tokenAFromSigner = `You do not have enough ${vaultInfo.ilkInfo.token0.symbol} in your balance.`
 
-        const token1BalanceOfSigner = await token1.balanceOf(signerAddress)
+        const token1BalanceOfSigner = 
+            (token1.address == weth.address && form.cleanedValues.useETH) ?
+            await signer.getBalance()
+            : await token1.balanceOf(signerAddress)
         if (token1BalanceOfSigner.lt(form.cleanedValues.tokenBFromSigner))
             errors.tokenBFromSigner = `You do not have enough ${vaultInfo.ilkInfo.token1.symbol} in your balance.`
 
         const expectedResult = emptyExpectedResult
 
-        expectedResult.tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
+        if (form.cleanedValues.tokenAFromSigner.gt(form.cleanedValues.tokenAToLock)){
+            errors.tokenAFromSigner = `${vaultInfo.ilkInfo.token0.symbol} from signer could not be higher than ${vaultInfo.ilkInfo.token0.symbol} to lock.`
+            expectedResult.tokenAToBuyWithDai = ethers.constants.Zero
+        }else{
+            expectedResult.tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
+        }
+
         const tokenAFromResult = await swapService.getAmountsIn(
             dai.address, token0.address, expectedResult.tokenAToBuyWithDai)
         expectedResult.daiForTokenA = tokenAFromResult.amountFrom
         expectedResult.pathFromDaiToTokenA = tokenAFromResult.path
         expectedResult.usePsmForTokenA = tokenAFromResult.psm.buyGem
 
-        expectedResult.tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
+        if (form.cleanedValues.tokenBFromSigner.gt(form.cleanedValues.tokenBToLock)){
+            errors.tokenBFromSigner = `${vaultInfo.ilkInfo.token1.symbol} from signer could not be higher than ${vaultInfo.ilkInfo.token1.symbol} to lock.`
+            expectedResult.tokenBToBuyWithDai = ethers.constants.Zero
+        }else{
+            expectedResult.tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
+        }
+
         const tokenBFromResult = await swapService.getAmountsIn(
             dai.address, token1.address, expectedResult.tokenBToBuyWithDai)
         expectedResult.daiForTokenB = tokenBFromResult.amountFrom
@@ -517,6 +539,15 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.symbol} From Account:
                     <input type="number" value={form.textValues.collateralFromUser} name="collateralFromUser" onChange={(e) => form.onChangeBigNumber(e)} />
+                    <button onClick={async (e)=>{
+                        e.preventDefault()
+                        if (!vaultInfo.ilkInfo.gem || !signer || !dsProxy)
+                            return
+                        await vaultInfo.ilkInfo.gem
+                            .connect(signer)
+                            .approve(dsProxy.address, ethers.constants.MaxUint256)
+                    }}>Approve</button>
+                    {form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : '' }
                 </label>
             </p>
 
@@ -534,6 +565,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.token0?.symbol} To Lock:
                     <input type="number" value={form.textValues.tokenAToLock} name="tokenAToLock" onChange={(e) => tokenAToLockChange(e)} />
+                    {form.errors?.tokenAToLock? <span><br></br>{form.errors?.tokenAToLock}</span> : '' }
                 </label>
                 <br></br>
                 <label>
@@ -547,6 +579,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                             .connect(signer)
                             .approve(dsProxy.address, ethers.constants.MaxUint256)
                     }}>Approve</button>
+                    {form.errors?.tokenAFromSigner? <span><br></br>{form.errors?.tokenAFromSigner}</span> : '' }
                     <br></br>
                     [{expectedResult.pathFromDaiToTokenA.join(', ')}]
                 </label>
@@ -556,6 +589,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 <label>
                     {vaultInfo.ilkInfo.token1?.symbol} To Lock:
                     <input type="number" value={form.textValues.tokenBToLock} name="tokenBToLock" onChange={(e) => tokenBToLockChange(e)} />
+                    {form.errors?.tokenBToLock? <span><br></br>{form.errors?.tokenBToLock}</span> : '' }
                 </label>
                 <br></br>
                 <label>
@@ -569,6 +603,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                             .connect(signer)
                             .approve(dsProxy.address, ethers.constants.MaxUint256)
                     }}>Approve</button>
+                    {form.errors?.tokenBFromSigner? <span><br></br>{form.errors?.tokenBFromSigner}</span> : '' }
                     <br></br>
                     [{expectedResult.pathFromDaiToTokenB.join(', ')}]
                 </label>
@@ -587,6 +622,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                             .connect(signer)
                             .approve(dsProxy.address, ethers.constants.MaxUint256)
                 }}>Approve</button>
+                {form.errors?.daiFromSigner? <span><br></br>{form.errors?.daiFromSigner}</span> : '' }
 
                 <br></br>
                 <label>
