@@ -25,9 +25,9 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 
 } as DeployFunction;
 
-deploy.tags = []
+deploy.tags = [ 'unifi', ]
 
-deploy.dependencies = [ 'mocks', 'fee' ]
+deploy.dependencies = [ 'mocks', ]
 
 deploy.skip = async (env: HardhatRuntimeEnvironment) => {
     return env.network.live

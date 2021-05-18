@@ -18,8 +18,8 @@ import { IFeeManager } from "./IFeeManager.sol";
 uint256 constant MAX_UINT256 = ~uint256(0);
 
 
-// // TODO Remove
-// import "hardhat/console.sol";
+// TODO Remove
+import "hardhat/console.sol";
 
 interface IDSProxy{
 
@@ -507,7 +507,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
                         IPsm(parameters.psm).sellGem(address(this), parameters.psmSellGemAmount);
 
-                        amountBCoveringDebt = parameters.expectedDebtTokenFromPsmSellGemOperation;
+                        amountBCoveringDebt = parameters.psmSellGemAmount;
 
                     }else{
 
@@ -551,7 +551,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
                         IPsm(parameters.psm).sellGem(address(this), parameters.psmSellGemAmount);
 
-                        amountACoveringDebt = parameters.expectedDebtTokenFromPsmSellGemOperation;
+                        amountACoveringDebt = parameters.psmSellGemAmount;
 
                     }else{
 

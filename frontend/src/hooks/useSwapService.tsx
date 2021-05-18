@@ -67,14 +67,23 @@ const getAmountsIn = async (
         }
     })
 
-    let simplePathResult: IGetAmountsInResult | undefined;
+
     const simplePath = [tokenFrom, tokenTo]
-    if (await pathExists(factory, simplePath))
-        simplePathResult = {
-            path: simplePath,
-            amountFrom: (await router02.getAmountsIn(amountTo, simplePath))[0],
-            psm: { buyGem: false, sellGem: false }
-        }
+    if (await pathExists(factory, simplePath)){
+
+        resultPromises.push((async (): Promise<IGetAmountsInResult> => {
+            try {
+                return {
+                    path: simplePath,
+                    amountFrom: (await router02.getAmountsIn(amountTo, simplePath))[0],
+                    psm: { buyGem: false, sellGem: false }
+                }                    
+            } catch (error) {
+                return initialGetAmountsInResult
+            }
+        })())
+        
+    }
 
     const results: IGetAmountsInResult[] = await Promise.all(resultPromises)
 
@@ -94,12 +103,21 @@ const getAmountsIn = async (
         const fee: BigNumber = await dssPsm.tin() // sell gem
         const gemDecimals: number = await USDC.decimals()
         // to = from - fee*from = (1-fee)*from => from = to/(1-fee)
-        const amountFrom: BigNumber = amountTo.mul(parseUnits('1', gemDecimals)).div(parseEther('1').sub(fee))
+        const amountFrom: BigNumber = amountTo
+            .mul(parseUnits('1', gemDecimals))
+            .div(parseEther('1').sub(fee))
+            .add(1)
+        
+        const finalAmountTo = amountFrom
+            .mul(parseEther('1').sub(fee))
+            .div(parseUnits('1', gemDecimals))
+        if (finalAmountTo.lt(amountTo))
+            throw Error(`There is an error when calculating amountFrom.`);
 
         results.push({path: simplePath, amountFrom, psm: { buyGem: false, sellGem: true }})
     }
 
-    let best: IGetAmountsInResult | undefined = simplePathResult
+    let best: IGetAmountsInResult | undefined
 
     for (const result of results){
         if (!result)
