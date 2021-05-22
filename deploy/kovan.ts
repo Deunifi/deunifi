@@ -12,10 +12,16 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 
     const { deployer } = await getNamedAccounts();
 
-    await deploy('LendingPoolAddressesProvider', {
+    const lendingPoolDeployment = await deploy('LendingPool', {
         from: deployer,
         gasLimit: 9000000,
         args: [ ]
+    });
+
+    await deploy('LendingPoolAddressesProvider', {
+        from: deployer,
+        gasLimit: 9000000,
+        args: [ lendingPoolDeployment.address ]
     });
 
 } as DeployFunction;
@@ -24,7 +30,7 @@ deploy.tags = [ 'mocks' ]
 
 deploy.skip = async (env: HardhatRuntimeEnvironment) => {
     // We only create mock for hardhat network.
-    return (env.network.name !== 'hardhat')
+    return (env.network.name !== 'kovan')
 }
 
 export default deploy;

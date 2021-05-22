@@ -45,7 +45,8 @@ const config: HardhatUserConfig = {
       gas: 2500000,
       gasPrice: 5000000000,
       live: false,
-      chainId: 42
+      chainId: 42,
+      timeout: 60000
     },
     mainnet: {
       url: mainnet.url.alchemy,

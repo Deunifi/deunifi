@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Contract } from '@ethersproject/contracts';
 import { formatBytes32String } from '@ethersproject/strings';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
+import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useEffectAsync } from '../hooks/useEffectAsync';
 import { useContract } from './Deployments';
@@ -117,12 +118,14 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
     const gem = useContract('Gem')
     const gemJoin = useContract('Join')
     const uniswapV2Pair = useContract('UniswapV2Pair')
+    const pip = useContract('Pip')
 
     const [vaultInfo, setVaultInfo] = useState<IVaultInfo>(emptyVaultInfo)
 
     useEffectAsync(async () => {
 
-        if (!vault || !manager || !vat || !spotter || !ilkRegistry || !gem || !gemJoin || !uniswapV2Pair) {
+        if (!vault || !manager || !vat || !spotter || !ilkRegistry || !gem || !gemJoin ||
+            !uniswapV2Pair || !pip) {
             setVaultInfo(emptyVaultInfo)
             return
         }
@@ -142,9 +145,20 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
         const dart = art.isZero() ? art : art.mul(rate).div(ONE_RAY).add(1)
 
-        const { mat }: { mat: BigNumber } = await spotter.ilks(bytes32Ilk)
+        const ilk = await spotter.ilks(bytes32Ilk)
+        const { mat, pip: pipAddress }: { mat: BigNumber, pip: string } = ilk
 
-        const price = spot.mul(mat).div(ONE_RAY)
+        const collateralPip = pip.attach(pipAddress)
+
+        let price: BigNumber = ethers.constants.Zero
+        
+        try {
+            // TODO check price logic using PIP
+            const { val } : { val: BigNumber } = await collateralPip.cur()
+            price = val
+        } catch (e) {
+            price = spot.mul(mat).div(ONE_RAY)    
+        }
 
         const collateralizationRatio = getCollateralizationRatio(ink, dart, price)
 

@@ -7,6 +7,7 @@ import { IUniswapV2Pair } from '@uniswap/v2-core/contracts/interfaces/IUniswapV2
 import { IUniswapV2Callee } from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol';
 
 import { ILendingPoolAddressesProvider, FlashLoanReceiverBase } from "./aave/FlashLoanReceiverBase.sol";
+import { ILendingPool } from "./ILendingPool.sol";
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -30,18 +31,6 @@ interface IDSProxy{
     function setOwner(address owner_)
         external;
 
-}
-
-interface ILendingPool{
-    function flashLoan(
-        address receiverAddress,
-        address[] calldata assets,
-        uint256[] calldata amounts,
-        uint256[] calldata modes,
-        address onBehalfOf,
-        bytes calldata params,
-        uint16 referralCode
-    ) external;
 }
 
 interface IWeth{
@@ -690,7 +679,7 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         for (uint i=0; i<ownerTokens.length; i=i.add(1)){
             IERC20(ownerTokens[i]).safeTransferFrom(
                 owner, target, ownerAmounts[i]
-            );  // TODO ownerTokens[i].connect(owner).approve(DSProxy,MAX)
+            );
         }
 
         ILendingPool(lendingPool).flashLoan(

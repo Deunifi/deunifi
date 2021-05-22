@@ -3,8 +3,14 @@ pragma solidity 0.7.6;
 
 contract LendingPoolAddressesProvider{
 
-    function getLendingPool() public returns(address){
-        return address(0);
+    address lendingPool;
+
+    constructor (address _lendingPool){
+        lendingPool = _lendingPool;
+    }
+
+    function getLendingPool() public view returns(address){
+        return lendingPool;
     }
 
 }

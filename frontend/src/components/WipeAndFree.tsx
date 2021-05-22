@@ -82,7 +82,10 @@ const emptyWipeAndFreeForm: IWipeAndFreeForm = {
     reciveETH: true,
 }
 
-export const getLoanFee = (amount: BigNumber) => amount.mul(9).div(10000)
+export const getLoanFee = async (lendingPool: Contract, amount: BigNumber): Promise<BigNumber> => 
+    amount
+        .mul(await lendingPool.FLASHLOAN_PREMIUM_TOTAL())
+        .div(10000)
 
 export const parseBigNumber = (text:string, decimals=18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
 
@@ -204,6 +207,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const router02 = useContract('UniswapV2Router02')
     const dai = useContract('Dai')
+    const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
+    const lendingPool = useContract('LendingPool')
 
     const [token0MinAmountToRecieve, setToken0MinAmountToRecieve] = useState(BigNumber.from(0))
     const [token1MinAmountToRecieve, setToken1MinAmountToRecieve] = useState(BigNumber.from(0))
@@ -213,10 +218,15 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const { getFeeFromGrossAmount } = useServiceFee()
 
     useEffectAsync(async () => {
-        
+
         setExpectedResult(initialExpectedResult)
 
-        const lastDaiLoanFees = getLoanFee(params.daiFromFlashLoan)
+        if (!lendingPoolAddressesProvider || !lendingPool)
+            return
+        
+        const attachedLendingPool = lendingPool.attach(await lendingPoolAddressesProvider.getLendingPool())
+
+        const lastDaiLoanFees = await getLoanFee(attachedLendingPool, params.daiFromFlashLoan)
         if (!lastDaiLoanFees.eq(daiLoanFees))
             setDaiLoanFees(lastDaiLoanFees)
         
@@ -374,7 +384,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const removePosition = useContract('RemovePosition')
     const signer = useSigner()
-    const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
     const {dsProxy} = useDSProxyContainer()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')

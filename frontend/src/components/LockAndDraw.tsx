@@ -211,10 +211,14 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     const { getGrossAmountFromNetAmount } = useServiceFee()
 
+    const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
+    const lendingPool = useContract('LendingPool')
+
     useEffectAsync(async () => {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy) {
+            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy ||
+            !lendingPoolAddressesProvider || !lendingPool) {
             form.setErrors(undefined)
             return
         }
@@ -280,8 +284,10 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             .add(expectedResult.daiForTokenB)
             .sub(form.cleanedValues.daiFromSigner)
 
+        const attachedLendingPool = lendingPool.attach(await lendingPoolAddressesProvider.getLendingPool())
+
         const daiToDrawWithoutServiceFee = expectedResult.daiFromFlashLoan
-            .add(getLoanFee(expectedResult.daiFromFlashLoan))
+            .add(await getLoanFee(attachedLendingPool, expectedResult.daiFromFlashLoan))
 
         // Flash loan plus fees.
         expectedResult.daiToDraw = await getGrossAmountFromNetAmount(daiToDrawWithoutServiceFee)
@@ -461,7 +467,6 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     }
 
     const removePosition = useContract('RemovePosition');
-    const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
     const { dsProxy } = useDSProxyContainer()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')
