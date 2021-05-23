@@ -5,6 +5,7 @@ import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useEffectAsync } from '../hooks/useEffectAsync';
+import { useProvider } from './Connection';
 import { useContract } from './Deployments';
 import { useVaultContext } from './VaultSelection';
 
@@ -118,14 +119,17 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
     const gem = useContract('Gem')
     const gemJoin = useContract('Join')
     const uniswapV2Pair = useContract('UniswapV2Pair')
+    
+    // TODO Decide if PIP is going to be used or calculation using spot and mat.
     const pip = useContract('Pip')
+    const provider = useProvider()
 
     const [vaultInfo, setVaultInfo] = useState<IVaultInfo>(emptyVaultInfo)
 
     useEffectAsync(async () => {
 
         if (!vault || !manager || !vat || !spotter || !ilkRegistry || !gem || !gemJoin ||
-            !uniswapV2Pair || !pip) {
+            !uniswapV2Pair || !pip || !provider) {
             setVaultInfo(emptyVaultInfo)
             return
         }
@@ -153,12 +157,34 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
         let price: BigNumber = ethers.constants.Zero
         
         try {
-            // TODO check price logic using PIP
-            const { val } : { val: BigNumber } = await collateralPip.cur()
-            price = val
+            // TODO Decide if PIP is going to be used or calculation using spot and mat.
+
+            const getPrice = async (
+                provider: ethers.providers.Web3Provider, pipAddress: string, 
+                storageAddress: string): Promise<BigNumber> => {
+
+                const storageData = await provider.getStorageAt(pipAddress, storageAddress)
+                const offset = 34
+                const hexStringPrice = storageData.substring(offset,offset+32)
+
+                const price = BigNumber.from('0x'+hexStringPrice).mul(parseUnits('1', 27-18))
+                return price
+            }
+
+            const currentPrice = await getPrice(provider, pipAddress, '0x3')
+            console.log('Current price', formatUnits(currentPrice, 27))
+            const queuedPrice = await getPrice(provider, pipAddress, '0x4')
+            console.log('Queued price', formatUnits(queuedPrice, 27))
+
+            price = currentPrice
+
         } catch (e) {
+
             price = spot.mul(mat).div(ONE_RAY)    
+
         }
+
+        price = spot.mul(mat).div(ONE_RAY)    
 
         const collateralizationRatio = getCollateralizationRatio(ink, dart, price)
 
