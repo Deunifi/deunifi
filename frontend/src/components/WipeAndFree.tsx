@@ -13,6 +13,7 @@ import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForRemovePosition as encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
 import { useSwapService, initialGetAmountsInResult } from '../hooks/useSwapService';
+import { pairDelta } from './LockAndDraw';
 
 interface Props { }
 
@@ -106,7 +107,7 @@ export const decreaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): 
 export async function proxyExecute(
     proxy: Contract, methodInProxy: string, 
     target: Contract, methodInTarget: string, params: any[],
-    overrides: { value?: BigNumber } = {}): Promise<TransactionResponse>{
+    overrides: { value?: BigNumber, gasLimit?: number } = {}): Promise<TransactionResponse>{
 
     const transaction: PopulatedTransaction = await target.populateTransaction[methodInTarget](...params)
   
@@ -272,9 +273,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 }
             }
 
-            const pairTotalSupply: BigNumber = await univ2Pair.totalSupply()
-            const pairToken0Balance: BigNumber = await token0.contract.balanceOf(univ2Pair.address)
-            const pairToken1Balance: BigNumber = await token1.contract.balanceOf(univ2Pair.address)
+            const pairTotalSupply: BigNumber = ((await univ2Pair.totalSupply()) as BigNumber)
+                // // TODO collateral to free removed from total supply?
+                // .add(params.collateralToFree)
+            let pairToken0Balance: BigNumber = await token0.contract.balanceOf(univ2Pair.address)
+            let pairToken1Balance: BigNumber = await token1.contract.balanceOf(univ2Pair.address)
     
             const swapFromTokenAToDaiResult = await swapService.getAmountsIn(
                 token0.contract.address, dai.address, params.daiFromTokenA)
@@ -285,6 +288,14 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 token1.contract.address, dai.address, params.daiFromTokenB)
             const token1AmountForDai: BigNumber = swapFromTokenBToDaiResult.amountFrom
             params.pathFromTokenBToDai = swapFromTokenBToDaiResult.path
+
+            // // TODO pairTokenBalance should be adjusted to consider more/less Token0/Token1,
+            // // as a result of swap operations in case pair token0/token1 be used in swap operation.
+            // // This do not apply for PSM case.
+            // pairToken0Balance = pairToken0Balance.add(pairDelta(token0.contract.address, [token0.contract.address, token1.contract.address], swapFromTokenAToDaiResult))
+            // pairToken0Balance = pairToken0Balance.add(pairDelta(token0.contract.address, [token0.contract.address, token1.contract.address], swapFromTokenBToDaiResult))
+            // pairToken1Balance = pairToken1Balance.add(pairDelta(token1.contract.address, [token0.contract.address, token1.contract.address], swapFromTokenAToDaiResult))
+            // pairToken1Balance = pairToken1Balance.add(pairDelta(token1.contract.address, [token0.contract.address, token1.contract.address], swapFromTokenBToDaiResult))
 
             const minLiquidityToRemoveForToken0 = token0AmountForDai
                 .mul(pairTotalSupply)

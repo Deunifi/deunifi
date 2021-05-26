@@ -12,19 +12,16 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 
     const folderForNetwork = `external/deployments/${hre.network.name}`;
 
-    fs.readdir(folderForNetwork, (err, files) => {
-        
-        files.forEach(file => {
-            const fileContent = fs.readFileSync(`${folderForNetwork}/${file}`)
-            const { name, address, abi } = JSON.parse(fileContent.toString())
+    fs.readdirSync(folderForNetwork).forEach(file => {
+        const fileContent = fs.readFileSync(`${folderForNetwork}/${file}`)
+        const { name, address, abi } = JSON.parse(fileContent.toString())
 
-            deployments.save(name, {
-                address,
-                abi
-            })
-            // console.log(`reusing "${name}" (external) at ${address}`);
-            
-        });
+        deployments.save(name, {
+            address,
+            abi
+        })
+        // console.log(`reusing "${name}" (external) at ${address}`);
+        
     });
 
 } as DeployFunction;

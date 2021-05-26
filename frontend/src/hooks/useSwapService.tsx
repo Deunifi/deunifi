@@ -12,8 +12,9 @@ interface ITopLiquidityToken{
     symbol: string,
 }
 
-interface IGetAmountsInResult{
+export interface IGetAmountsInResult{
     path: string[],
+    pathAmounts: BigNumber[],
     amountFrom: BigNumber,
     psm: {
         buyGem: boolean,
@@ -21,8 +22,8 @@ interface IGetAmountsInResult{
     }
 }
 
-type GetAmountsInFunction = (tokenFrom: string, tokenTo: string, amountTo: BigNumber) => Promise<IGetAmountsInResult>
-export const initialGetAmountsInResult: IGetAmountsInResult = { path:[], amountFrom: ethers.constants.Zero, psm: { buyGem: false, sellGem: false } }
+type GetAmountsInFunction = (tokenFrom: string, tokenTo: string, amountTo: BigNumber, useSimplePath?: boolean) => Promise<IGetAmountsInResult>
+export const initialGetAmountsInResult: IGetAmountsInResult = { path:[], pathAmounts: [], amountFrom: ethers.constants.Zero, psm: { buyGem: false, sellGem: false } }
 const zeroFunction: GetAmountsInFunction = async () => initialGetAmountsInResult
 
 const pathExists = async (factory:Contract, path: string[]): Promise<boolean> => {
@@ -39,10 +40,10 @@ const pathExists = async (factory:Contract, path: string[]): Promise<boolean> =>
 const getAmountsIn = async (
     factory: Contract, router02: Contract, tokenFrom: string, tokenTo: 
     string, amountTo: BigNumber, TOP_UNIV2_LIQUIDITY_TOKENS: ITopLiquidityToken[],
-    dssPsm: Contract, Dai: Contract, USDC: Contract): Promise<IGetAmountsInResult> => {
+    dssPsm: Contract, Dai: Contract, USDC: Contract, useSimplePath: boolean): Promise<IGetAmountsInResult> => {
 
     if (tokenFrom == tokenTo)
-        return {amountFrom: amountTo, path: [], psm: { buyGem: false, sellGem: false }}
+        return {amountFrom: amountTo, path: [], pathAmounts:[], psm: { buyGem: false, sellGem: false }}
 
     if (amountTo.isZero())
         return initialGetAmountsInResult
@@ -59,8 +60,9 @@ const getAmountsIn = async (
             return initialGetAmountsInResult
 
         try {
-            const amountFrom: BigNumber = (await router02.getAmountsIn(amountTo,path))[0]
-            return {path, amountFrom, psm: { buyGem: false, sellGem: false }}
+            const pathAmounts = await router02.getAmountsIn(amountTo, path)
+            const amountFrom: BigNumber = pathAmounts[0]
+            return {path, amountFrom, pathAmounts, psm: { buyGem: false, sellGem: false }}
         } catch (error) {
             // console.error(error);
             return initialGetAmountsInResult
@@ -69,21 +71,25 @@ const getAmountsIn = async (
 
 
     const simplePath = [tokenFrom, tokenTo]
-    if (await pathExists(factory, simplePath)){
 
-        resultPromises.push((async (): Promise<IGetAmountsInResult> => {
-            try {
-                return {
-                    path: simplePath,
-                    amountFrom: (await router02.getAmountsIn(amountTo, simplePath))[0],
-                    psm: { buyGem: false, sellGem: false }
-                }                    
-            } catch (error) {
-                return initialGetAmountsInResult
-            }
-        })())
-        
-    }
+    if (useSimplePath)
+        if (await pathExists(factory, simplePath)){
+
+            resultPromises.push((async (): Promise<IGetAmountsInResult> => {
+                try {
+                    const pathAmounts = await router02.getAmountsIn(amountTo, simplePath)
+                    return {
+                        path: simplePath,
+                        pathAmounts,
+                        amountFrom: pathAmounts[0],
+                        psm: { buyGem: false, sellGem: false }
+                    }                    
+                } catch (error) {
+                    return initialGetAmountsInResult
+                }
+            })())
+            
+        }
 
     const results: IGetAmountsInResult[] = await Promise.all(resultPromises)
 
@@ -96,7 +102,7 @@ const getAmountsIn = async (
         const amountFrom: BigNumber = amountTo.mul(parseEther('1')).div(parseUnits('1',gemDecimals))
             .add(fee.mul(amountTo).div(parseUnits('1',gemDecimals)))
 
-        results.push({path: simplePath, amountFrom, psm: { buyGem: true, sellGem: false }})
+        results.push({path: simplePath, pathAmounts: [amountFrom, amountTo], amountFrom, psm: { buyGem: true, sellGem: false }})
 
     }else if (tokenFrom == USDC.address && tokenTo == Dai.address){
 
@@ -114,7 +120,7 @@ const getAmountsIn = async (
         if (finalAmountTo.lt(amountTo))
             throw Error(`There is an error when calculating amountFrom.`);
 
-        results.push({path: simplePath, amountFrom, psm: { buyGem: false, sellGem: true }})
+        results.push({path: simplePath, pathAmounts: [amountFrom, amountTo], amountFrom, psm: { buyGem: false, sellGem: true }})
     }
 
     let best: IGetAmountsInResult | undefined
@@ -203,8 +209,8 @@ export const useSwapService = () => {
         }
         
         setSwapService({
-            getAmountsIn: (tokenFrom: string, tokenTo: string, amountTo: BigNumber) => 
-                getAmountsIn(factory, router02, tokenFrom, tokenTo, amountTo, topLiquidityTokens, dssPsm, dai, USDC)
+            getAmountsIn: (tokenFrom: string, tokenTo: string, amountTo: BigNumber, useSimplePath: boolean=true) => 
+                getAmountsIn(factory, router02, tokenFrom, tokenTo, amountTo, topLiquidityTokens, dssPsm, dai, USDC, useSimplePath)
         })
 
     }, [router02, topLiquidityTokens, dssPsm])

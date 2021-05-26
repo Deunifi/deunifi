@@ -51,8 +51,8 @@ const config: HardhatUserConfig = {
     mainnet: {
       url: mainnet.url.alchemy,
       // accounts: mainnet.accounts,
-      gas: 2500000,
-      gasPrice: 2000000000,
+      gas: 5500000,
+      gasPrice: 5000000000,
       live: true,
       chainId: 1
     },

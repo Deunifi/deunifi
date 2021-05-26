@@ -1,10 +1,11 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
+import { TextField } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { useEffectAsync } from "../hooks/useEffectAsync";
 import { useServiceFee } from "../hooks/useServiceFee";
-import { useSwapService } from "../hooks/useSwapService";
+import { useSwapService, IGetAmountsInResult } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
 import { useForm, parseBigNumber, defaultSideEffect } from "../utils/forms";
 import { useSigner } from "./Connection";
@@ -197,6 +198,23 @@ const emptyExpectedResult: IExpectedResult = {
 
 }
 
+export const pairDelta = (token: string, [token0, token1]: string[], inSwapResult: IGetAmountsInResult): BigNumber => {
+    for (let i=0; i<inSwapResult.path.length-1; i++){
+        if ((inSwapResult.path[i]==token0 && inSwapResult.path[i+1]==token1) ||
+            (inSwapResult.path[i]==token1 && inSwapResult.path[i+1]==token0)){
+            
+            // Adding token to the pair...
+            if (inSwapResult.path[i]==token)
+                return inSwapResult.pathAmounts[i]
+            // Removing token from the pair...
+            else
+                return inSwapResult.pathAmounts[i+1].mul(-1)
+        }
+    }
+    return ethers.constants.Zero
+}
+
+
 export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     const { vaultInfo } = useVaultInfoContext()
@@ -298,7 +316,15 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         // const pairToken0Balance: BigNumber = await token0.balanceOf(univ2Pair.address)
         // const pairToken1Balance: BigNumber = await token1.balanceOf(univ2Pair.address)
         const reserves = await vaultInfo.ilkInfo.univ2Pair.getReserves()
-        const [pairToken0Balance, pairToken1Balance]: BigNumber[] = reserves
+        let [pairToken0Balance, pairToken1Balance]: BigNumber[] = reserves
+
+        // TODO pairTokenBalance should be adjusted to consider more/less Token0/Token1,
+        // as a result of swap operations in case pair token0/token1 be used in swap operation.
+        // This do not apply for PSM case.
+        pairToken0Balance = pairToken0Balance.add(pairDelta(token0.address, [token0.address, token1.address], tokenAFromResult))
+        pairToken0Balance = pairToken0Balance.add(pairDelta(token0.address, [token0.address, token1.address], tokenBFromResult))
+        pairToken1Balance = pairToken1Balance.add(pairDelta(token1.address, [token0.address, token1.address], tokenAFromResult))
+        pairToken1Balance = pairToken1Balance.add(pairDelta(token1.address, [token0.address, token1.address], tokenBFromResult))
 
         const liquidityUsingToken0 = form.cleanedValues.tokenAToLock
             .mul(pairTotalSupply)
@@ -564,7 +590,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 dataForExecuteOperationCallback, // Data to be used on executeOperation
                 weth.address
             ],
-            ethToUse.isZero() ? {} : {value: ethToUse }
+            ethToUse.isZero() ? { gasLimit: 1100000 } : {value: ethToUse, gasLimit: 1100000 }
         )
 
     }
@@ -573,6 +599,16 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         <div>
 
             <p>
+                <TextField 
+                    label={`${vaultInfo.ilkInfo.symbol} From Account`}  
+                    type="number" 
+                    value={form.textValues.collateralFromUser} 
+                    name="collateralFromUser" 
+                    onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                    error={form.errors?.collateralFromUser? true : false }
+                    helperText={form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : `The ${vaultInfo.ilkInfo.symbol} you want to use from your account.` }
+                    />
+                <br></br>
                 <label>
                     {vaultInfo.ilkInfo.symbol} From Account:
                     <input type="number" value={form.textValues.collateralFromUser} name="collateralFromUser" onChange={(e) => form.onChangeBigNumber(e)} />

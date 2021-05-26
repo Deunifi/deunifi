@@ -152,8 +152,6 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
         const ilk = await spotter.ilks(bytes32Ilk)
         const { mat, pip: pipAddress }: { mat: BigNumber, pip: string } = ilk
 
-        const collateralPip = pip.attach(pipAddress)
-
         let price: BigNumber = ethers.constants.Zero
         
         try {
@@ -172,9 +170,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
             }
 
             const currentPrice = await getPrice(provider, pipAddress, '0x3')
-            console.log('Current price', formatUnits(currentPrice, 27))
             const queuedPrice = await getPrice(provider, pipAddress, '0x4')
-            console.log('Queued price', formatUnits(queuedPrice, 27))
 
             price = currentPrice
 
@@ -183,8 +179,6 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
             price = spot.mul(mat).div(ONE_RAY)    
 
         }
-
-        price = spot.mul(mat).div(ONE_RAY)    
 
         const collateralizationRatio = getCollateralizationRatio(ink, dart, price)
 
