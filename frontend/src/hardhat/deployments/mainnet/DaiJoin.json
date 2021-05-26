@@ -1,5 +1,5 @@
 {
-  "address": "0x2F0b23f53734252Bda2277357e97e1517d6B042A",
+  "address": "0x9759A6Ac90977b93B58547b4A71c78317f391A28",
   "abi": [
     {
       "inputs": [
@@ -9,13 +9,8 @@
           "type": "address"
         },
         {
-          "internalType": "bytes32",
-          "name": "ilk_",
-          "type": "bytes32"
-        },
-        {
           "internalType": "address",
-          "name": "gem_",
+          "name": "dai_",
           "type": "address"
         }
       ],
@@ -72,12 +67,12 @@
     {
       "constant": true,
       "inputs": [],
-      "name": "dec",
+      "name": "dai",
       "outputs": [
         {
-          "internalType": "uint256",
+          "internalType": "contract DSTokenLike",
           "name": "",
-          "type": "uint256"
+          "type": "address"
         }
       ],
       "payable": false,
@@ -117,36 +112,6 @@
       "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "constant": true,
-      "inputs": [],
-      "name": "gem",
-      "outputs": [
-        {
-          "internalType": "contract GemLike",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "payable": false,
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "constant": true,
-      "inputs": [],
-      "name": "ilk",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        }
-      ],
-      "payable": false,
-      "stateMutability": "view",
       "type": "function"
     },
     {
