@@ -590,7 +590,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 dataForExecuteOperationCallback, // Data to be used on executeOperation
                 weth.address
             ],
-            ethToUse.isZero() ? { gasLimit: 1100000 } : {value: ethToUse, gasLimit: 1100000 }
+            ethToUse.isZero() ? { gasLimit: 1300000 } : {value: ethToUse, gasLimit: 1300000 }
         )
 
     }
