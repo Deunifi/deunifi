@@ -1,19 +1,16 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { formatBytes32String } from '@ethersproject/strings';
-import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
-import { Signer } from 'crypto';
-import { Contract, errors, ethers, PopulatedTransaction } from 'ethers';
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useEffectAsync } from '../hooks/useEffectAsync';
+import { formatEther, formatUnits, parseUnits } from '@ethersproject/units';
+import { Contract, ethers, PopulatedTransaction } from 'ethers';
+import React, { useState } from 'react';
 import { useSigner } from './Connection';
 import { useContract } from './Deployments';
-import { emptyVaultInfo, IVaultInfo, useVaultInfoContext } from './VaultInfo';
-import { useDSProxyContainer, useVaultContext, VaultSelection } from './VaultSelection';
+import { useVaultInfoContext } from './VaultInfo';
+import { useDSProxyContainer } from './VaultSelection';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForRemovePosition as encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
-import { useSwapService, initialGetAmountsInResult } from '../hooks/useSwapService';
-import { pairDelta } from './LockAndDraw';
+import { useSwapService, initialGetAmountsInResult, IGetAmountsInResult } from '../hooks/useSwapService';
+import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 
 interface Props { }
 
@@ -218,16 +215,16 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const { getFeeFromGrossAmount } = useServiceFee()
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
         setExpectedResult(initialExpectedResult)
 
         if (!lendingPoolAddressesProvider || !lendingPool)
             return
         
-        const attachedLendingPool = lendingPool.attach(await lendingPoolAddressesProvider.getLendingPool())
+        const attachedLendingPool = lendingPool.attach((yield lendingPoolAddressesProvider.getLendingPool()) as string)
 
-        const lastDaiLoanFees = await getLoanFee(attachedLendingPool, params.daiFromFlashLoan)
+        const lastDaiLoanFees = (yield getLoanFee(attachedLendingPool, params.daiFromFlashLoan)) as BigNumber
         if (!lastDaiLoanFees.eq(daiLoanFees))
             setDaiLoanFees(lastDaiLoanFees)
         
@@ -235,7 +232,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             .add(lastDaiLoanFees)
 
         const lastDaiLoanPlusFees = lastDaiLoanPlusFeesWithNoServiceFees
-            .add(await getFeeFromGrossAmount(params.daiFromFlashLoan))
+            .add((yield getFeeFromGrossAmount(params.daiFromFlashLoan)) as BigNumber)
         if (!lastDaiLoanPlusFees.eq(daiLoanPlusFees))
             setDaiLoanPlusFees(lastDaiLoanPlusFees)
 
@@ -251,12 +248,26 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         if (params.collateralToFree.gt(vaultInfo.ink))
             errors.tooMuchCollateralToFree = `You are trying to free more collateral than available in your vault. Max collateral to free: ${formatEther(vaultInfo.ink)}`
 
+        interface ICalculationResult {
+            collateralToRemove: BigNumber, 
+            token0AmountForDai: BigNumber, 
+            token1AmountForDai: BigNumber, 
+            pairToken0Balance: BigNumber,
+            pairToken1Balance: BigNumber,
+            pairTotalSupply: BigNumber,
+            swapFromTokenAToDaiResult: IGetAmountsInResult,
+            swapFromTokenBToDaiResult: IGetAmountsInResult
+        }
+
         /**
          * Collateral -> TokenA, TokenB: 3) Collateral ~ TokenX / ReserveX
          * TokenA -> DAI TokenA: 1) getAmountsIn(DAI TokenA) to obtain TokenA
          * TokenB -> DAI TokenB: 2) getAmountsIn(DAI TokenB) to obtain TokenB
          */
-        const {collateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, pairTotalSupply, swapFromTokenAToDaiResult, swapFromTokenBToDaiResult} = await ((async () =>{
+        const {
+            collateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, 
+            pairTotalSupply, swapFromTokenAToDaiResult, swapFromTokenBToDaiResult
+        } = (yield* (function* (){
 
             const { univ2Pair, token0, token1 } = vaultInfo.ilkInfo
 
@@ -273,22 +284,20 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 }
             }
 
-            const pairTotalSupply: BigNumber = ((await univ2Pair.totalSupply()) as BigNumber)
+            const pairTotalSupplyPromise = univ2Pair.totalSupply()
                 // // TODO collateral to free removed from total supply?
                 // .add(params.collateralToFree)
-            let pairToken0Balance: BigNumber = await token0.contract.balanceOf(univ2Pair.address)
-            let pairToken1Balance: BigNumber = await token1.contract.balanceOf(univ2Pair.address)
+            
+            
+            let pairToken0BalancePromise = token0.contract.balanceOf(univ2Pair.address)
+            let pairToken1BalancePromise = token1.contract.balanceOf(univ2Pair.address)
     
-            const swapFromTokenAToDaiResult = await swapService.getAmountsIn(
+            const swapFromTokenAToDaiResultPromise = swapService.getAmountsIn(
                 token0.contract.address, dai.address, params.daiFromTokenA)
-            const token0AmountForDai: BigNumber = swapFromTokenAToDaiResult.amountFrom
-            params.pathFromTokenAToDai = swapFromTokenAToDaiResult.path
 
-            const swapFromTokenBToDaiResult = await swapService.getAmountsIn(
+            const swapFromTokenBToDaiResultPromise = swapService.getAmountsIn(
                 token1.contract.address, dai.address, params.daiFromTokenB)
-            const token1AmountForDai: BigNumber = swapFromTokenBToDaiResult.amountFrom
-            params.pathFromTokenBToDai = swapFromTokenBToDaiResult.path
-
+    
             // // TODO pairTokenBalance should be adjusted to consider more/less Token0/Token1,
             // // as a result of swap operations in case pair token0/token1 be used in swap operation.
             // // This do not apply for PSM case.
@@ -296,6 +305,19 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             // pairToken0Balance = pairToken0Balance.add(pairDelta(token0.contract.address, [token0.contract.address, token1.contract.address], swapFromTokenBToDaiResult))
             // pairToken1Balance = pairToken1Balance.add(pairDelta(token1.contract.address, [token0.contract.address, token1.contract.address], swapFromTokenAToDaiResult))
             // pairToken1Balance = pairToken1Balance.add(pairDelta(token1.contract.address, [token0.contract.address, token1.contract.address], swapFromTokenBToDaiResult))
+
+            const pairTotalSupply: BigNumber = ((yield pairTotalSupplyPromise) as BigNumber)
+            let pairToken0Balance: BigNumber = (yield pairToken0BalancePromise) as BigNumber
+            let pairToken1Balance: BigNumber = (yield pairToken1BalancePromise) as BigNumber
+            const swapFromTokenAToDaiResult = (yield swapFromTokenAToDaiResultPromise) as IGetAmountsInResult
+            const swapFromTokenBToDaiResult = (yield swapFromTokenBToDaiResultPromise) as IGetAmountsInResult
+
+            const token0AmountForDai: BigNumber = swapFromTokenAToDaiResult.amountFrom
+            params.pathFromTokenAToDai = swapFromTokenAToDaiResult.path
+
+            const token1AmountForDai: BigNumber = swapFromTokenBToDaiResult.amountFrom
+            params.pathFromTokenBToDai = swapFromTokenBToDaiResult.path
+
 
             const minLiquidityToRemoveForToken0 = token0AmountForDai
                 .mul(pairTotalSupply)
@@ -316,7 +338,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 swapFromTokenAToDaiResult, swapFromTokenBToDaiResult
             }
 
-        })())
+        })()) as ICalculationResult
 
         const minCollateralToRemove = increaseWithTolerance(
             collateralToRemove,
