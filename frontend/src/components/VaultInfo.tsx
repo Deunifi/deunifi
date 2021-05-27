@@ -9,6 +9,8 @@ import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useProvider } from './Connection';
 import { useContract } from './Deployments';
 import { useVaultContext } from './VaultSelection';
+const { CPromise } = require("c-promise2");
+
 
 interface Props { }
 
@@ -161,11 +163,11 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
         try {
             // TODO Decide if PIP is going to be used or calculation using spot and mat.
 
-            const getPrice = async (
+            const getPrice = function* (
                 provider: ethers.providers.Web3Provider, pipAddress: string, 
-                storageAddress: string): Promise<BigNumber> => {
+                storageAddress: string) {
 
-                const storageData = await provider.getStorageAt(pipAddress, storageAddress)
+                const storageData = (yield provider.getStorageAt(pipAddress, storageAddress)) as string
                 const offset = 34
                 const hexStringPrice = storageData.substring(offset,offset+32)
 
@@ -173,7 +175,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                 return price
             }
 
-            const currentPrice = (yield getPrice(provider, pipAddress, '0x3')) as BigNumber
+            const currentPrice = (yield* getPrice(provider, pipAddress, '0x3')) as BigNumber
             // const queuedPrice = (yield getPrice(provider, pipAddress, '0x4')) as BigNumber
 
             price = currentPrice
@@ -198,13 +200,14 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
             univ2Pair?: Contract
         }
 
-        const getTokensInfo = async (gemAddress: string): Promise<IGetTokensInfoResult> => {
+        const getTokensInfo = function* (gemAddress: string): Generator<any,any,any>{
             try {
 
                 const univ2Pair: Contract = uniswapV2Pair.attach(gemAddress);
 
-                const [token0, token1] = await Promise.all(
-                    [univ2Pair.token0(), univ2Pair.token1()].map(async(tokenAddressPromise: Promise<string>) => getTokenInfo(gem, (await tokenAddressPromise) as string))
+                const [token0, token1] = yield CPromise.all(
+                    [univ2Pair.token0(), univ2Pair.token1()]
+                        .map(async(tokenAddressPromise: Promise<string>) => getTokenInfo(gem, (await tokenAddressPromise) as string))
                 )
 
                 return {
@@ -221,7 +224,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
             }
         }
 
-        const tokensInfo = (yield getTokensInfo(gemAddress)) as IGetTokensInfoResult
+        const tokensInfo = (yield* getTokensInfo(gemAddress)) as IGetTokensInfoResult
 
         setVaultInfo({
             cdp: vault.cdp,
