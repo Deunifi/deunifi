@@ -1,11 +1,9 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { parseEther, parseUnits } from "@ethersproject/units";
-import { Contract, errors, ethers } from "ethers";
-import { DependencyList, MutableRefObject, useEffect, useRef, useState } from "react";
-import { factory } from "typescript";
-import { useSigner } from "../components/Connection";
+import { Contract, ethers } from "ethers";
+import { useState } from "react";
 import { useContract } from "../components/Deployments";
-import { useEffectAsync } from "./useEffectAsync";
+import { useEffectAutoCancel } from "./useEffectAutoCancel";
 
 interface ITopLiquidityToken{
     address: string,
@@ -161,7 +159,7 @@ export const useTopLiquidityTokens = () => {
         useContract('WBTC'),
     ]
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
         const symbolsPromises: Promise<ITopLiquidityToken>[] = contracts.map( async(c) => {
             if (!c) 
                 return { address: '', symbol: ''}
@@ -175,7 +173,7 @@ export const useTopLiquidityTokens = () => {
                 return { address: '', symbol: ''}
             }
         })
-        const _topLiquidityTokens: ITopLiquidityToken[] = (await Promise.all(symbolsPromises)).filter( x => x.address )
+        const _topLiquidityTokens: ITopLiquidityToken[] = ((yield Promise.all(symbolsPromises)) as ITopLiquidityToken[]).filter( x => x.address )
         setTopLiquidityToken([..._topLiquidityTokens])
     }, contracts)
 
@@ -201,7 +199,7 @@ export const useSwapService = () => {
 
     const [swapService, setSwapService] = useState<ISwapService>(initialSwapService)
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
         if (!router02 || !topLiquidityTokens || !factory || !dssPsm || !dai || !USDC){
             setSwapService({...initialSwapService})
