@@ -5,6 +5,7 @@ import { BigNumber, ethers } from "ethers";
 import { createContext, DependencyList, EffectCallback, useContext, useEffect, useRef, useState } from "react";
 import { isCallLikeExpression } from "typescript";
 import { useEffectAsync } from "../hooks/useEffectAsync";
+import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
 
@@ -58,6 +59,9 @@ export function useDSProxyContainer() {
                 return
             }
 
+            if (dsProxyContainer.dsProxy && dsProxyContainer.dsProxy.address == dsProxyAddress)
+                return
+
             setDSProxyContainer({
                 dsProxy: dsProxy.attach(dsProxyAddress as string),
             })
@@ -80,43 +84,45 @@ export function useVaults() {
     const dsProxyContainer = useDSProxyContainer()
     const manager = useContract('DssCdpManager')
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* () {
 
         const { dsProxy } = dsProxyContainer
 
         if (!dsProxy || !manager) {
-            setVaults(prev => [])
+            setVaults([])
             return
         }
 
         const vaults: IVaultSelectionItem[] = []
 
         // We get the first cdp for DSProxy
-        let cdp: BigNumber = await manager.first(dsProxy.address)
+        let cdp: BigNumber = (yield manager.first(dsProxy.address)) as BigNumber
         const toResolve = []
 
         while (!cdp.isZero()) {
 
             // Then we asynchroneously get the ilk for cdp.
             toResolve.push(
-                (async () => {
+                (async (cdp: BigNumber) => {
                     const ilk: string = parseBytes32String(await manager.ilks(cdp))
                     vaults.push({
                         cdp,
                         ilk,
                     })
-                })()
+                })(cdp)
             )
 
             // And then, we get next cdp for DSProxy
-            const { prev, next }: { prev: BigNumber, next: BigNumber } = await manager.list(cdp)
+            const { prev, next }: { prev: BigNumber, next: BigNumber } =
+                (yield manager.list(cdp)) as { prev: BigNumber, next: BigNumber }
+
             cdp = next
         }
 
-        await Promise.all(toResolve)
+        yield Promise.all(toResolve)
 
         // TODO Check if sort is needed.
-        setVaults(prev => vaults)
+        setVaults([...vaults])
 
     }, [dsProxyContainer, manager])
 
