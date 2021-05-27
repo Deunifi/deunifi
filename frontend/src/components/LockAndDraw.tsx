@@ -3,7 +3,6 @@ import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
 import { TextField } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
-import { useEffectAsync } from "../hooks/useEffectAsync";
 import { useServiceFee } from "../hooks/useServiceFee";
 import { useSwapService, IGetAmountsInResult } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";

@@ -1,15 +1,11 @@
-import { Contract } from "@ethersproject/contracts";
-import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
-import { useWeb3React } from "@web3-react/core";
-import { BigNumber, ethers } from "ethers";
-import { createContext, DependencyList, EffectCallback, useContext, useEffect, useRef, useState } from "react";
-import { isCallLikeExpression } from "typescript";
-import { useEffectAsync } from "../hooks/useEffectAsync";
+import { parseBytes32String } from "@ethersproject/strings";
+import { useState } from "react";
 import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
 import { useDSProxyContainer } from "./VaultSelection";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { proxyExecute } from "./WipeAndFree";
+import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 
 interface IIlkSelection {
     ilk: string,
@@ -29,17 +25,14 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
     const [ilkList, setIlkList] = useState<string[]>([])
     const [selectedIlk, setSelectedIlk] = useState<string>()
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
         if (!ilkRegistry)
             return
 
-        const count = await ilkRegistry.count()
-
-        const list = await ilkRegistry['list()']()
+        const list = (yield ilkRegistry['list()']()) as string[]
 
         setIlkList(list)
-
 
     }, [ilkRegistry])
 
