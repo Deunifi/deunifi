@@ -13,6 +13,8 @@ import { useContract } from "./Deployments";
 import { useVaultInfoContext, getCollateralizationRatio, getLiquidationPrice } from "./VaultInfo";
 import { useDSProxyContainer, VaultSelection } from "./VaultSelection";
 import { decreaseWithTolerance, getLoanFee, increaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
+import { useAsyncEffect } from "use-async-effect2";
+import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 
 interface Props { }
 
@@ -232,7 +234,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
     const lendingPool = useContract('LendingPool')
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* () {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
             || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy ||
@@ -244,29 +246,32 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         const token0 = vaultInfo.ilkInfo.token0.contract
         const token1 = vaultInfo.ilkInfo.token1.contract
 
-        const signerAddress = await signer.getAddress()
+        const signerAddress = (yield signer.getAddress()) as string
 
         const errors: IFormErrors = { ...emptyFormErrors }
 
-        const gemBalanceOfSigner = await vaultInfo.ilkInfo.gem.balanceOf(signerAddress)
+        const gemBalanceOfSigner = (yield vaultInfo.ilkInfo.gem.balanceOf(signerAddress)) as BigNumber
         if (gemBalanceOfSigner.lt(form.cleanedValues.collateralFromUser))
             errors.collateralFromUser = `You do not have enough ${vaultInfo.ilkInfo.symbol} in your balance.`
 
-        const daiBalanceOfSigner = await dai.balanceOf(signerAddress)
+        const daiBalanceOfSigner = (yield dai.balanceOf(signerAddress)) as BigNumber
         if (daiBalanceOfSigner.lt(form.cleanedValues.daiFromSigner))
             errors.daiFromSigner = "You do not have enough DAI in your balance."
 
-        const token0BalanceOfSigner = 
+        const token0BalanceOfSigner = (
             (token0.address == weth.address && form.cleanedValues.useETH) ?
-            await signer.getBalance()
-            : await token0.balanceOf(signerAddress)
+            yield signer.getBalance()
+            : yield token0.balanceOf(signerAddress)
+        ) as BigNumber
+
         if (token0BalanceOfSigner.lt(form.cleanedValues.tokenAFromSigner))
             errors.tokenAFromSigner = `You do not have enough ${vaultInfo.ilkInfo.token0.symbol} in your balance.`
 
-        const token1BalanceOfSigner = 
+        const token1BalanceOfSigner = (
             (token1.address == weth.address && form.cleanedValues.useETH) ?
-            await signer.getBalance()
-            : await token1.balanceOf(signerAddress)
+            yield signer.getBalance()
+            : yield token1.balanceOf(signerAddress)
+        ) as BigNumber
         if (token1BalanceOfSigner.lt(form.cleanedValues.tokenBFromSigner))
             errors.tokenBFromSigner = `You do not have enough ${vaultInfo.ilkInfo.token1.symbol} in your balance.`
 
@@ -279,8 +284,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             expectedResult.tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
         }
 
-        const tokenAFromResult = await swapService.getAmountsIn(
-            dai.address, token0.address, expectedResult.tokenAToBuyWithDai)
+        const tokenAFromResult = (yield swapService.getAmountsIn(
+            dai.address, token0.address, expectedResult.tokenAToBuyWithDai)) as IGetAmountsInResult
         expectedResult.daiForTokenA = tokenAFromResult.amountFrom
         expectedResult.pathFromDaiToTokenA = tokenAFromResult.path
         expectedResult.usePsmForTokenA = tokenAFromResult.psm.buyGem
@@ -292,8 +297,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             expectedResult.tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
         }
 
-        const tokenBFromResult = await swapService.getAmountsIn(
-            dai.address, token1.address, expectedResult.tokenBToBuyWithDai)
+        const tokenBFromResult = (yield swapService.getAmountsIn(
+            dai.address, token1.address, expectedResult.tokenBToBuyWithDai)) as IGetAmountsInResult
         expectedResult.daiForTokenB = tokenBFromResult.amountFrom
         expectedResult.pathFromDaiToTokenB = tokenBFromResult.path
         expectedResult.usePsmForTokenB = tokenBFromResult.psm.buyGem
@@ -302,20 +307,20 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             .add(expectedResult.daiForTokenB)
             .sub(form.cleanedValues.daiFromSigner)
 
-        const attachedLendingPool = lendingPool.attach(await lendingPoolAddressesProvider.getLendingPool())
+        const attachedLendingPool = lendingPool.attach((yield lendingPoolAddressesProvider.getLendingPool()) as string)
 
         const daiToDrawWithoutServiceFee = expectedResult.daiFromFlashLoan
-            .add(await getLoanFee(attachedLendingPool, expectedResult.daiFromFlashLoan))
+            .add((yield getLoanFee(attachedLendingPool, expectedResult.daiFromFlashLoan)) as BigNumber)
 
         // Flash loan plus fees.
-        expectedResult.daiToDraw = await getGrossAmountFromNetAmount(daiToDrawWithoutServiceFee)
+        expectedResult.daiToDraw = (yield getGrossAmountFromNetAmount(daiToDrawWithoutServiceFee)) as BigNumber
 
         const { univ2Pair } = vaultInfo.ilkInfo
 
-        const pairTotalSupply: BigNumber = await univ2Pair.totalSupply()
+        const pairTotalSupply: BigNumber = (yield univ2Pair.totalSupply()) as BigNumber
         // const pairToken0Balance: BigNumber = await token0.balanceOf(univ2Pair.address)
         // const pairToken1Balance: BigNumber = await token1.balanceOf(univ2Pair.address)
-        const reserves = await vaultInfo.ilkInfo.univ2Pair.getReserves()
+        const reserves = (yield vaultInfo.ilkInfo.univ2Pair.getReserves()) as BigNumber[]
         let [pairToken0Balance, pairToken1Balance]: BigNumber[] = reserves
 
         // TODO pairTokenBalance should be adjusted to consider more/less Token0/Token1,
@@ -392,12 +397,12 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             expectedResult.needsToken1Approval,
             expectedResult.needsDebtTokenApproval
 
-        ] = await Promise.all([
+        ] = (yield Promise.all([
             needsApproval(vaultInfo.ilkInfo.gem, signerAddress, dsProxy.address, form.cleanedValues.collateralFromUser, weth.address, form.cleanedValues.useETH),
             needsApproval(vaultInfo.ilkInfo.token0.contract, signerAddress, dsProxy.address, form.cleanedValues.tokenAFromSigner, weth.address, form.cleanedValues.useETH),
             needsApproval(vaultInfo.ilkInfo.token1.contract, signerAddress, dsProxy.address, form.cleanedValues.tokenBFromSigner, weth.address, form.cleanedValues.useETH),
             needsApproval(dai, signerAddress, dsProxy.address, form.cleanedValues.daiFromSigner, weth.address, form.cleanedValues.useETH),
-        ])
+        ])) as boolean[]
 
         setExpectedResult(expectedResult)
         form.setErrors(errors)
