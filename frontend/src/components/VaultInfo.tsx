@@ -5,6 +5,7 @@ import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useEffectAsync } from '../hooks/useEffectAsync';
+import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useProvider } from './Connection';
 import { useContract } from './Deployments';
 import { useVaultContext } from './VaultSelection';
@@ -126,7 +127,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
     const [vaultInfo, setVaultInfo] = useState<IVaultInfo>(emptyVaultInfo)
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* () {
 
         if (!vault || !manager || !vat || !spotter || !ilkRegistry || !gem || !gemJoin ||
             !uniswapV2Pair || !pip || !provider) {
@@ -134,22 +135,25 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
             return
         }
 
-        const urn = await manager.urns(vault.cdp);
+        const urnPromise = manager.urns(vault.cdp)
 
         const bytes32Ilk = formatBytes32String(vault.ilk)
 
+        const ilkRegistryInfoPromise = ilkRegistry.info(bytes32Ilk)
+        const vatIlksInfoPromise = vat.ilks(bytes32Ilk)
+        const spotterIlksPromise = spotter.ilks(bytes32Ilk)
 
-        const [name, symbol, dec, gemAddress, , joinAddress]
-            : [string, string, BigNumber, string, any, string]
-            = await ilkRegistry.info(bytes32Ilk)
+        const urn = (yield urnPromise) as string;
 
-        const { spot, rate }: { spot: BigNumber, rate: BigNumber } = await vat.ilks(bytes32Ilk)
+        const { ink, art }: { ink: BigNumber, art: BigNumber } = 
+            (yield vat.urns(bytes32Ilk, urn)) as { ink: BigNumber, art: BigNumber }
 
-        const { ink, art }: { ink: BigNumber, art: BigNumber } = await vat.urns(bytes32Ilk, urn)
+        const { spot, rate }: { spot: BigNumber, rate: BigNumber } = 
+            (yield vatIlksInfoPromise) as { spot: BigNumber, rate: BigNumber }
 
         const dart = art.isZero() ? art : art.mul(rate).div(ONE_RAY).add(1)
 
-        const ilk = await spotter.ilks(bytes32Ilk)
+        const ilk = (yield spotterIlksPromise) as { mat: BigNumber, pip: string }
         const { mat, pip: pipAddress }: { mat: BigNumber, pip: string } = ilk
 
         let price: BigNumber = ethers.constants.Zero
@@ -169,8 +173,8 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                 return price
             }
 
-            const currentPrice = await getPrice(provider, pipAddress, '0x3')
-            const queuedPrice = await getPrice(provider, pipAddress, '0x4')
+            const currentPrice = (yield getPrice(provider, pipAddress, '0x3')) as BigNumber
+            // const queuedPrice = (yield getPrice(provider, pipAddress, '0x4')) as BigNumber
 
             price = currentPrice
 
@@ -184,16 +188,40 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
         const liquidationPrice = getLiquidationPrice(ink, dart, mat)
 
+        const [name, symbol, dec, gemAddress, , joinAddress]
+            : [string, string, BigNumber, string, any, string]
+            = (yield ilkRegistryInfoPromise) as [string, string, BigNumber, string, any, string]
 
-        let univ2Pair: Contract | undefined = uniswapV2Pair.attach(gemAddress)
-        let token0, token1: ITokenInfo | undefined;
-
-        try {
-            token0 = await getTokenInfo(gem, await univ2Pair.token0())
-            token1 = await getTokenInfo(gem, await univ2Pair.token1())
-        } catch (error) {
-            univ2Pair = undefined
+        interface IGetTokensInfoResult {
+            token0?: ITokenInfo,
+            token1?: ITokenInfo,
+            univ2Pair?: Contract
         }
+
+        const getTokensInfo = async (gemAddress: string): Promise<IGetTokensInfoResult> => {
+            try {
+
+                const univ2Pair: Contract = uniswapV2Pair.attach(gemAddress);
+
+                const [token0, token1] = await Promise.all(
+                    [univ2Pair.token0(), univ2Pair.token1()].map(async(tokenAddressPromise: Promise<string>) => getTokenInfo(gem, (await tokenAddressPromise) as string))
+                )
+
+                return {
+                    token0,
+                    token1,
+                    univ2Pair
+                } 
+    
+            } catch (error) {
+
+                return {
+                }
+
+            }
+        }
+
+        const tokensInfo = (yield getTokensInfo(gemAddress)) as IGetTokensInfoResult
 
         setVaultInfo({
             cdp: vault.cdp,
@@ -212,9 +240,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                 dec,
                 gem: gem.attach(gemAddress),
                 gemJoin: gemJoin.attach(joinAddress),
-                univ2Pair,
-                token0,
-                token1
+                ...tokensInfo
             }
         })
 
