@@ -1,17 +1,10 @@
 import { Contract } from "@ethersproject/contracts";
-import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
-import { useWeb3React } from "@web3-react/core";
-import { BigNumber, errors, ethers } from "ethers";
-import React, { createContext, DependencyList, EffectCallback, useContext, useEffect, useRef, useState } from "react";
-import { isCallLikeExpression, tokenToString } from "typescript";
-import { useEffectAsync } from "../hooks/useEffectAsync";
-import { useSigner, useProvider } from "./Connection";
+import { BigNumber, ethers } from "ethers";
+import React, { useState } from "react";
+import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
-import { useDSProxyContainer } from "./VaultSelection";
-import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { proxyExecute } from "./WipeAndFree";
 import { formatEther, formatUnits, parseEther, parseUnits } from "@ethersproject/units";
-import { useForm, parseBigNumber, defaultSideEffect } from "../utils/forms";
+import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 
 interface IExpectedResult {
     gemAmountTo: BigNumber,
@@ -46,23 +39,23 @@ export const PsmTest: React.FC<Props> = ({ children }) => {
     const gemJoin = useContract('GemJoin')
     const dai = useContract('Dai')
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
         const _expectedResult = { ...expectedResult }
 
         if (!signer || !gem || !gemJoin || !dssPsm)
             return
 
-        const gemJoinAddress = await dssPsm.gemJoin()
+        const gemJoinAddress = (yield dssPsm.gemJoin()) as string
         _expectedResult.gemJoin = gemJoin.attach(gemJoinAddress)
 
-        const gemAddress = await _expectedResult.gemJoin.gem()
+        const gemAddress = (yield _expectedResult.gemJoin.gem()) as string
         _expectedResult.gem = gem.attach(gemAddress)
 
-        _expectedResult.gemDecimals = await _expectedResult.gem.decimals()
+        _expectedResult.gemDecimals = (yield _expectedResult.gem.decimals()) as number
 
-        _expectedResult.feeDaiToRecive = await dssPsm.tin() // sell gem
-        _expectedResult.feeDaiToUse = await dssPsm.tout() // buy gem
+        _expectedResult.feeDaiToRecive = (yield dssPsm.tin()) as BigNumber // sell gem
+        _expectedResult.feeDaiToUse = (yield dssPsm.tout()) as BigNumber // buy gem
 
         _expectedResult.daiAmountTo = amountFrom.
             sub(_expectedResult.feeDaiToRecive.mul(amountFrom).div(parseEther('1')))

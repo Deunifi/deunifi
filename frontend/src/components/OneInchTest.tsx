@@ -1,17 +1,10 @@
 import { Contract } from "@ethersproject/contracts";
-import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
-import { useWeb3React } from "@web3-react/core";
 import { BigNumber, ethers } from "ethers";
-import React, { createContext, DependencyList, EffectCallback, useContext, useEffect, useRef, useState } from "react";
-import { isCallLikeExpression, tokenToString } from "typescript";
-import { useEffectAsync } from "../hooks/useEffectAsync";
-import { useSigner, useProvider } from "./Connection";
+import React, { useState } from "react";
+import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
-import { useDSProxyContainer } from "./VaultSelection";
-import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { proxyExecute } from "./WipeAndFree";
-import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { useForm, parseBigNumber, defaultSideEffect } from "../utils/forms";
+import { formatUnits, parseUnits } from "@ethersproject/units";
+import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 
 interface IForm {
 }
@@ -96,7 +89,7 @@ export const OneInchTest: React.FC<Props> = ({ children }) => {
     const oneSplitAudit = useContract('OneSplitAudit')
     const erc20 = useContract('Gem')
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
         setExpectedResult(prev => initialExpectedResult)
 
@@ -112,8 +105,8 @@ export const OneInchTest: React.FC<Props> = ({ children }) => {
                 _expectedResult.tokenFrom.symbol = 'ETH'
             }else{
                 _expectedResult.tokenFrom.contract = erc20.attach(form.tokenFrom)
-                _expectedResult.tokenFrom.decimals = await _expectedResult.tokenFrom.contract.decimals()
-                _expectedResult.tokenFrom.symbol = await _expectedResult.tokenFrom.contract.symbol()
+                _expectedResult.tokenFrom.decimals = (yield _expectedResult.tokenFrom.contract.decimals()) as number
+                _expectedResult.tokenFrom.symbol = (yield _expectedResult.tokenFrom.contract.symbol()) as string
             }
             _expectedResult.tokenFromAmount = parseUnits(form.tokenFromAmount, _expectedResult.tokenFrom.decimals)
         } catch (error) {
@@ -127,8 +120,8 @@ export const OneInchTest: React.FC<Props> = ({ children }) => {
                 _expectedResult.tokenTo.symbol = 'ETH'
             }else{
                 _expectedResult.tokenTo.contract = erc20.attach(form.tokenTo)
-                _expectedResult.tokenTo.decimals = await _expectedResult.tokenTo.contract.decimals()
-                _expectedResult.tokenTo.symbol = await _expectedResult.tokenTo.contract.symbol()
+                _expectedResult.tokenTo.decimals = (yield _expectedResult.tokenTo.contract.decimals()) as number
+                _expectedResult.tokenTo.symbol = (yield _expectedResult.tokenTo.contract.symbol()) as string
             }
         } catch (error) {
             console.error(error)
@@ -155,13 +148,13 @@ export const OneInchTest: React.FC<Props> = ({ children }) => {
         try {
             if (_expectedResult.tokenFrom.contract && _expectedResult.tokenTo.contract)
                 [_expectedResult.tokenToAmount, _expectedResult.distribution] = 
-                    await oneSplitAudit.getExpectedReturn(
+                    (yield oneSplitAudit.getExpectedReturn(
                         _expectedResult.tokenFrom.contract.address,
                         _expectedResult.tokenTo.contract.address,
                         _expectedResult.tokenFromAmount,
                         _expectedResult.parts,
                         _expectedResult.featureFlags
-                    )
+                    )) as [BigNumber, BigNumber[]]
         } catch (error) {
             console.error(error)            
         }
