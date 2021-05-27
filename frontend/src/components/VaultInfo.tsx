@@ -4,7 +4,6 @@ import { formatBytes32String } from '@ethersproject/strings';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useEffectAsync } from '../hooks/useEffectAsync';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useProvider } from './Connection';
 import { useContract } from './Deployments';

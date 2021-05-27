@@ -1,10 +1,7 @@
 import { Contract } from "@ethersproject/contracts";
-import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
-import { useWeb3React } from "@web3-react/core";
+import { parseBytes32String } from "@ethersproject/strings";
 import { BigNumber, ethers } from "ethers";
-import { createContext, DependencyList, EffectCallback, useContext, useEffect, useRef, useState } from "react";
-import { isCallLikeExpression } from "typescript";
-import { useEffectAsync } from "../hooks/useEffectAsync";
+import { createContext, useContext, useState } from "react";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
@@ -17,15 +14,15 @@ export function useDSProxyAddress() {
     const proxyRegistry = useContract('ProxyRegistry')
     const proxyFactory = useContract('DSProxyFactory')
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
             if ((!signer) || (!proxyRegistry) || (!proxyFactory)) {
                 setDSProxyAddress(undefined)
                 return
             }
 
-            const signerAddress = await signer.getAddress()
-            const dsProxyAddress: string = await proxyRegistry.proxies(signerAddress)
+            const signerAddress = (yield signer.getAddress()) as string
+            const dsProxyAddress: string = (yield proxyRegistry.proxies(signerAddress)) as string
             setDSProxyAddress(dsProxyAddress)
 
             proxyFactory.on(
@@ -52,7 +49,7 @@ export function useDSProxyContainer() {
     const dsProxy = useContract('DSProxy')
     const [dsProxyAddress, ] = useDSProxyAddress()
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
             if (!dsProxy || !dsProxyAddress || dsProxyAddress === ethers.constants.AddressZero) {
                 setDSProxyContainer({})
@@ -144,7 +141,7 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
     const vaults = useVaults()
     const [vault, setVault] = useState<IVaultSelectionItem>()
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
         if (vaults.length == 0) {
             setVault(undefined)
         } else {
