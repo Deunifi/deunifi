@@ -1,8 +1,8 @@
 import { Contract } from "@ethersproject/contracts";
 import { useWeb3React } from "@web3-react/core";
 import { ethers } from "ethers";
-import { useEffect, useState } from "react";
-import { useEffectAsync } from "../hooks/useEffectAsync";
+import { useState } from "react";
+import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useSigner, useProvider } from "./Connection";
 
 interface IContractDeployment {
@@ -29,13 +29,12 @@ export function useDeploymentsFolder() {
 
     const [deploymentsFolder, setDeploymentsFolder] = useState<string>()
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
             if (!web3React.chainId){
                 setDeploymentsFolder(undefined)
                 return
             }
-                
 
             const folder = folderByQueryParam() || folderByChainId[web3React.chainId]
             folder ? 
@@ -55,14 +54,14 @@ export function useContract(contractName: string){
     const provider = useProvider()
     const signer = useSigner()
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
 
             if ((!deploymentsFolder) || (!provider)){
                 setContract(undefined)
                 return
             }
 
-            const ContractJson: IContractDeployment = await import("../hardhat/deployments/"+deploymentsFolder+"/"+contractName+".json")
+            const ContractJson: IContractDeployment = (yield import("../hardhat/deployments/"+deploymentsFolder+"/"+contractName+".json")) as IContractDeployment
 
             let contractInstance = new Contract(
                 ContractJson.address,
