@@ -1,9 +1,9 @@
 import { BigNumber } from "@ethersproject/bignumber";
-import { ethers } from "ethers";
-import { DependencyList, MutableRefObject, useEffect, useRef, useState } from "react";
+import { Contract, ethers } from "ethers";
+import { useState } from "react";
 import { useSigner } from "../components/Connection";
 import { useContract } from "../components/Deployments";
-import { useEffectAsync } from "./useEffectAsync";
+import { useEffectAutoCancel } from "./useEffectAutoCancel";
 
 type EffectAsyncCallback = () => Promise<void>;
 
@@ -39,23 +39,25 @@ export const useServiceFee = () => {
     const signer = useSigner()
     const [serviceFee, setServiceFee] = useState<ServiceFee>(zeroServiceFee)
 
-    useEffectAsync(async () => {
+    useEffectAutoCancel(function* (){
         
         if (!feeManager || !removePosition || !signer){
             setServiceFee(zeroServiceFee)
             return
         }
 
-        const feeManagerAddress = await removePosition.feeManager()
+        const feeManagerAddress = (yield removePosition.feeManager()) as string
 
         if (feeManagerAddress == ethers.constants.AddressZero){
             setServiceFee(zeroServiceFee)
             return
         }
-            
-        const feeManagerAttached = await feeManager.attach(feeManagerAddress)
+        
+        const feeManagerAttachedPromise = feeManager.attach(feeManagerAddress)
+        const signerAddressPromise = signer.getAddress()
 
-        const signerAddress = await signer.getAddress();
+        const feeManagerAttached = (yield feeManagerAttachedPromise) as Contract
+        const signerAddress = (yield signerAddressPromise) as string
 
         setServiceFee( {
             getFeeFromGrossAmount: async (amount:BigNumber) => await feeManagerAttached.getFeeFromGrossAmount(signerAddress, amount),
