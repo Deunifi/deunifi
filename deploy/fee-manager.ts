@@ -18,7 +18,7 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
     const deployResult = await deploy('FeeManager', {
         from: deployer,
         gasLimit: 4000000,
-        args: [BigNumber.from(3)]
+        args: [BigNumber.from(10)]
     });
 
 } as DeployFunction;
