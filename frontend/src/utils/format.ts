@@ -4,7 +4,7 @@ function asTupple(componentsTypes: string[]){
     return `tuple(${componentsTypes.join(',')})`
 }
 
-export const encodeParamsForRemovePosition = (
+export const encodeParamsForWipeAndFree = (
     operation: BigNumber,
     sender: string,
     debtToken: string,
@@ -37,6 +37,8 @@ export const encodeParamsForRemovePosition = (
     psmSellGemAmount: BigNumber,
     expectedDebtTokenFromPsmSellGemOperation: BigNumber,
 
+    lendingPool: string,
+
 ): string => {
 
     const operationData = ethers.utils.defaultAbiCoder.encode([
@@ -68,7 +70,8 @@ export const encodeParamsForRemovePosition = (
             'address',
             'address',
             'uint256',
-            'uint256',    
+            'uint256',
+            'address',
         ]),
     ],[
         [
@@ -99,7 +102,8 @@ export const encodeParamsForRemovePosition = (
             tokenJoinForSwapWithPsm,
             psm,
             psmSellGemAmount,
-            expectedDebtTokenFromPsmSellGemOperation
+            expectedDebtTokenFromPsmSellGemOperation,
+            lendingPool,
         ]
     ]
     )
@@ -148,6 +152,7 @@ export const encodeParamsForLockGemAndDraw = (
     debtTokenToDraw: BigNumber,
     transferFrom: boolean,
     deadline: BigNumber,
+    lendingPool: string,
 ): string => {
 
     const operationData = ethers.utils.defaultAbiCoder.encode([
@@ -181,6 +186,7 @@ export const encodeParamsForLockGemAndDraw = (
             'uint256',
             'bool',
             'uint256',  
+            'address',
         ])
     ],[
         [
@@ -213,6 +219,7 @@ export const encodeParamsForLockGemAndDraw = (
             debtTokenToDraw,
             transferFrom,
             deadline,    
+            lendingPool,
         ]
     ]
     )

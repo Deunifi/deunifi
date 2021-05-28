@@ -7,7 +7,7 @@ import { useContract } from './Deployments';
 import { useVaultInfoContext } from './VaultInfo';
 import { useDSProxyContainer } from './VaultSelection';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { encodeParamsForRemovePosition as encodeParamsForWipeAndFree } from '../utils/format';
+import { encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
 import { useSwapService, initialGetAmountsInResult, IGetAmountsInResult } from '../hooks/useSwapService';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
@@ -415,7 +415,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         setForm({...form, [e.target.name]: e.target.value})
     }
 
-    const removePosition = useContract('RemovePosition')
+    const deunifi = useContract('Deunifi')
     const signer = useSigner()
     const {dsProxy} = useDSProxyContainer()
     const dssProxyActions = useContract('DssProxyActions')
@@ -428,7 +428,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         e.preventDefault()
 
-        if (!removePosition || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy || 
+        if (!deunifi || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy || 
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
             !daiJoin || !weth || !dssPsm)
@@ -437,9 +437,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const sender = await signer.getAddress()
 
         const gemJoinAddress = await dssPsm.gemJoin()
+
+        const lendingPoolAddress = await lendingPoolAddressesProvider.getLendingPool()
         
         const dataForExecuteOperationCallback = encodeParamsForWipeAndFree(
-                await removePosition.WIPE_AND_FREE(),
+                await deunifi.WIPE_AND_FREE(),
                 sender, // address sender
                 dai.address, // address debtToken;
                 params.daiFromSigner.add(params.daiFromFlashLoan), // daiToPay
@@ -474,13 +476,14 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 expectedResult.usePsmForToken0 ? params.daiFromTokenA : 
                     expectedResult.usePsmForToken1 ? params.daiFromTokenA :
                         ethers.constants.Zero,
+                lendingPoolAddress,
         )
 
         proxyExecute(
             dsProxy, 'execute(address,bytes)',
-            removePosition, 'flashLoanFromDSProxy',[
+            deunifi, 'flashLoanFromDSProxy',[
                 sender,
-                removePosition.address,
+                deunifi.address,
                 params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
                 params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
                 await lendingPoolAddressesProvider.getLendingPool(),

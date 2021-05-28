@@ -6,8 +6,8 @@ import { IUniswapV2Router02 } from '@uniswap/v2-periphery/contracts/interfaces/I
 import { IUniswapV2Pair } from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import { IUniswapV2Callee } from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol';
 
-import { ILendingPoolAddressesProvider, FlashLoanReceiverBase } from "./aave/FlashLoanReceiverBase.sol";
 import { ILendingPool } from "./ILendingPool.sol";
+import { IFlashLoanReceiver } from "./IFlashLoanReceiver.sol";
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -19,8 +19,8 @@ import { IFeeManager } from "./IFeeManager.sol";
 uint256 constant MAX_UINT256 = ~uint256(0);
 
 
-// TODO Remove
-import "hardhat/console.sol";
+// // TODO Remove
+// import "hardhat/console.sol";
 
 interface IDSProxy{
 
@@ -43,7 +43,7 @@ interface IPsm{
     function sellGem(address usr, uint256 gemAmt) external;
 }
 
-contract RemovePosition is FlashLoanReceiverBase, Ownable {
+contract Deunifi is IFlashLoanReceiver, Ownable {
 
     address public feeManager;
 
@@ -52,9 +52,6 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
 
     uint8 public constant WIPE_AND_FREE = 1;
     uint8 public constant LOCK_AND_DRAW = 2;
-
-    constructor(ILendingPoolAddressesProvider provider) FlashLoanReceiverBase(provider) public {
-    }
 
     fallback () external payable {}
 
@@ -93,6 +90,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         address psm;
         uint256 psmSellGemAmount;
         uint256 expectedDebtTokenFromPsmSellGemOperation;
+
+        address lendingPool;
     }
     
     function lockGemAndDraw(
@@ -158,6 +157,8 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         bool transferFrom;
 
         uint256 deadline;
+
+        address lendingPool;
 
     }
 
@@ -327,12 +328,11 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             parameters.debtTokenToDraw); // We are passing an amount higher so it is not necessary to calculate the fee.
 
         if (feeManager!=address(0))
-            // TODO parameters.sender could be set to feeManager.owner() to do not pay fees, so it is a better option 
-            // to set it in flashLoanFromDSProxy using owner parameter.
+            // TODO parameters.sender
             IFeeManager(feeManager).collectFee(parameters.sender, parameters.debtToken, parameters.debtTokenToDraw);
 
         // Approve lending pool to collect flash loan + fees.
-        safeIncreaseMaxUint(parameters.debtToken, address(LENDING_POOL), 
+        safeIncreaseMaxUint(parameters.debtToken, parameters.lendingPool,
             parameters.debtTokenToDraw); // We are passing an amount higher so it is not necessary to calculate the fee.
 
     }
@@ -603,17 +603,23 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
             }
         }
 
-        if (remainingTokenA > 0)
+        if (remainingTokenA > 0 || decodedData.minTokenAToRecive > 0){
+            require(remainingTokenA >= decodedData.minTokenAToRecive);
             IERC20(decodedData.tokenA).safeTransfer(decodedData.sender, remainingTokenA);
+        }
 
-        if (remainingTokenB > 0)
+        if (remainingTokenB > 0 || decodedData.minTokenBToRecive > 0){
+            require(remainingTokenB >= decodedData.minTokenBToRecive);
             IERC20(decodedData.tokenB).safeTransfer(decodedData.sender, remainingTokenB);
+        }
 
-        if (pairRemaining > 0)
+        if (pairRemaining > 0){
+            // We do not verify because pairRemaining because the contract should have only
+            // the exact amount to transfer.
             IERC20(decodedData.pairToken).safeTransfer(decodedData.sender, pairRemaining);
+        }
 
-        // IERC20(decodedData.debtToken).safeIncreaseAllowance(address(LENDING_POOL), premiums[0].add(amounts[0]));
-        safeIncreaseMaxUint(decodedData.debtToken, address(LENDING_POOL), 
+        safeIncreaseMaxUint(decodedData.debtToken, decodedData.lendingPool,
             decodedData.debtToPay.mul(2)); // We are passing an amount higher so it is not necessary to calculate the fee.
 
     }
@@ -638,7 +644,6 @@ contract RemovePosition is FlashLoanReceiverBase, Ownable {
         returns (bool)
     {
 
-        // ( uint8 operation, bytes memory operationData) = abi.decode(params, (uint8, bytes));
         ( Operation memory operation ) = abi.decode(params, (Operation));
 
         if (operation.operation == WIPE_AND_FREE)

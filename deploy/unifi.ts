@@ -15,12 +15,10 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 
     const { deployer } = await getNamedAccounts();
 
-    const lendingPoolAddressesProvider = await hre.ethers.getContract('LendingPoolAddressesProvider')
-
-    await deploy('RemovePosition', {
+    await deploy('Deunifi', {
         from: deployer,
         gasLimit: 5000000,
-        args: [lendingPoolAddressesProvider.address],
+        args: [],
     });
 
 } as DeployFunction;

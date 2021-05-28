@@ -496,7 +496,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         form.onChangeBigNumber(e, vaultInfo.ilkInfo.token1?.decimals)
     }
 
-    const removePosition = useContract('RemovePosition');
+    const deunifi = useContract('Deunifi');
     const { dsProxy } = useDSProxyContainer()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')
@@ -510,7 +510,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         e.preventDefault()
 
-        if (!removePosition || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy ||
+        if (!deunifi || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy ||
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
             !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth || !dssPsm)
@@ -518,7 +518,10 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         const sender = await signer.getAddress()
 
-        const operation: BigNumber = await removePosition.LOCK_AND_DRAW()
+        const operation: BigNumber = await deunifi.LOCK_AND_DRAW()
+
+        const lendingPoolAddress = await lendingPoolAddressesProvider.getLendingPool()
+
         // const operation = BigNumber.from(2)
         const dataForExecuteOperationCallback = encodeParamsForLockGemAndDraw(
             operation, // operation: BigNumber,
@@ -551,6 +554,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             expectedResult.daiToDraw, // debtTokenToDraw: BigNumber,
             true, // transferFrom: boolean,
             deadline(form.cleanedValues.transactionDeadline.toNumber() * 60), // deadline: BigNumber,
+            lendingPoolAddress,
         )
 
         const ethToUse = form.cleanedValues.useETH ? 
@@ -582,9 +586,9 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         proxyExecute(
             dsProxy, 'execute(address,bytes)',
-            removePosition, 'flashLoanFromDSProxy', [
+            deunifi, 'flashLoanFromDSProxy', [
                 sender,
-                removePosition.address,
+                deunifi.address,
                 ownerTokens, // owner tokens to transfer to target
                 ownerTokensAmounts, // owner token amounts to transfer to target
                 await lendingPoolAddressesProvider.getLendingPool(),
@@ -594,7 +598,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 dataForExecuteOperationCallback, // Data to be used on executeOperation
                 weth.address
             ],
-            ethToUse.isZero() ? { gasLimit: 1300000 } : {value: ethToUse, gasLimit: 1300000 }
+            ethToUse.isZero() ? { gasLimit: 1500000 } : {value: ethToUse, gasLimit: 1500000 }
         )
 
     }
