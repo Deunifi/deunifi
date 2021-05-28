@@ -45,6 +45,9 @@ interface IPsm{
 
 contract Deunifi is IFlashLoanReceiver, Ownable {
 
+    event LockAndDraw(address sender, uint cdp, uint collateral, uint debt);
+    event WipeAndFree(address sender, uint cdp, uint collateral, uint debt);
+
     address public feeManager;
 
     using SafeMath for uint;
@@ -307,7 +310,9 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
 
         }
 
-        require(boughtCollateral >= parameters.minCollateralToBuy, "Easy Lending: Bought collateral lower than expected collateral to buy.");
+        require(boughtCollateral >= parameters.minCollateralToBuy, "Deunifi: Bought collateral lower than expected collateral to buy.");
+
+        uint collateralToLock = parameters.collateralFromUser.add(boughtCollateral);
 
         lockGemAndDraw(
             parameters.gemToken,
@@ -318,7 +323,7 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
             parameters.gemJoin,
             parameters.daiJoin, 
             parameters.cdp,
-            parameters.collateralFromUser.add(boughtCollateral),
+            collateralToLock,
             parameters.debtTokenToDraw,
             parameters.transferFrom
         );
@@ -335,12 +340,14 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
         safeIncreaseMaxUint(parameters.debtToken, parameters.lendingPool,
             parameters.debtTokenToDraw); // We are passing an amount higher so it is not necessary to calculate the fee.
 
+        emit LockAndDraw(parameters.sender, parameters.cdp, collateralToLock, parameters.debtTokenToDraw);
+        
     }
 
     function paybackDebt(PayBackParameters memory parameters) internal
         returns (uint freeTokenA, uint freeTokenB, uint freePairToken){
 
-        uint debtToPay = parameters.debtToPay;
+        parameters.debtToPay;
 
         wipeAndFreeGem(
             parameters.dsProxy,
@@ -350,7 +357,7 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
             parameters.daiJoin,
             parameters.cdp,
             parameters.collateralAmountToFree,
-            debtToPay,
+            parameters.debtToPay,
             parameters.debtToken
         );
 
@@ -575,6 +582,9 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
 
         (uint remainingTokenA, uint remainingTokenB, uint pairRemaining) = paybackDebt(decodedData);
 
+        require(remainingTokenA >= decodedData.minTokenAToRecive, "Deunifi: Remaining token lower than expected.");
+        require(remainingTokenB >= decodedData.minTokenBToRecive, "Deunifi: Remaining token lower than expected.");
+
         // Fee Service Payment
         safeIncreaseMaxUint(decodedData.debtToken, feeManager, 
             decodedData.debtToPay); // We are passing an amount higher so it is not necessary to calculate the fee.
@@ -604,12 +614,10 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
         }
 
         if (remainingTokenA > 0 || decodedData.minTokenAToRecive > 0){
-            require(remainingTokenA >= decodedData.minTokenAToRecive);
             IERC20(decodedData.tokenA).safeTransfer(decodedData.sender, remainingTokenA);
         }
 
         if (remainingTokenB > 0 || decodedData.minTokenBToRecive > 0){
-            require(remainingTokenB >= decodedData.minTokenBToRecive);
             IERC20(decodedData.tokenB).safeTransfer(decodedData.sender, remainingTokenB);
         }
 
@@ -621,6 +629,8 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
 
         safeIncreaseMaxUint(decodedData.debtToken, decodedData.lendingPool,
             decodedData.debtToPay.mul(2)); // We are passing an amount higher so it is not necessary to calculate the fee.
+
+        emit WipeAndFree(decodedData.sender, decodedData.cdp, decodedData.collateralAmountToFree, decodedData.debtToPay);
 
     }
 
