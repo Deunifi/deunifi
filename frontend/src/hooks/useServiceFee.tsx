@@ -34,19 +34,19 @@ const zeroServiceFee: ServiceFee = {
 export const useServiceFee = () => {
 
     const feeManager = useContract('FeeManager') // feeManager ABI should be available, no matters if it is deployed.
-    const removePosition = useContract('RemovePosition')
+    const deunifi = useContract('Deunifi')
 
     const signer = useSigner()
     const [serviceFee, setServiceFee] = useState<ServiceFee>(zeroServiceFee)
 
     useEffectAutoCancel(function* (){
         
-        if (!feeManager || !removePosition || !signer){
+        if (!feeManager || !deunifi || !signer){
             setServiceFee(zeroServiceFee)
             return
         }
 
-        const feeManagerAddress = (yield removePosition.feeManager()) as string
+        const feeManagerAddress = (yield deunifi.feeManager()) as string
 
         if (feeManagerAddress == ethers.constants.AddressZero){
             setServiceFee(zeroServiceFee)
@@ -64,7 +64,7 @@ export const useServiceFee = () => {
             getGrossAmountFromNetAmount: async (amount:BigNumber) => await feeManagerAttached.getGrossAmountFromNetAmount(signerAddress, amount),
         })
 
-    }, [feeManager, removePosition])
+    }, [feeManager, deunifi])
 
     return { ...serviceFee }
 

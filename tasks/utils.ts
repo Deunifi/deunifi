@@ -61,9 +61,9 @@ task(
 
         try {
             const feeManager = await hre.ethers.getContract('FeeManager')
-            const unifi = await hre.ethers.getContract('RemovePosition')
-            if ((await unifi.feeManager()) != feeManager.address){
-                const transactionResponse: TransactionResponse = await unifi.setFeeManager(feeManager.address)
+            const deunifi = await hre.ethers.getContract('Deunifi')
+            if ((await deunifi.feeManager()) != feeManager.address){
+                const transactionResponse: TransactionResponse = await deunifi.setFeeManager(feeManager.address)
                 console.log(`Setting FeeManager (${feeManager.address}) in Unifi contract in transaction ${transactionResponse.hash}.`);
                 await transactionResponse.wait(1)    
             }
@@ -82,12 +82,50 @@ task(
         const { deployments, network } = hre
 
         try {
-            const unifi = await hre.ethers.getContract('RemovePosition')
-            if ((await unifi.feeManager()) != hre.ethers.constants.Zero){
-                const transactionResponse: TransactionResponse = await unifi.setFeeManager(hre.ethers.constants.AddressZero)
+            const deunifi = await hre.ethers.getContract('Deunifi')
+            if ((await deunifi.feeManager()) != hre.ethers.constants.Zero){
+                const transactionResponse: TransactionResponse = await deunifi.setFeeManager(hre.ethers.constants.AddressZero)
                 console.log(`Setting FeeManager (${hre.ethers.constants.AddressZero}) in Unifi contract in transaction ${transactionResponse.hash}.`);
                 await transactionResponse.wait(1)
             }
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+)
+
+task(
+    "fee-manager-balance",
+    "Gets fee manager balance.",
+    async ({ }, hre) => {
+
+        const { deployments, network } = hre
+
+        try {
+            const feeManager = await hre.ethers.getContract('FeeManager')
+            const dai = await hre.ethers.getContract('Dai')
+            console.log(hre.ethers.utils.formatEther(await dai.balanceOf(feeManager.address)))
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+)
+
+task(
+    "fee-manager-withdraw",
+    "Withdraw fee manager balance.",
+    async ({ }, hre) => {
+
+        const { deployments, network } = hre
+
+        const { deployer } = await hre.ethers.getNamedSigners();
+
+        try {
+            const feeManager = await hre.ethers.getContract('FeeManager')
+            const dai = await hre.ethers.getContract('Dai')
+            await feeManager.connect(deployer).withdraw(dai.address, deployer.address, await dai.balanceOf(feeManager.address))
         } catch (error) {
             console.error(error);
         }
