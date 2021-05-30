@@ -2,18 +2,18 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
 import { TextField } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
 import { useSwapService, IGetAmountsInResult } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
-import { useForm, parseBigNumber, defaultSideEffect } from "../utils/forms";
+import { useForm, defaultSideEffect, IChangeBigNumberEvent } from "../utils/forms";
 import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { useVaultInfoContext, getCollateralizationRatio, getLiquidationPrice } from "./VaultInfo";
 import { useDSProxyContainer, VaultSelection } from "./VaultSelection";
-import { decreaseWithTolerance, getLoanFee, increaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
-import { useAsyncEffect } from "use-async-effect2";
+import { decreaseWithTolerance, getLoanFee, proxyExecute, deadline } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
+import { useBlocknumber } from "../hooks/useBlocknumber";
 
 interface Props { }
 
@@ -233,6 +233,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
     const lendingPool = useContract('LendingPool')
 
+    const blocknumber = useBlocknumber()
+
     useEffectAutoCancel(function* () {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
@@ -408,31 +410,37 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     }, [form.cleanedValues, signer, dai, vaultInfo, router02])
 
+    const [tokenAToLockModifiedByUser, setTokenAToLockModifiedByUser] = useState(false)
+    const [tokenBToLockModifiedByUser, setTokenBToLockModifiedByUser] = useState(false)
+
+    useEffectAutoCancel(function* (){
+        if (tokenAToLockModifiedByUser)
+            tokenAToLockChange({target: {name: 'tokenAToLock', value: form.textValues.tokenAToLock}})
+        else if (tokenBToLockModifiedByUser)
+            tokenBToLockChange({target: {name: 'tokenBToLock', value: form.textValues.tokenBToLock}})
+    },[blocknumber])
+
     const daiFromSignerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         form.onChangeBigNumber(e)
     }
 
-    const tokenAToLockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const tokenAToLockChange = (e: IChangeBigNumberEvent) => {
 
         const sideEffect = async (fieldname: string, textValue: string, cleanedValue: BigNumber) => {
+
             if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token1)
                 return defaultSideEffect(fieldname, textValue, cleanedValue)
+
             const tokenAToLock = cleanedValue
+
+            setTokenAToLockModifiedByUser(true)
+            setTokenBToLockModifiedByUser(false)
+
             const reserves = await vaultInfo.ilkInfo.univ2Pair.getReserves()
             const [reserve0, reserve1]: BigNumber[] = reserves
             const tokenBToLock = tokenAToLock
                 .mul(reserve1).div(reserve0)
-            if (tokenBToLock.eq(form.cleanedValues.tokenBToLock))
-                return {
-                    cleanedValues: {
-                        ...form.cleanedValues,
-                        tokenAToLock
-                    },
-                    textValues: {
-                        ...form.textValues,
-                        tokenAToLock: textValue
-                    }
-                }
+
             return {
                 cleanedValues: {
                     ...form.cleanedValues,
@@ -445,32 +453,29 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                     tokenBToLock: formatUnits(tokenBToLock, vaultInfo.ilkInfo.token1.decimals)
                 }
             }
+
         }
 
         form.onChangeBigNumber(e, vaultInfo.ilkInfo.token0?.decimals, sideEffect)
     }
 
-    const tokenBToLockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const tokenBToLockChange = (e: IChangeBigNumberEvent) => {
 
         const sideEffect = async (fieldname: string, textValue: string, cleanedValue: BigNumber) => {
+
             if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token0)
                 return defaultSideEffect(fieldname, textValue, cleanedValue)
+
             const tokenBToLock = cleanedValue
+
+            setTokenAToLockModifiedByUser(false)
+            setTokenBToLockModifiedByUser(true)
+
             const reserves = await vaultInfo.ilkInfo.univ2Pair.getReserves()
             const [reserve0, reserve1]: BigNumber[] = reserves
             const tokenAToLock = tokenBToLock
                 .mul(reserve0).div(reserve1)
-            if (tokenAToLock.eq(form.cleanedValues.tokenAToLock))
-                return {
-                    cleanedValues: {
-                        ...form.cleanedValues,
-                        tokenBToLock
-                    },
-                    textValues: {
-                        ...form.textValues,
-                        tokenBToLock: textValue
-                    }
-                }
+
             return {
                 cleanedValues: {
                     ...form.cleanedValues,
@@ -483,6 +488,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                     tokenBToLock: textValue,
                 }
             }
+
         }
 
         form.onChangeBigNumber(e, vaultInfo.ilkInfo.token1?.decimals, sideEffect)

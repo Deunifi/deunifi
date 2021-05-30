@@ -24,6 +24,13 @@ export const defaultSideEffect = async (
     }
 }
 
+export interface IChangeBigNumberEvent {
+    target: {
+        value: string, 
+        name: string
+    }
+}
+
 /**
  * 
  * @param textInitialValues Text representation for form fields.
@@ -36,7 +43,7 @@ export const useForm = <T, C, E>(textInitialValues: T, cleanedInitialValues: C) 
     const [errors, setErrors] = useState<E>()
 
     const onChangeBigNumber = async (
-        e: React.ChangeEvent<HTMLInputElement>, 
+        e: IChangeBigNumberEvent,
         decimals: number=18,
         sideEffect=defaultSideEffect
         ) => {
