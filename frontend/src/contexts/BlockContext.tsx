@@ -1,9 +1,15 @@
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useProvider } from "../components/Connection";
 
-export const useBlocknumber = (
-    ) => {
+const BlockContext = createContext<{ blocknumber: number }>({ blocknumber: 0 })
+const { Provider } = BlockContext
+
+export const useBlockContext = () => useContext(BlockContext)
+
+interface Props { }
+
+export const Block: React.FC<Props> = ({ children }) => {
 
     const [blocknumber, setBlocknumber] = useState<any>()
     const provider = useProvider()
@@ -20,6 +26,10 @@ export const useBlocknumber = (
         }
     }, [provider])
 
-    return blocknumber
+    return (
+        <Provider value={{ blocknumber }}>
+            {children}
+        </Provider>
+    )
 
 }

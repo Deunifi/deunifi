@@ -6,6 +6,7 @@ import { LockAndDraw } from './LockAndDraw';
 import { OpenVault } from './OpenVault';
 import { OneInchTest } from './OneInchTest';
 import { PsmTest } from './PsmTest';
+import { Block } from '../contexts/BlockContext';
 
 interface Props { }
 
@@ -16,16 +17,18 @@ export const Unifi: React.FC<Props> = () => {
             </PsmTest>
             <OneInchTest>
             </OneInchTest> */}
-            <OpenVault>
-            </OpenVault>
-            <VaultSelection>
-                <VaultInfo>
-                    <WipeAndFree>
-                    </WipeAndFree>
-                    <LockAndDraw>
-                    </LockAndDraw>
-                </VaultInfo>
-            </VaultSelection>
+            <Block>
+                <OpenVault>
+                </OpenVault>
+                <VaultSelection>
+                    <VaultInfo>
+                        <WipeAndFree>
+                        </WipeAndFree>
+                        <LockAndDraw>
+                        </LockAndDraw>
+                    </VaultInfo>
+                </VaultSelection>
+            </Block>
         </div>
     )
 }

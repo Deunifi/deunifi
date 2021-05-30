@@ -2,7 +2,7 @@ import { Contract } from "@ethersproject/contracts";
 import { parseBytes32String } from "@ethersproject/strings";
 import { BigNumber, ethers } from "ethers";
 import { createContext, useContext, useState } from "react";
-import { useBlocknumber } from "../hooks/useBlocknumber";
+import { useBlockContext } from "../contexts/BlockContext";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
@@ -82,7 +82,7 @@ export function useVaults() {
     const dsProxyContainer = useDSProxyContainer()
     const manager = useContract('DssCdpManager')
 
-    const blockNumber = useBlocknumber()
+    const { blocknumber } = useBlockContext()
 
     useEffectAutoCancel(function* () {
 
@@ -137,7 +137,7 @@ export function useVaults() {
         // TODO Check if sort is needed.
         setVaults([..._vaults])
 
-    }, [dsProxyContainer, manager, blockNumber])
+    }, [dsProxyContainer, manager, blocknumber])
 
     return vaults
 
@@ -161,7 +161,7 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
         if (vaults.length == 0) {
             setVault(undefined)
         } else {
-            setVault(vaults[0])
+            setVault(vaults[vaults.length-1])
         }
     }, [vaults])
 
@@ -174,6 +174,7 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
                         name="Vault"
                         id="vault"
                         onChange={(e) => setVault(vaults[e.target.selectedIndex])}
+                        value={vault?.cdp.toString()}
                     >
                         {vaults.map(vault => (
                             <option value={vault.cdp.toString()} key={vault.cdp.toString()}>

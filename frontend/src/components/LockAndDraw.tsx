@@ -13,7 +13,7 @@ import { useVaultInfoContext, getCollateralizationRatio, getLiquidationPrice } f
 import { useDSProxyContainer, VaultSelection } from "./VaultSelection";
 import { decreaseWithTolerance, getLoanFee, proxyExecute, deadline } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
-import { useBlocknumber } from "../hooks/useBlocknumber";
+import { useBlockContext } from "../contexts/BlockContext";
 
 interface Props { }
 
@@ -233,7 +233,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
     const lendingPool = useContract('LendingPool')
 
-    const blocknumber = useBlocknumber()
+    const { blocknumber } = useBlockContext()
 
     useEffectAutoCancel(function* () {
 
