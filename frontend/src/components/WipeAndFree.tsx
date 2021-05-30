@@ -11,6 +11,7 @@ import { encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
 import { useSwapService, initialGetAmountsInResult, IGetAmountsInResult } from '../hooks/useSwapService';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
+import { useBlockContext } from '../contexts/BlockContext';
 
 interface Props { }
 
@@ -152,8 +153,26 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const [errors, setErrors] = useState<IErrors>({})
 
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(initialExpectedResult)
-    
-    const daiFromTokenAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+    const { blocknumber } = useBlockContext()
+
+    const [daiFromTokenAModifiedByUser, setDaiFromTokenAModifiedByUser] = useState(false)
+    const [daiFromTokenBModifiedByUser, setDaiFromTokenBModifiedByUser] = useState(false)
+
+    useEffectAutoCancel(function* (){
+        if (daiFromTokenAModifiedByUser)
+            daiFromTokenAChange({target: {value: form.daiFromTokenA}})
+        else if (daiFromTokenBModifiedByUser)
+            daiFromTokenBChange({target: {value: form.daiFromTokenB}})
+    },[blocknumber])
+
+    interface IChangeDaiFromTokenEvent {
+        target: {
+            value: string,
+        }
+    }
+
+    const daiFromTokenAChange = (e: IChangeDaiFromTokenEvent) => {
         try {
             let value = e.target.value
             let daiFromTokenA = parseBigNumber(value)
@@ -165,10 +184,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 value = '0'
             }
             const daiFromTokenB = daiLoanPlusFees.sub(daiFromTokenA)
-            if (daiFromTokenB.eq(params.daiFromTokenB)){
-                setForm({...form, daiFromTokenA: value})
-                return
-            }
+
+            setDaiFromTokenAModifiedByUser(true)
+            setDaiFromTokenBModifiedByUser(false)
+
             setParams({...params, daiFromTokenA, daiFromTokenB})
             setForm({...form, daiFromTokenA: value, daiFromTokenB: formatEther(daiFromTokenB)})
         } catch (error) {
@@ -176,7 +195,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         }
     }
 
-    const daiFromTokenBChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const daiFromTokenBChange = (e: IChangeDaiFromTokenEvent) => {
         try {
             let value = e.target.value
             let daiFromTokenB = parseBigNumber(value)
@@ -188,10 +207,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 value = '0'
             }
             const daiFromTokenA = daiLoanPlusFees.sub(daiFromTokenB)
-            if (daiFromTokenA.eq(params.daiFromTokenA)){
-                setForm({...form, daiFromTokenB: value})
-                return
-            }
+
+            setDaiFromTokenAModifiedByUser(false)
+            setDaiFromTokenBModifiedByUser(true)
             setParams({...params, daiFromTokenA, daiFromTokenB})
             setForm({...form, daiFromTokenB: value, daiFromTokenA: formatEther(daiFromTokenA)})
         } catch (error) {
@@ -399,7 +417,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             token1AmountForDai,
         })
 
-    }, [params])
+    }, [params, blocknumber, vaultInfo])
 
     const onChangeBigNumber = (e: React.ChangeEvent<HTMLInputElement>, decimals: number=18) => {
         try {

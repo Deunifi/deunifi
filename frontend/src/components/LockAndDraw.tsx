@@ -408,7 +408,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         setExpectedResult(expectedResult)
         form.setErrors(errors)
 
-    }, [form.cleanedValues, signer, dai, vaultInfo, router02])
+    }, [form.cleanedValues, signer, dai, vaultInfo, router02, blocknumber])
 
     const [tokenAToLockModifiedByUser, setTokenAToLockModifiedByUser] = useState(false)
     const [tokenBToLockModifiedByUser, setTokenBToLockModifiedByUser] = useState(false)
