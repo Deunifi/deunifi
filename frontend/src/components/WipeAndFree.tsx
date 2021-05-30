@@ -141,10 +141,6 @@ const initialExpectedResult: IExpectedResult = {
 
 export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
-    // const manager = useContract('DssCdpManager')
-    // const vat = useContract('Vat')
-    // const spotter = useContract('Spotter')
-
     const { vaultInfo } = useVaultInfoContext()
     const swapService = useSwapService()
     const [params, setParams] = useState<IWipeAndFreeParameters>(emptyWipeAndFreeParameters)

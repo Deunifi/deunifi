@@ -11,11 +11,13 @@ export const useBlocknumber = (
     useEffect(() => {
         if (!provider)
             return
-        provider.on("block", (_blockNumber) => {
-            console.log(_blockNumber);
-            
-            setBlocknumber( () => _blockNumber )
-        })    
+        if (provider.listenerCount('block') == 0){
+            provider.on("block", (_blockNumber) => {
+                console.log(_blockNumber);
+                
+                setBlocknumber( () => _blockNumber )
+            })    
+        }
     }, [provider])
 
     return blocknumber
