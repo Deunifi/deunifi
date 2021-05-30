@@ -2,6 +2,7 @@ import { Contract } from "@ethersproject/contracts";
 import { parseBytes32String } from "@ethersproject/strings";
 import { BigNumber, ethers } from "ethers";
 import { createContext, useContext, useState } from "react";
+import { useBlocknumber } from "../hooks/useBlocknumber";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useSigner, useProvider } from "./Connection";
 import { useContract } from "./Deployments";
@@ -81,6 +82,8 @@ export function useVaults() {
     const dsProxyContainer = useDSProxyContainer()
     const manager = useContract('DssCdpManager')
 
+    const blockNumber = useBlocknumber()
+
     useEffectAutoCancel(function* () {
 
         const { dsProxy } = dsProxyContainer
@@ -90,7 +93,7 @@ export function useVaults() {
             return
         }
 
-        const vaults: IVaultSelectionItem[] = []
+        const _vaults: IVaultSelectionItem[] = []
 
         // We get the first cdp for DSProxy
         let cdp: BigNumber = (yield manager.first(dsProxy.address)) as BigNumber
@@ -102,7 +105,7 @@ export function useVaults() {
             toResolve.push(
                 (async (cdp: BigNumber) => {
                     const ilk: string = parseBytes32String(await manager.ilks(cdp))
-                    vaults.push({
+                    _vaults.push({
                         cdp,
                         ilk,
                     })
@@ -118,10 +121,23 @@ export function useVaults() {
 
         yield Promise.all(toResolve)
 
+        // We check if the retrieved vaults are different than previous list (for blockNumber change).
+        if (_vaults.length == vaults.length){
+            let differentVaults = false
+            for (let i=0; i<vaults.length; i++){
+                if (!_vaults[i].cdp.eq(vaults[i].cdp)){
+                    differentVaults = true
+                    break
+                }
+            }
+            if (!differentVaults)
+                return
+        }
+        
         // TODO Check if sort is needed.
-        setVaults([...vaults])
+        setVaults([..._vaults])
 
-    }, [dsProxyContainer, manager])
+    }, [dsProxyContainer, manager, blockNumber])
 
     return vaults
 

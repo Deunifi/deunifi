@@ -4,6 +4,7 @@ import { formatBytes32String } from '@ethersproject/strings';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useBlocknumber } from '../hooks/useBlocknumber';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useProvider } from './Connection';
 import { useContract } from './Deployments';
@@ -128,6 +129,8 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
     const [vaultInfo, setVaultInfo] = useState<IVaultInfo>(emptyVaultInfo)
 
+    const blockNumber = useBlocknumber()
+
     useEffectAutoCancel(function* () {
 
         if (!vault || !manager || !vat || !spotter || !ilkRegistry || !gem || !gemJoin ||
@@ -246,7 +249,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
             }
         })
 
-    }, [vault, manager, vat, spotter])
+    }, [vault, manager, vat, spotter, blockNumber])
 
     return (
         <div>

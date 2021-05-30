@@ -525,14 +525,14 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             <p>
                 <label>
                     DAI Covered With {vaultInfo.ilkInfo.token0?.symbol}:
-                    <input type="number" value={form.daiFromTokenA} name="daiFromSigner" onChange={ (e) => daiFromTokenAChange(e) }/>
+                    <input type="number" value={form.daiFromTokenA} name="daiFromTokenA" onChange={ (e) => daiFromTokenAChange(e) }/>
                     <br></br>
                     [{params.pathFromTokenAToDai.join(', ')}]
                 </label>
                 <br></br>
                 <label>
                     DAI Covered With {vaultInfo.ilkInfo.token1?.symbol}:
-                    <input type="number" value={form.daiFromTokenB} name="daiFromFlashLoan"  onChange={ (e) => daiFromTokenBChange(e) }/>
+                    <input type="number" value={form.daiFromTokenB} name="daiFromTokenB"  onChange={ (e) => daiFromTokenBChange(e) }/>
                     <br></br>
                     [{params.pathFromTokenBToDai.join(', ')}]
                 </label>
