@@ -5,6 +5,7 @@ import { Unifi } from './components/Unifi';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import React from 'react';
 import { Container } from '@material-ui/core';
+import { Block } from './contexts/BlockContext';
 
 function App() {
 
@@ -13,8 +14,11 @@ function App() {
       <CssBaseline />
       <Container maxWidth="sm">
         <div>
+          <Block>
+
             <ConnectButton></ConnectButton>
             <Unifi></Unifi>
+          </Block>
         </div>
       </Container>
     </React.Fragment>

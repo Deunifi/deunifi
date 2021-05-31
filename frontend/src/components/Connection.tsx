@@ -103,40 +103,43 @@ function ConnectButton() {
         </Toolbar>
       </AppBar>
 
-      <Card>
-        <CardContent>
-          <Typography color="textSecondary" gutterBottom>
-            Connection
-          </Typography>
-          {/* <Typography variant="h5" component="h2">
-            be{bull}nev{bull}o{bull}lent
-          </Typography> */}
-          <Typography color="textSecondary">
-            Address: {address}
-          </Typography>
-          <Typography variant="body2" component="p" color="textSecondary">
-            Chain ID: {web3React.chainId}
-          </Typography>
-          {
-            dsProxy? 
+      { 
+        web3React.active ?
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Connection
+              </Typography>
+              {/* <Typography variant="h5" component="h2">
+                be{bull}nev{bull}o{bull}lent
+              </Typography> */}
+              <Typography color="textSecondary">
+                Address: {address}
+              </Typography>
               <Typography variant="body2" component="p" color="textSecondary">
-                Proxy: {dsProxy.address}
-              </Typography> :
-              undefined
-          }
+                Chain ID: {web3React.chainId}
+              </Typography>
+              {
+                dsProxy? 
+                  <Typography variant="body2" component="p" color="textSecondary">
+                    Proxy: {dsProxy.address}
+                  </Typography> :
+                  undefined
+              }
 
-        </CardContent>
+            </CardContent>
 
-        {
-          dsProxy? 
-            undefined : 
-            <CardActions>
-              <CreateProxyButton></CreateProxyButton>
-            </CardActions>
-        }
+            {
+              dsProxy? 
+                undefined : 
+                <CardActions>
+                  <CreateProxyButton></CreateProxyButton>
+                </CardActions>
+            }
 
-      </Card>
-
+          </Card>
+          : undefined
+      }
 
     </div>
   );
