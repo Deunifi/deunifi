@@ -89,7 +89,7 @@ function ConnectButton() {
             <MenuIcon />
           </IconButton> */}
           <Typography variant="h6" className={classes.title}>
-            Deunifi
+            DEUNIFI
           </Typography>
           <Button
             size="small"

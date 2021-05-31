@@ -27,7 +27,7 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
         const list = (yield ilkRegistry['list()']()) as string[]
 
-        setIlkList(list)
+        setIlkList(list.filter(ilk => /UNIV2/.test(parseBytes32String(ilk))))
 
     }, [ilkRegistry])
 
@@ -44,12 +44,12 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
                 </Typography>
 
                 <FormControl>
-                    <InputLabel id="demo-simple-select-helper-label">Vault type</InputLabel>
+                    <InputLabel id="vault-type-label">Vault type</InputLabel>
                     <Select
-                        labelId="demo-simple-select-helper-label"
-                        id="demo-simple-select-helper"
+                        labelId="vault-type-label"
+                        id="vault-type-select"
                         onChange={(e) => setSelectedIlk(e.target.value as string)}
-                        value={selectedIlk}
+                        value={selectedIlk || ''}
                         >
                         {ilkList.map(ilk => (
                                 <MenuItem value={ilk} key={ilk}>

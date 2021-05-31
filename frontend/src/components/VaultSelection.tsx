@@ -105,10 +105,12 @@ export function useVaults() {
             toResolve.push(
                 (async (cdp: BigNumber) => {
                     const ilk: string = parseBytes32String(await manager.ilks(cdp))
-                    _vaults.push({
-                        cdp,
-                        ilk,
-                    })
+                    if (/UNIV2/.test(ilk)){
+                        _vaults.push({
+                            cdp,
+                            ilk,
+                        })    
+                    }
                 })(cdp)
             )
 
