@@ -21,7 +21,7 @@ export const CreateProxyButton: React.FC<Props> = ({ children }) => {
                 <Button
                     size="small"
                     variant="contained"
-                    color='primary'
+                    color='secondary'
                     onClick={async (e) => {
                         e.preventDefault()
                         if (dsProxy || !proxyRegistry)

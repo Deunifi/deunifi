@@ -1,5 +1,6 @@
 import { Contract } from "@ethersproject/contracts";
 import { parseBytes32String } from "@ethersproject/strings";
+import { Card, CardContent, FormControl, FormHelperText, InputLabel, MenuItem, Select, Typography } from "@material-ui/core";
 import { BigNumber, ethers } from "ethers";
 import { createContext, useContext, useState } from "react";
 import { useBlockContext } from "../contexts/BlockContext";
@@ -168,28 +169,38 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
     }, [vaults])
 
     return (
-        <div>
-            <ul>
-                <li>
-                    <select
-                        name="Vault"
-                        id="vault"
-                        onChange={(e) => setVault(vaults[e.target.selectedIndex])}
-                        value={vault?.cdp.toString()}
-                    >
-                        {vaults.map(vault => (
-                            <option value={vault.cdp.toString()} key={vault.cdp.toString()}>
-                                #{vault.cdp.toString()} - {vault.ilk}
-                            </option>
-                        ))}
-                    </select>
-                </li>
-                <li>
-                    <Provider value={{ vault }}>
-                        {children}
-                    </Provider>
-                </li>
-            </ul>
+        <div hidden={vaults.length == 0}>
+            <Card>
+                <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                        Vault Selection
+                    </Typography>
+
+                    <FormControl>
+                        <InputLabel id="vault-selection-label">Vault</InputLabel>
+                        <Select
+                            labelId="vault-selection-label"
+                            id="vault-selection-select"
+                            onChange={(e) => {
+                                // TODO Verify if it needs bounds check.
+                                setVault(vaults.filter(v=>v.cdp.toString()==e.target.value)[0])
+                            }}
+                            value={vault?.cdp.toString() || ''}
+                            >
+                            {vaults.map(vault => (
+                                <MenuItem value={vault.cdp.toString()} key={vault.cdp.toString()}>
+                                    #{vault.cdp.toString()} - {vault.ilk}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                        <FormHelperText></FormHelperText>
+                    </FormControl>
+
+                </CardContent>
+            </Card>
+            <Provider value={{ vault }}>
+                {children}
+            </Provider>
         </div>
     )
 }

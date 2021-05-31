@@ -67,7 +67,7 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
                     <Button
                             size="small"
                             variant="contained"
-                            color='primary'
+                            color='secondary'
                             onClick={async (e) => {
                                 e.preventDefault()
                                 if (!dssProxyActions || !manager || !selectedIlk || !dsProxy || !signer)

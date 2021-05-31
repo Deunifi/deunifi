@@ -24,8 +24,6 @@ export const Unifi: React.FC<Props> = () => {
             {
                 dsProxy?
                     <div>
-                        <OpenVault>
-                        </OpenVault>
                         <VaultSelection>
                             <VaultInfo>
                                 <WipeAndFree>
@@ -34,6 +32,8 @@ export const Unifi: React.FC<Props> = () => {
                                 </LockAndDraw>
                             </VaultInfo>
                         </VaultSelection>
+                        <OpenVault>
+                        </OpenVault>
                     </div>
                     : undefined
             }

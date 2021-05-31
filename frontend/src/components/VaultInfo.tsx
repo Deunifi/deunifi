@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { Contract } from '@ethersproject/contracts';
 import { formatBytes32String } from '@ethersproject/strings';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
+import { Card, CardContent, Typography } from '@material-ui/core';
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useBlockContext } from '../contexts/BlockContext';
@@ -253,16 +254,36 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
     return (
         <div>
-            <ul>
-                <li>#{vault?.cdp.toString()}</li>
-                <li>Ilk: {vault?.ilk}</li>
-                <li>Ink: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.ink)}</li>
-                <li>Dart: {vaultInfo?.dart ? formatEther(vaultInfo.dart) : 0}</li>
-                <li>Price: {/*TODO Check if it is correct the number of decimals*/formatUnits(vaultInfo.price, 27)}</li>
-                <li>Liquidation Price: {/*TODO Check if it is correct the number of decimals*/formatUnits(vaultInfo.liquidationPrice, 27)}</li>
-                <li>Collateralization Ratio: {/*TODO Check if it is correct the number of decimals*/formatEther(vaultInfo.collateralizationRatio)}</li>
-                <li>Liquidation Ratio: {/*TODO Check if it is correct the number of decimals*/formatUnits(vaultInfo.mat, 27)}</li>
-            </ul>
+            <Card>
+                <CardContent>
+                    <Typography color="textSecondary" gutterBottom>
+                    Vault Status Information
+                    </Typography>
+                    <Typography variant="h5" component="h2">
+                    #{vault?.cdp.toString()} - {vault?.ilk}
+                    </Typography>
+                    <Typography variant="body2" component="p" color="textSecondary">
+                    Collateral Locked: {formatEther(vaultInfo.ink)}
+                    </Typography>
+                    <Typography variant="body2" component="p" color="textSecondary">
+                    Debt: {vaultInfo?.dart ? formatEther(vaultInfo.dart) : 0}
+                    </Typography>
+                    <Typography variant="body2" component="p" color="textSecondary">
+                    Price: {formatUnits(vaultInfo.price, 27)}
+                    </Typography>
+                    <Typography variant="body2" component="p" color="textSecondary">
+                    Liquidation Price: {formatUnits(vaultInfo.liquidationPrice, 27)}
+                    </Typography>
+                    <Typography variant="body2" component="p" color="textSecondary">
+                    Collateralization Ratio: {formatEther(vaultInfo.collateralizationRatio)}
+                    </Typography>
+                    <Typography variant="body2" component="p" color="textSecondary">
+                    Liquidation Ratio: {formatUnits(vaultInfo.mat, 27)}
+                    </Typography>
+
+                </CardContent>
+            </Card>
+
             <Provider value={{ vaultInfo }}>
                 {children}
             </Provider>
