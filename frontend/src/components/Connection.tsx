@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { useEffect, useState } from 'react';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
+import { Button } from '@material-ui/core';
 
 const injectedConnector = new InjectedConnector({
   supportedChainIds: [
@@ -60,9 +61,15 @@ function ConnectButton() {
 
   return (
     <div>
-      <button onClick={() => toogleConnection()}>
+
+      <Button 
+        variant="contained" 
+        color={web3React.active ? 'default' : 'primary'}
+        onClick={() => toogleConnection()}
+        >
         {web3React.active ? 'Disconnect' : 'Connect'}
-      </button>
+      </Button>
+
       <ul>
         <li>Address: {address}</li>
         <li>Chain ID: {web3React.chainId}</li>
