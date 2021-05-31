@@ -3,7 +3,9 @@ import { ethers } from 'ethers'
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { useEffect, useState } from 'react';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
-import { Button } from '@material-ui/core';
+import { AppBar, Button, Card, CardActions, CardContent, createStyles, makeStyles, Theme, Toolbar, Typography } from '@material-ui/core';
+import { useDSProxyContainer } from './VaultSelection';
+import { CreateProxyButton } from './CreateProxyButton';
 
 const injectedConnector = new InjectedConnector({
   supportedChainIds: [
@@ -16,7 +18,7 @@ const injectedConnector = new InjectedConnector({
   ],
 })
 
-export function useProvider(){
+export function useProvider() {
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
   const [provider, setProvider] = useState<ethers.providers.Web3Provider>()
 
@@ -27,7 +29,7 @@ export function useProvider(){
   return provider
 }
 
-export function useSigner(){
+export function useSigner() {
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
   const [signer, setSigner] = useState<ethers.providers.JsonRpcSigner>()
 
@@ -38,17 +40,31 @@ export function useSigner(){
   return signer
 }
 
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    root: {
+      flexGrow: 1,
+    },
+    menuButton: {
+      marginRight: theme.spacing(2),
+    },
+    title: {
+      flexGrow: 1,
+    },
+  }),
+);
+
 function ConnectButton() {
 
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
   const signer = useSigner()
   const [address, setAddress] = useState<string>()
 
-  useEffectAutoCancel(function* (){
-      if (!signer)
-        setAddress(ethers.constants.AddressZero)
-      else
-        setAddress((yield signer.getAddress()) as string)
+  useEffectAutoCancel(function* () {
+    if (!signer)
+      setAddress(ethers.constants.AddressZero)
+    else
+      setAddress((yield signer.getAddress()) as string)
   }, [signer])
 
 
@@ -59,21 +75,69 @@ function ConnectButton() {
       web3React.deactivate()
   }
 
+  const classes = useStyles();
+
+  const { dsProxy } = useDSProxyContainer()
+
   return (
-    <div>
 
-      <Button 
-        variant="contained" 
-        color={web3React.active ? 'default' : 'primary'}
-        onClick={() => toogleConnection()}
-        >
-        {web3React.active ? 'Disconnect' : 'Connect'}
-      </Button>
+    <div className={classes.root}>
 
-      <ul>
-        <li>Address: {address}</li>
-        <li>Chain ID: {web3React.chainId}</li>
-      </ul>
+      <AppBar position="static">
+        <Toolbar>
+          {/* <IconButton edge="start" className={classes.menuButton} color="inherit" aria-label="menu">
+            <MenuIcon />
+          </IconButton> */}
+          <Typography variant="h6" className={classes.title}>
+            Deunifi
+          </Typography>
+          <Button
+            size="small"
+            variant="contained"
+            color={web3React.active ? 'default' : 'secondary'}
+            onClick={() => toogleConnection()}
+          >
+            {web3React.active ? 'Disconnect' : 'Connect'}
+          </Button>
+
+        </Toolbar>
+      </AppBar>
+
+      <Card>
+        <CardContent>
+          <Typography color="textSecondary" gutterBottom>
+            Connection
+          </Typography>
+          {/* <Typography variant="h5" component="h2">
+            be{bull}nev{bull}o{bull}lent
+          </Typography> */}
+          <Typography color="textSecondary">
+            Address: {address}
+          </Typography>
+          <Typography variant="body2" component="p" color="textSecondary">
+            Chain ID: {web3React.chainId}
+          </Typography>
+          {
+            dsProxy? 
+              <Typography variant="body2" component="p" color="textSecondary">
+                Proxy: {dsProxy.address}
+              </Typography> :
+              undefined
+          }
+
+        </CardContent>
+
+        {
+          dsProxy? 
+            undefined : 
+            <CardActions>
+              <CreateProxyButton></CreateProxyButton>
+            </CardActions>
+        }
+
+      </Card>
+
+
     </div>
   );
 }

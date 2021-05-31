@@ -1,15 +1,10 @@
 import { parseBytes32String } from "@ethersproject/strings";
 import { useState } from "react";
-import { useSigner, useProvider } from "./Connection";
+import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { useDSProxyContainer } from "./VaultSelection";
-import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { proxyExecute } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
-
-interface IIlkSelection {
-    ilk: string,
-}
 
 interface Props { }
 
@@ -17,7 +12,6 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
     const signer = useSigner()
 
-    const proxyRegistry = useContract('ProxyRegistry')
     const ilkRegistry = useContract('IlkRegistry')
 
     const { dsProxy } = useDSProxyContainer()
@@ -41,26 +35,6 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
     return (
         <div>
-            {
-                dsProxy? 
-                    <p>DSProxy: {dsProxy?.address}</p> : 
-                    <p>
-                        <label>
-
-                            <button onClick={async (e) => {
-                                e.preventDefault()
-                                if (dsProxy || !proxyRegistry)
-                                    return;
-                                const transactionResponse: TransactionResponse = await proxyRegistry['build()']()
-                            }}>
-                                Create Proxy
-                            </button>
-                        </label>
-
-                    </p>
-            }
-            
-
             <p>
                 <select
                     name="Ilk"
