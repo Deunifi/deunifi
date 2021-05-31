@@ -41,20 +41,25 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
     return (
         <div>
-            <p>
-                <label>
+            {
+                dsProxy? 
+                    <p>DSProxy: {dsProxy?.address}</p> : 
+                    <p>
+                        <label>
 
-                    <button onClick={async (e) => {
-                        e.preventDefault()
-                        if (dsProxy || !proxyRegistry)
-                            return;
-                        const transactionResponse: TransactionResponse = await proxyRegistry['build()']()
-                    }}>
-                        Create Proxy
-                    </button>
-                </label>
+                            <button onClick={async (e) => {
+                                e.preventDefault()
+                                if (dsProxy || !proxyRegistry)
+                                    return;
+                                const transactionResponse: TransactionResponse = await proxyRegistry['build()']()
+                            }}>
+                                Create Proxy
+                            </button>
+                        </label>
 
-            </p>
+                    </p>
+            }
+            
 
             <p>
                 <select

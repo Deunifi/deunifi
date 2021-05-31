@@ -168,7 +168,6 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
     return (
         <div>
             <ul>
-                <li>DSProxy: {dsProxy?.address}</li>
                 <li>
                     <select
                         name="Vault"
