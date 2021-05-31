@@ -17,8 +17,8 @@ interface Props { }
 
 interface IWipeAndFreeParameters {
 
+    daiToPayback: BigNumber,
     daiFromSigner: BigNumber,
-    daiFromFlashLoan: BigNumber,
     collateralToFree: BigNumber,
 
     collateralToUseToPayFlashLoan: BigNumber,
@@ -34,8 +34,8 @@ interface IWipeAndFreeParameters {
 }
 
 const emptyWipeAndFreeParameters: IWipeAndFreeParameters = {
+    daiToPayback: BigNumber.from(0),
     daiFromSigner: BigNumber.from(0),
-    daiFromFlashLoan: BigNumber.from(0),
     collateralToFree: BigNumber.from(0),
 
     collateralToUseToPayFlashLoan: BigNumber.from(0),
@@ -53,8 +53,8 @@ const emptyWipeAndFreeParameters: IWipeAndFreeParameters = {
 
 interface IWipeAndFreeForm {
 
+    daiToPayback: string,
     daiFromSigner: string,
-    daiFromFlashLoan: string,
     collateralToFree: string,
 
     collateralToUseToPayFlashLoan: string,
@@ -68,8 +68,8 @@ interface IWipeAndFreeForm {
 }
 
 const emptyWipeAndFreeForm: IWipeAndFreeForm = {
+    daiToPayback: '',
     daiFromSigner: '',
-    daiFromFlashLoan: '',
     collateralToFree: '',
 
     collateralToUseToPayFlashLoan: '',
@@ -127,6 +127,7 @@ interface IErrors {
 }
 
 interface IExpectedResult{
+    daiFromFlashLoan: BigNumber,
     usePsmForToken0: boolean,
     usePsmForToken1: boolean,
     token0AmountForDai: BigNumber,
@@ -134,6 +135,7 @@ interface IExpectedResult{
 }
 
 const initialExpectedResult: IExpectedResult = {
+    daiFromFlashLoan: ethers.constants.Zero,
     usePsmForToken0: false,
     usePsmForToken1: false,
     token0AmountForDai: ethers.constants.Zero,
@@ -238,15 +240,19 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         
         const attachedLendingPool = lendingPool.attach((yield lendingPoolAddressesProvider.getLendingPool()) as string)
 
-        const lastDaiLoanFees = (yield getLoanFee(attachedLendingPool, params.daiFromFlashLoan)) as BigNumber
+        const daiFromFlashLoan = params.daiToPayback.gt(params.daiFromSigner) ?
+            params.daiToPayback.sub(params.daiFromSigner)
+            : ethers.constants.Zero
+
+        const lastDaiLoanFees = (yield getLoanFee(attachedLendingPool, daiFromFlashLoan)) as BigNumber
         if (!lastDaiLoanFees.eq(daiLoanFees))
             setDaiLoanFees(lastDaiLoanFees)
         
-        const lastDaiLoanPlusFeesWithNoServiceFees = params.daiFromFlashLoan
+        const lastDaiLoanPlusFeesWithNoServiceFees = daiFromFlashLoan
             .add(lastDaiLoanFees)
 
         const lastDaiLoanPlusFees = lastDaiLoanPlusFeesWithNoServiceFees
-            .add((yield getFeeFromGrossAmount(params.daiFromFlashLoan)) as BigNumber)
+            .add((yield getFeeFromGrossAmount(daiFromFlashLoan)) as BigNumber)
         if (!lastDaiLoanPlusFees.eq(daiLoanPlusFees))
             setDaiLoanPlusFees(lastDaiLoanPlusFees)
 
@@ -256,7 +262,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         let errors: IErrors = {}
 
-        if (params.daiFromSigner.add(params.daiFromFlashLoan).gt(vaultInfo.dart))
+        if (params.daiFromSigner.add(daiFromFlashLoan).gt(vaultInfo.dart))
             errors.tooMuchDai = `You are using more DAI than needed. Max DAI to use ${formatEther(vaultInfo.dart)}.`
 
         if (params.collateralToFree.gt(vaultInfo.ink))
@@ -415,6 +421,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             usePsmForToken1: swapFromTokenBToDaiResult.psm.sellGem,
             token0AmountForDai,
             token1AmountForDai,
+            daiFromFlashLoan: daiFromFlashLoan
         })
 
     }, [params, blocknumber, vaultInfo])
@@ -458,7 +465,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 await deunifi.WIPE_AND_FREE(),
                 sender, // address sender
                 dai.address, // address debtToken;
-                params.daiFromSigner.add(params.daiFromFlashLoan), // daiToPay
+                params.daiFromSigner.add(expectedResult.daiFromFlashLoan), // daiToPay
                 vaultInfo.ilkInfo.token0.contract.address, // address tokenA;
                 vaultInfo.ilkInfo.token1.contract.address, // address tokenB;
                 vaultInfo.ilkInfo.gem.address, // address pairToken;
@@ -501,8 +508,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
                 params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
                 await lendingPoolAddressesProvider.getLendingPool(),
-                params.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
-                params.daiFromFlashLoan.isZero() ? [] : [params.daiFromFlashLoan], // loanAmounts
+                expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
+                expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
                 [BigNumber.from(0)], //modes
                 dataForExecuteOperationCallback, // Data to be used on executeOperation
                 ethers.constants.AddressZero
@@ -514,18 +521,18 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         <form>
             <p>
                 <label>
-                    DAI From Signer:
-                    <input type="number" value={form.daiFromSigner} name="daiFromSigner" onChange={(e) => onChangeBigNumber(e)}/>
+                    DAI to payback:
+                    <input type="number" value={form.daiToPayback} name="daiToPayback" onChange={(e) => onChangeBigNumber(e)}/>
+                    <button onClick={(e)=>{
+                        e.preventDefault()
+                        setForm({...form, daiToPayback: formatEther(vaultInfo.dart)})
+                        setParams({...params, daiToPayback: vaultInfo.dart})
+                    }}>Max</button>
                 </label>
                 <br></br>
                 <label>
-                    DAI From Flash Loan:
-                    <input type="number" value={form.daiFromFlashLoan} name="daiFromFlashLoan" onChange={(e) => onChangeBigNumber(e)}/>
-                    <button onClick={(e)=>{
-                        e.preventDefault()
-                        setForm({...form, daiFromFlashLoan: formatEther(vaultInfo.dart)})
-                        setParams({...params, daiFromFlashLoan: vaultInfo.dart})
-                    }}>Max</button>
+                    DAI From Signer:
+                    <input type="number" value={form.daiFromSigner} name="daiFromSigner" onChange={(e) => onChangeBigNumber(e)}/>
                 </label>
             </p>
 
