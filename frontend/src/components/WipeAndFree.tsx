@@ -5,13 +5,13 @@ import React, { useState } from 'react';
 import { useSigner } from './Connection';
 import { useContract } from './Deployments';
 import { useVaultInfoContext } from './VaultInfo';
-import { useDSProxyContainer } from './VaultSelection';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
 import { useSwapService, initialGetAmountsInResult, IGetAmountsInResult } from '../hooks/useSwapService';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useBlockContext } from '../contexts/BlockContext';
+import { useDsProxyContext } from '../contexts/DsProxyContext';
 
 interface Props { }
 
@@ -438,7 +438,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const deunifi = useContract('Deunifi')
     const signer = useSigner()
-    const {dsProxy} = useDSProxyContainer()
+    const {dsProxy} = useDsProxyContext()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')
     const daiJoin = useContract('DaiJoin')

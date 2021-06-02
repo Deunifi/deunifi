@@ -4,8 +4,8 @@ import { InjectedConnector } from '@web3-react/injected-connector'
 import { useEffect, useState } from 'react';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { AppBar, Button, Card, CardActions, CardContent, createStyles, makeStyles, Theme, Toolbar, Typography } from '@material-ui/core';
-import { useDSProxyContainer } from './VaultSelection';
 import { CreateProxyButton } from './CreateProxyButton';
+import { useDsProxyContext } from '../contexts/DsProxyContext';
 
 const injectedConnector = new InjectedConnector({
   supportedChainIds: [
@@ -77,7 +77,7 @@ function ConnectButton() {
 
   const classes = useStyles();
 
-  const { dsProxy } = useDSProxyContainer()
+  const { dsProxy } = useDsProxyContext()
 
   return (
 

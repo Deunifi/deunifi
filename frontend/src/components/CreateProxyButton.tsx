@@ -1,7 +1,7 @@
 import { useContract } from "./Deployments";
-import { useDSProxyContainer } from "./VaultSelection";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { Button, Tooltip } from "@material-ui/core";
+import { useDsProxyContext } from "../contexts/DsProxyContext";
 
 interface IIlkSelection {
     ilk: string,
@@ -13,7 +13,7 @@ export const CreateProxyButton: React.FC<Props> = ({ children }) => {
 
     const proxyRegistry = useContract('ProxyRegistry')
 
-    const { dsProxy } = useDSProxyContainer()
+    const { dsProxy } = useDsProxyContext()
 
     return (
         <div>

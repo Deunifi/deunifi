@@ -10,10 +10,10 @@ import { useForm, defaultSideEffect, IChangeBigNumberEvent } from "../utils/form
 import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { useVaultInfoContext, getCollateralizationRatio, getLiquidationPrice } from "./VaultInfo";
-import { useDSProxyContainer, VaultSelection } from "./VaultSelection";
 import { decreaseWithTolerance, getLoanFee, proxyExecute, deadline } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
+import { useDsProxyContext } from "../contexts/DsProxyContext";
 
 interface Props { }
 
@@ -503,7 +503,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     }
 
     const deunifi = useContract('Deunifi');
-    const { dsProxy } = useDSProxyContainer()
+    const { dsProxy } = useDsProxyContext()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')
     const daiJoin = useContract('DaiJoin')

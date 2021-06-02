@@ -6,12 +6,14 @@ import { Card, CardContent, Typography } from '@material-ui/core';
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useBlockContext } from '../contexts/BlockContext';
+import { useVaultContext, VaultSelectionContext } from '../contexts/VaultSelectionContext';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useProvider } from './Connection';
 import { useContract } from './Deployments';
-import { useVaultContext } from './VaultSelection';
+import { VaultSelection } from './VaultSelection';
 const { CPromise } = require("c-promise2");
 
+// TODO Extract VaultInfo context.
 
 interface Props { }
 
@@ -114,7 +116,7 @@ const getTokenInfo = async (erc20: Contract, address: string): Promise<ITokenInf
 
 export const VaultInfo: React.FC<Props> = ({ children }) => {
 
-    const { vault } = useVaultContext()
+    const { vault } = useContext(VaultSelectionContext)
 
     const manager = useContract('DssCdpManager')
     const vat = useContract('Vat')
@@ -256,12 +258,15 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
         <div>
             <Card>
                 <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
+                    {/* <Typography color="textSecondary" gutterBottom>
                     Vault Status Information
-                    </Typography>
-                    <Typography variant="h5" component="h2">
+                    </Typography> */}
+                    <VaultSelection>
+                    </VaultSelection>
+
+                    {/* <Typography variant="h5" component="h2">
                     #{vault?.cdp.toString()} - {vault?.ilk}
-                    </Typography>
+                    </Typography> */}
                     <Typography variant="body2" component="p" color="textSecondary">
                     Collateral Locked: {formatEther(vaultInfo.ink)}
                     </Typography>

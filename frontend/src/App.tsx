@@ -6,6 +6,7 @@ import CssBaseline from '@material-ui/core/CssBaseline';
 import React from 'react';
 import { Container } from '@material-ui/core';
 import { Block } from './contexts/BlockContext';
+import { DsProxyProvider } from './contexts/DsProxyContext';
 
 function App() {
 
@@ -15,9 +16,10 @@ function App() {
       <Container maxWidth="sm">
         <div>
           <Block>
-
-            <ConnectButton></ConnectButton>
-            <Unifi></Unifi>
+            <DsProxyProvider>
+              <ConnectButton></ConnectButton>
+              <Unifi></Unifi>
+            </DsProxyProvider>
           </Block>
         </div>
       </Container>

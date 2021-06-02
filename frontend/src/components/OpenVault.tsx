@@ -2,10 +2,10 @@ import { parseBytes32String } from "@ethersproject/strings";
 import { useState } from "react";
 import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
-import { useDSProxyContainer } from "./VaultSelection";
 import { proxyExecute } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { Button, Card, CardActions, CardContent, FormControl, FormHelperText, InputLabel, MenuItem, Select, Typography } from "@material-ui/core";
+import { useDsProxyContext } from "../contexts/DsProxyContext";
 
 interface Props { }
 
@@ -15,7 +15,7 @@ export const OpenVault: React.FC<Props> = ({ children }) => {
 
     const ilkRegistry = useContract('IlkRegistry')
 
-    const { dsProxy } = useDSProxyContainer()
+    const { dsProxy } = useDsProxyContext()
 
     const [ilkList, setIlkList] = useState<string[]>([])
     const [selectedIlk, setSelectedIlk] = useState<string>()
