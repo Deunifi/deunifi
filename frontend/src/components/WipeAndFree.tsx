@@ -4,7 +4,6 @@ import { Contract, ethers, PopulatedTransaction } from 'ethers';
 import React, { useState } from 'react';
 import { useSigner } from './Connection';
 import { useContract } from './Deployments';
-import { useVaultInfoContext } from './VaultInfo';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForWipeAndFree } from '../utils/format';
 import { useServiceFee } from '../hooks/useServiceFee';
@@ -12,6 +11,7 @@ import { useSwapService, initialGetAmountsInResult, IGetAmountsInResult } from '
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useBlockContext } from '../contexts/BlockContext';
 import { useDsProxyContext } from '../contexts/DsProxyContext';
+import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 
 interface Props { }
 

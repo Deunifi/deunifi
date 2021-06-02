@@ -7,6 +7,7 @@ import { OpenVault } from './OpenVault';
 // import { PsmTest } from './PsmTest';
 import { VaultSelectionProvider } from '../contexts/VaultSelectionContext'
 import { useDsProxyContext } from '../contexts/DsProxyContext';
+import { VaultInfoProvider } from '../contexts/VaultInfoContext';
 
 
 interface Props { }
@@ -26,14 +27,16 @@ export const Unifi: React.FC<Props> = () => {
                 dsProxy?
                     <div>
                         <VaultSelectionProvider>
-                            <VaultInfo>
+                            <VaultInfoProvider>
+                                <VaultInfo>
+                                </VaultInfo>
                                 <WipeAndFree>
                                 </WipeAndFree>
                                 <LockAndDraw>
                                 </LockAndDraw>
-                            </VaultInfo>
-                            <OpenVault>
-                            </OpenVault>
+                                <OpenVault>
+                                </OpenVault>
+                            </VaultInfoProvider>
                         </VaultSelectionProvider>
                     </div>
                     : undefined

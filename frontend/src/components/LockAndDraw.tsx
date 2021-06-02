@@ -9,11 +9,11 @@ import { encodeParamsForLockGemAndDraw } from "../utils/format";
 import { useForm, defaultSideEffect, IChangeBigNumberEvent } from "../utils/forms";
 import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
-import { useVaultInfoContext, getCollateralizationRatio, getLiquidationPrice } from "./VaultInfo";
 import { decreaseWithTolerance, getLoanFee, proxyExecute, deadline } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
+import { getCollateralizationRatio, getLiquidationPrice, useVaultInfoContext } from "../contexts/VaultInfoContext";
 
 interface Props { }
 
