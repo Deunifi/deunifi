@@ -73,7 +73,7 @@ export interface IVaultInfo {
         univ2Pair?: Contract,
         token0?: ITokenInfo,
         token1?: ITokenInfo,
-    }
+    },
 }
 
 export const emptyVaultInfo: IVaultInfo = {
@@ -91,12 +91,11 @@ export const emptyVaultInfo: IVaultInfo = {
         name: '',
         symbol: '',
         dec: BigNumber.from(0),
-    }
+    },
 }
 
 const VaultInfoContext = createContext<{ vaultInfo: IVaultInfo }>({ vaultInfo: emptyVaultInfo })
 const { Provider } = VaultInfoContext
-
 export const useVaultInfoContext = () => useContext(VaultInfoContext)
 
 const getTokenInfo = async (erc20: Contract, address: string): Promise<ITokenInfo> => {
@@ -233,6 +232,8 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
 
         const tokensInfo = (yield* getTokensInfo(gemAddress)) as IGetTokensInfoResult
 
+
+
         setVaultInfo({
             cdp: vault.cdp,
             urn,
@@ -251,7 +252,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
                 gem: gem.attach(gemAddress),
                 gemJoin: gemJoin.attach(joinAddress),
                 ...tokensInfo
-            }
+            },
         })
 
     }, [vault, manager, vat, spotter, blocknumber])

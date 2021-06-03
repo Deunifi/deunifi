@@ -2,7 +2,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
 import { TextField } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
 import { useSwapService, IGetAmountsInResult } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
@@ -14,6 +14,7 @@ import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
 import { getCollateralizationRatio, getLiquidationPrice, useVaultInfoContext } from "../contexts/VaultInfoContext";
+import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from "../contexts/VaultExpectedOperationContext";
 
 interface Props { }
 
@@ -406,9 +407,16 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         ])) as boolean[]
 
         setExpectedResult(expectedResult)
+        setVaultExpectedOperation(expectedResult)
         form.setErrors(errors)
 
     }, [form.cleanedValues, signer, dai, vaultInfo, router02, blocknumber])
+
+    const { setVaultExpectedOperation } = useVaultExpectedOperationContext()
+
+    useEffect( () => {
+        setVaultExpectedOperation(initialVaultExpectedOperation)
+    },[])
 
     const [tokenAToLockModifiedByUser, setTokenAToLockModifiedByUser] = useState(false)
     const [tokenBToLockModifiedByUser, setTokenBToLockModifiedByUser] = useState(false)

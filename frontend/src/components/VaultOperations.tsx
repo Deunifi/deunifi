@@ -82,13 +82,10 @@ export const VaultTabsOperations: React.FC<Props> = ({ children }) => {
                 </Tabs>
             </AppBar>
             <TabPanel value={value} index={0} dir={theme.direction}>
-                <LockAndDraw />
+                {value == 0? <LockAndDraw /> : ''}
             </TabPanel>
             <TabPanel value={value} index={1} dir={theme.direction}>
-                    <WipeAndFree />
-            </TabPanel>
-                    <TabPanel value={value} index={2} dir={theme.direction}>
-                        Item Three
+                {value == 1? <WipeAndFree /> : ''}
             </TabPanel>
         </div>
     );
