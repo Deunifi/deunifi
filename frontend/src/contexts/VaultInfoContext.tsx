@@ -183,6 +183,9 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
 
         } catch (e) {
 
+            if (CPromise.isCanceledError(e))
+                throw e
+
             price = spot.mul(mat).div(ONE_RAY)    
 
         }
@@ -218,6 +221,9 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
                 } 
     
             } catch (error) {
+
+                if (CPromise.isCanceledError(error))
+                    throw error
 
                 return {
                 }
