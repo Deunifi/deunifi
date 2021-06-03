@@ -1,13 +1,11 @@
 import React from 'react';
 import { VaultInfo } from './VaultInfo';
-import { WipeAndFree } from './WipeAndFree';
-import { LockAndDraw } from './LockAndDraw';
-import { OpenVault } from './OpenVault';
 // import { OneInchTest } from './OneInchTest';
 // import { PsmTest } from './PsmTest';
 import { VaultSelectionProvider } from '../contexts/VaultSelectionContext'
 import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { VaultInfoProvider } from '../contexts/VaultInfoContext';
+import { VaultOperations } from './VaultOperations';
 
 
 interface Props { }
@@ -28,14 +26,8 @@ export const Unifi: React.FC<Props> = () => {
                     <div>
                         <VaultSelectionProvider>
                             <VaultInfoProvider>
-                                <VaultInfo>
-                                </VaultInfo>
-                                <WipeAndFree>
-                                </WipeAndFree>
-                                <LockAndDraw>
-                                </LockAndDraw>
-                                <OpenVault>
-                                </OpenVault>
+                                <VaultInfo></VaultInfo>
+                                <VaultOperations></VaultOperations>
                             </VaultInfoProvider>
                         </VaultSelectionProvider>
                     </div>
