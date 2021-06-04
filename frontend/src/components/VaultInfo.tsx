@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseUnits } from '@ethersproject/units';
 import { Card, CardActions, CardContent, Typography } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
+import { useApyContext } from '../contexts/APYContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { OpenVaultButton } from './OpenVaultButton';
@@ -29,6 +30,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
     const { vaultInfo } = useVaultInfoContext()
     const { vaultExpectedStatus } = useVaultExpectedStatusContext()
+    const { apy } = useApyContext()
 
     const [operationInProgress, setOperationInProgress] = useState<boolean>(false)
 
@@ -51,6 +53,10 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                         </Typography> */}
                         <VaultSelection>
                         </VaultSelection>
+
+                        <Typography variant="body2" component="p" color="textSecondary">
+                            APY: {apy} 
+                        </Typography>
 
                         {/* <Typography variant="h5" component="h2">
                         #{vault?.cdp.toString()} - {vault?.ilk}

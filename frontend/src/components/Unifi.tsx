@@ -8,9 +8,16 @@ import { VaultInfoProvider } from '../contexts/VaultInfoContext';
 import { VaultOperations } from './VaultOperations';
 import { VaultExpectedOperationProvider } from '../contexts/VaultExpectedOperationContext';
 import { VaultExpectedStatusProvider } from '../contexts/VaultExpectedStatusContext';
+import { ApolloClient, ApolloProvider, gql, InMemoryCache } from '@apollo/client';
+import { APYProvider } from '../contexts/APYContext';
 
 
 interface Props { }
+
+const client = new ApolloClient({ 
+    uri: "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
+    cache: new InMemoryCache()
+});
 
 export const Unifi: React.FC<Props> = () => {
 
@@ -26,16 +33,20 @@ export const Unifi: React.FC<Props> = () => {
             {
                 dsProxy?
                     <div>
-                        <VaultSelectionProvider>
-                            <VaultExpectedOperationProvider>
-                                <VaultInfoProvider>
-                                    <VaultExpectedStatusProvider>
-                                        <VaultInfo></VaultInfo>
-                                        <VaultOperations></VaultOperations>
-                                    </VaultExpectedStatusProvider>
-                                </VaultInfoProvider>
-                            </VaultExpectedOperationProvider>
-                        </VaultSelectionProvider>
+                        <ApolloProvider client={client}>
+                            <VaultSelectionProvider>
+                                <VaultExpectedOperationProvider>
+                                    <VaultInfoProvider>
+                                        <APYProvider>
+                                            <VaultExpectedStatusProvider>
+                                                <VaultInfo></VaultInfo>
+                                                <VaultOperations></VaultOperations>
+                                            </VaultExpectedStatusProvider>
+                                        </APYProvider>
+                                    </VaultInfoProvider>
+                                </VaultExpectedOperationProvider>
+                            </VaultSelectionProvider>
+                        </ApolloProvider>
                     </div>
                     : undefined
             }
