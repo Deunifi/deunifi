@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
-import { Card, CardActions, CardContent, Typography } from '@material-ui/core';
+import { Card, CardActions, CardContent, Slider, Typography } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useApyContext } from '../contexts/APYContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
@@ -53,6 +53,23 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                         </Typography> */}
                         <VaultSelection>
                         </VaultSelection>
+
+                        <Typography id="discrete-slider" gutterBottom>
+                            APY Days to consider
+                        </Typography>
+                        <Slider
+                            defaultValue={30}
+                            // getAriaValueText={valuetext}
+                            aria-labelledby="discrete-slider"
+                            valueLabelDisplay="auto"
+                            step={1}
+                            marks
+                            min={1}
+                            max={30}
+                            onChangeCommitted={ (e, newValue) => {
+                                 apy.setCalculationDays(newValue as number) 
+                            }}
+                        />
 
                         <Typography variant="body2" component="p" color="textSecondary">
                             {vaultInfo.ilkInfo.ilk} APY: {apy.ilkApy} 

@@ -2,7 +2,7 @@ import { gql, useLazyQuery } from "@apollo/client";
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits } from "@ethersproject/units";
 import { ethers } from "ethers";
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useVaultExpectedStatusContext } from "./VaultExpectedStatusContext";
 import { useVaultInfoContext } from "./VaultInfoContext";
@@ -12,6 +12,7 @@ interface IApy{
     ilkApy: number,
     vaultApy: number,
     vaultExpectedApy: number,
+    setCalculationDays: React.Dispatch<React.SetStateAction<number>>,
 }
 
 const initialApy: IApy = {
@@ -19,6 +20,7 @@ const initialApy: IApy = {
     ilkApy: 0,
     vaultApy: 0,
     vaultExpectedApy: 0,
+    setCalculationDays: () => {},
 }
 
 const ApyContext = createContext<{ apy: IApy }>({ apy: initialApy })
@@ -48,6 +50,7 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
     const [apy, setApy] = useState<IApy>(initialApy)
     const { vaultInfo } = useVaultInfoContext()
     const { vaultExpectedStatus } = useVaultExpectedStatusContext()
+    const [days, setDays] = useState<number>(DAYS)
 
 
     const [getDailyData, { data }] = useLazyQuery(LAST_DAYS)
@@ -55,12 +58,12 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
     useEffect(() => {
 
         if (!vaultInfo.ilkInfo.univ2Pair){
-            setApy({...initialApy})
+            setApy({...initialApy, setCalculationDays: setDays})
             return
         }
 
         const dateFrom = new Date()
-        dateFrom.setDate(dateFrom.getDate()-DAYS)
+        dateFrom.setDate(dateFrom.getDate()-days)
 
         const dateFromUnixTimeStamp = Math.floor(dateFrom.getTime()/1000)
 
@@ -68,15 +71,15 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
             variables: {
                 pairAddress: vaultInfo.ilkInfo.univ2Pair.address,
                 dateFrom: dateFromUnixTimeStamp, 
-                days: DAYS
+                days: days
             }
         })
 
-    }, [vaultInfo])
+    }, [vaultInfo, days])
 
     useEffectAutoCancel(function* (){
 
-        const apy: IApy = {...initialApy}
+        const apy: IApy = {...initialApy, setCalculationDays: setDays}
 
         if (!data){
             return
