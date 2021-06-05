@@ -1,5 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { formatEther, formatUnits, parseUnits } from '@ethersproject/units';
+import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
 import { Card, CardActions, CardContent, Typography } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useApyContext } from '../contexts/APYContext';
@@ -55,7 +55,11 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                         </VaultSelection>
 
                         <Typography variant="body2" component="p" color="textSecondary">
-                            APY: {apy} 
+                            {vaultInfo.ilkInfo.ilk} APY: {apy.ilkApy} 
+                        </Typography>
+
+                        <Typography variant="body2" component="p" color="textSecondary">
+                            Effective APY: {apy.vaultApy} <VaultExpectedValue operationInProgress value={parseEther(apy.vaultExpectedApy.toString())} />
                         </Typography>
 
                         {/* <Typography variant="h5" component="h2">

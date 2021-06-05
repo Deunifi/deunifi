@@ -60,6 +60,7 @@ export interface IVaultInfo {
     dart: BigNumber, // Dai debt in WAD
     spot: BigNumber, // Liquidation price in RAY
     mat: BigNumber, // Liquidation ratio in RAY
+    duty: BigNumber, // Stability Fee per second in RAY
     price: BigNumber, // Market price in RAY
     collateralizationRatio: BigNumber, // in WAD
     liquidationPrice: BigNumber, // in WAD
@@ -83,6 +84,7 @@ export const emptyVaultInfo: IVaultInfo = {
     dart: BigNumber.from(0),
     spot: BigNumber.from(0), // Liquidation price in RAY
     mat: BigNumber.from(0), // Liquidation ratio in RAY
+    duty: BigNumber.from(0),
     price: BigNumber.from(0),
     collateralizationRatio: BigNumber.from(0),
     liquidationPrice: BigNumber.from(0),
@@ -120,6 +122,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
     const gem = useContract('Gem')
     const gemJoin = useContract('Join')
     const uniswapV2Pair = useContract('UniswapV2Pair')
+    const jug = useContract('Jug')
     
     // TODO Decide if PIP is going to be used or calculation using spot and mat.
     const pip = useContract('Pip')
@@ -132,7 +135,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
     useEffectAutoCancel(function* () {
 
         if (!vault || !manager || !vat || !spotter || !ilkRegistry || !gem || !gemJoin ||
-            !uniswapV2Pair || !pip || !provider) {
+            !uniswapV2Pair || !pip || !provider || !jug) {
             setVaultInfo(emptyVaultInfo)
             return
         }
@@ -144,6 +147,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
         const ilkRegistryInfoPromise = ilkRegistry.info(bytes32Ilk)
         const vatIlksInfoPromise = vat.ilks(bytes32Ilk)
         const spotterIlksPromise = spotter.ilks(bytes32Ilk)
+        const jugIlksInfoPromise = jug.ilks(bytes32Ilk)
 
         const urn = (yield urnPromise) as string;
 
@@ -232,7 +236,8 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
 
         const tokensInfo = (yield* getTokensInfo(gemAddress)) as IGetTokensInfoResult
 
-
+        const { duty, rho }: { duty: BigNumber, rho: BigNumber } = 
+            (yield jugIlksInfoPromise) as { duty: BigNumber, rho: BigNumber }
 
         setVaultInfo({
             cdp: vault.cdp,
@@ -242,6 +247,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
             price,
             spot,
             mat,
+            duty,
             collateralizationRatio,
             liquidationPrice,
             ilkInfo: {

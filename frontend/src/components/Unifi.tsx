@@ -37,12 +37,12 @@ export const Unifi: React.FC<Props> = () => {
                             <VaultSelectionProvider>
                                 <VaultExpectedOperationProvider>
                                     <VaultInfoProvider>
-                                        <APYProvider>
-                                            <VaultExpectedStatusProvider>
+                                        <VaultExpectedStatusProvider>
+                                            <APYProvider>
                                                 <VaultInfo></VaultInfo>
                                                 <VaultOperations></VaultOperations>
-                                            </VaultExpectedStatusProvider>
-                                        </APYProvider>
+                                            </APYProvider>
+                                        </VaultExpectedStatusProvider>
                                     </VaultInfoProvider>
                                 </VaultExpectedOperationProvider>
                             </VaultSelectionProvider>

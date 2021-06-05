@@ -1,9 +1,27 @@
 import { gql, useLazyQuery } from "@apollo/client";
+import { BigNumber } from "@ethersproject/bignumber";
+import { formatEther, formatUnits } from "@ethersproject/units";
+import { ethers } from "ethers";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
+import { useVaultExpectedStatusContext } from "./VaultExpectedStatusContext";
 import { useVaultInfoContext } from "./VaultInfoContext";
 
-const ApyContext = createContext<{ apy: number }>({ apy: 0 })
+interface IApy{
+    calculationDaysQuantity: number,
+    ilkApy: number,
+    vaultApy: number,
+    vaultExpectedApy: number,
+}
+
+const initialApy: IApy = {
+    calculationDaysQuantity: 0,
+    ilkApy: 0,
+    vaultApy: 0,
+    vaultExpectedApy: 0,
+}
+
+const ApyContext = createContext<{ apy: IApy }>({ apy: initialApy })
 const { Provider } = ApyContext
 
 export const useApyContext = () => useContext(ApyContext)
@@ -27,15 +45,17 @@ const LAST_DAYS = gql`query Dog($pairAddress: String!, $dateFrom: Int!, $days: I
 
 export const APYProvider: React.FC<Props> = ({ children }) => {
 
-    const [apy, setApy] = useState<number>(0)
+    const [apy, setApy] = useState<IApy>(initialApy)
     const { vaultInfo } = useVaultInfoContext()
+    const { vaultExpectedStatus } = useVaultExpectedStatusContext()
+
 
     const [getDailyData, { data }] = useLazyQuery(LAST_DAYS)
 
     useEffect(() => {
 
         if (!vaultInfo.ilkInfo.univ2Pair){
-            setApy(0)
+            setApy({...initialApy})
             return
         }
 
@@ -56,21 +76,52 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
 
     useEffectAutoCancel(function* (){
 
-        if (!data)
+        const apy: IApy = {...initialApy}
+
+        if (!data){
             return
 
-        const _apy = data.pairDayDatas.reduce(
-            (apd: number, x: any) => apd*(1+Number(x.dailyVolumeUSD)*.003/Number(x.reserveUSD)),
-            1
-        )
-        **(365/data.pairDayDatas.length)
+        }
 
-        setApy(_apy)
+        if (data.pairDayDatas.length == 0)
+            apy.ilkApy = 1
+        else{
+            apy.ilkApy = data.pairDayDatas.reduce(
+                (apd: number, x: any) => {
+                    if (Number(x.reserveUSD) == 0)
+                        return apd
+                    return apd*(1+Number(x.dailyVolumeUSD)*.003/Number(x.reserveUSD))
+                },
+                1
+            )
+            **(365/data.pairDayDatas.length)    
+        }
 
-    }, [data])
+        apy.calculationDaysQuantity = data.pairDayDatas.length
+
+        const collateralizationRatio = Number(formatEther(vaultInfo.collateralizationRatio))
+        const stabilityFee = Number(formatUnits(vaultInfo.duty, 27)) ** 31536000 //31536000: seconds in a year
+
+        // vaultAPY =
+        // = (vaultValueUSD*apy + dart*(apy-vaultFee)) / vaultValueUSD =
+        // = apy + dart*(apy-vaultFee) / vaultValueUSD
+        // = apy + (apy-vaultFee) / ( vaultValueUSD / dart)
+        // = apy + (apy-vaultFee) / ( (collaterallizationRatio - 1)*dart / dart)
+        // = apy + (apy-vaultFee) / (collaterallizationRatio - 1)
+        if (collateralizationRatio>1)
+            apy.vaultApy = apy.ilkApy + (apy.ilkApy-stabilityFee) / (collateralizationRatio - 1)
+
+        const expectedCollateralizationRatio = Number(formatEther(vaultExpectedStatus.collateralizationRatio))
+
+        if (expectedCollateralizationRatio>1)
+            apy.vaultExpectedApy = apy.ilkApy + (apy.ilkApy-stabilityFee) / (expectedCollateralizationRatio - 1)
+
+        setApy(apy)
+
+    }, [data, vaultInfo, vaultExpectedStatus])
 
     return (
-        <Provider value={{ apy }}>
+        <Provider value={{apy}}>
             {children}
         </Provider>
     )
