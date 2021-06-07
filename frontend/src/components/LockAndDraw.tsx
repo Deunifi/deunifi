@@ -620,31 +620,17 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     return (
         <div>
 
-            <p>
-                <TextField 
-                    label={`${vaultInfo.ilkInfo.symbol} From Account`}  
-                    type="number" 
-                    value={form.textValues.collateralFromUser} 
-                    name="collateralFromUser" 
-                    onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
-                    error={form.errors?.collateralFromUser? true : false }
-                    helperText={form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : `The ${vaultInfo.ilkInfo.symbol} you want to use from your account.` }
-                    />
-                <br></br>
-                <label>
-                    {vaultInfo.ilkInfo.symbol} From Account:
-                    <input type="number" value={form.textValues.collateralFromUser} name="collateralFromUser" onChange={(e) => form.onChangeBigNumber(e)} />
-                    { expectedResult.needsGemApproval ? <button onClick={async (e)=>{
-                        e.preventDefault()
-                        if (!vaultInfo.ilkInfo.gem || !signer || !dsProxy)
-                            return
-                        await vaultInfo.ilkInfo.gem
-                            .connect(signer)
-                            .approve(dsProxy.address, ethers.constants.MaxUint256)
-                    }}>Approve</button> : '' }
-                    {form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : '' }
-                </label>
-            </p>
+            <TextField 
+                label={`${vaultInfo.ilkInfo.symbol} From Account`}  
+                type="number" 
+                value={form.textValues.collateralFromUser} 
+                name="collateralFromUser" 
+                onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                error={form.errors?.collateralFromUser? true : false }
+                helperText={form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : `The ${vaultInfo.ilkInfo.symbol} you want to use from your account.` }
+                />
+            <br></br>
+
 
             <p>
                 <label>

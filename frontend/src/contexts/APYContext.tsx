@@ -63,7 +63,7 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
         }
 
         const dateFrom = new Date()
-        dateFrom.setDate(dateFrom.getDate()-days)
+        dateFrom.setDate(dateFrom.getDate()-days-1)
 
         const dateFromUnixTimeStamp = Math.floor(dateFrom.getTime()/1000)
 
