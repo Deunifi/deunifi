@@ -527,7 +527,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         if (!deunifi || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy ||
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
-            !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth || !dssPsm)
+            !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth || !dssPsm || !vaultInfo.cdp)
             return
 
         const sender = await signer.getAddress()

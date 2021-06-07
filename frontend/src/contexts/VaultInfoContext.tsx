@@ -5,7 +5,7 @@ import { parseEther, parseUnits } from '@ethersproject/units';
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useState } from 'react';
 import { useBlockContext } from '../contexts/BlockContext';
-import { VaultSelectionContext } from '../contexts/VaultSelectionContext';
+import { useVaultContext, VaultSelectionContext } from '../contexts/VaultSelectionContext';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useProvider } from '../components/Connection';
 import { useContract } from '../components/Deployments';
@@ -54,8 +54,8 @@ interface ITokenInfo {
 }
 
 export interface IVaultInfo {
-    cdp: BigNumber,
-    urn: string, // Urn address of vault in Vat
+    cdp?: BigNumber,
+    urn?: string, // Urn address of vault in Vat
     ink: BigNumber, // Collateral in WAD
     dart: BigNumber, // Dai debt in WAD
     spot: BigNumber, // Liquidation price in RAY
@@ -111,9 +111,25 @@ const getTokenInfo = async (erc20: Contract, address: string): Promise<ITokenInf
     }
 }
 
+const getCdpInfo = function* (manager: Contract, vat: Contract, bytes32Ilk: string, cdp?: BigNumber){
+
+    let urn: string = ethers.constants.AddressZero
+    let ink: BigNumber = ethers.constants.Zero
+    let art: BigNumber = ethers.constants.Zero    
+
+    if (cdp){
+        const urnPromise = manager.urns(cdp)
+        urn = (yield urnPromise) as string;
+        ({ ink, art } = (yield vat.urns(bytes32Ilk, urn)) as { ink: BigNumber, art: BigNumber })
+    }
+
+    return {urn, ink, art}
+
+}
+
 export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
 
-    const { vault } = useContext(VaultSelectionContext)
+    const { vault } = useVaultContext()
 
     const manager = useContract('DssCdpManager')
     const vat = useContract('Vat')
@@ -140,24 +156,20 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
             return
         }
 
-        const urnPromise = manager.urns(vault.cdp)
-
         const bytes32Ilk = formatBytes32String(vault.ilk)
+
 
         const ilkRegistryInfoPromise = ilkRegistry.info(bytes32Ilk)
         const vatIlksInfoPromise = vat.ilks(bytes32Ilk)
         const spotterIlksPromise = spotter.ilks(bytes32Ilk)
         const jugIlksInfoPromise = jug.ilks(bytes32Ilk)
 
-        const urn = (yield urnPromise) as string;
-
-        const { ink, art }: { ink: BigNumber, art: BigNumber } = 
-            (yield vat.urns(bytes32Ilk, urn)) as { ink: BigNumber, art: BigNumber }
 
         const { spot, rate }: { spot: BigNumber, rate: BigNumber } = 
             (yield vatIlksInfoPromise) as { spot: BigNumber, rate: BigNumber }
 
-        const dart = art.isZero() ? art : art.mul(rate).div(ONE_RAY).add(1)
+
+        const getCdpInfoGenerator = getCdpInfo(manager, vat, bytes32Ilk, vault.cdp)
 
         const ilk = (yield spotterIlksPromise) as { mat: BigNumber, pip: string }
         const { mat, pip: pipAddress }: { mat: BigNumber, pip: string } = ilk
@@ -192,6 +204,10 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
             price = spot.mul(mat).div(ONE_RAY)    
 
         }
+
+        const {urn, ink, art} = (yield* getCdpInfoGenerator) as {urn: string, ink: BigNumber, art: BigNumber}
+
+        const dart = art.isZero() ? art : art.mul(rate).div(ONE_RAY).add(1)
 
         const collateralizationRatio = getCollateralizationRatio(ink, dart, price)
 

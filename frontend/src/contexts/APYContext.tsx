@@ -53,6 +53,7 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
     const [days, setDays] = useState<number>(DAYS)
 
 
+    // TODO Handle error using data.errors or error
     const [getDailyData, { data }] = useLazyQuery(LAST_DAYS)
 
     useEffect(() => {

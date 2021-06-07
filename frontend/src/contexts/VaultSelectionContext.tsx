@@ -6,14 +6,37 @@ import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useContract } from "../components/Deployments";
 import { useDsProxyContext } from "./DsProxyContext";
 
-interface IVaultSelectionItem {
+export function useIlkList(){
+
+    const ilkRegistry = useContract('IlkRegistry')
+
+    useEffectAutoCancel(function* (){
+
+        if (!ilkRegistry){
+            setIlkList([])
+            return
+        }
+
+        const list = (yield ilkRegistry['list()']()) as string[]
+
+        setIlkList(list.filter(ilk => /UNIV2/.test(parseBytes32String(ilk))))
+
+    }, [ilkRegistry])
+
+    const [ilkList, setIlkList] = useState<string[]>([])
+
+    return ilkList
+
+}
+
+interface IUserVaultSelectionItem {
     cdp: BigNumber,
     ilk: string,
 }
 
-export function useVaults() {
+export function useUserVaults() {
 
-    const [vaults, setVaults] = useState<IVaultSelectionItem[]>([])
+    const [vaults, setVaults] = useState<IUserVaultSelectionItem[]>([])
 
     const { dsProxy } = useDsProxyContext()
     const manager = useContract('DssCdpManager')
@@ -27,7 +50,7 @@ export function useVaults() {
             return
         }
 
-        const _vaults: IVaultSelectionItem[] = []
+        const _vaults: IUserVaultSelectionItem[] = []
 
         // We get the first cdp for DSProxy
         let cdp: BigNumber = (yield manager.first(dsProxy.address)) as BigNumber
@@ -79,6 +102,20 @@ export function useVaults() {
 
 }
 
+export interface IVaultSelectionItem {
+    cdp?: BigNumber,
+    ilk: string,
+}
+
+export function useVaults() {
+
+    const protocolVaults: IVaultSelectionItem[] = useIlkList().map( ilk => ({ ilk: parseBytes32String(ilk) }) )
+    const userVaults = useUserVaults()
+
+    return { userVaults, protocolVaults }
+
+}
+
 
 interface Props { }
 
@@ -89,17 +126,17 @@ export const useVaultContext = () => useContext(VaultSelectionContext)
 
 export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
 
-    const vaults = useVaults()
+    const { userVaults } = useVaults()
     const [vault, setVault] = useState<IVaultSelectionItem>()
     const value = {vault, setVault}
 
     useEffectAutoCancel(function* (){
-        if (vaults.length == 0) {
+        if (userVaults.length == 0) {
             setVault(undefined)
         } else {
-            setVault(vaults[vaults.length-1])
+            setVault(userVaults[userVaults.length-1])
         }
-    }, [vaults])
+    }, [userVaults])
 
     return (
         <Provider value={value}>
