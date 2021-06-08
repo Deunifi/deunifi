@@ -35,16 +35,16 @@ export const Unifi: React.FC<Props> = () => {
                     <div>
                         <ApolloProvider client={client}>
                             <VaultSelectionProvider>
-                                <VaultExpectedOperationProvider>
-                                    <VaultInfoProvider>
+                                <VaultInfoProvider>
+                                    <VaultExpectedOperationProvider>
                                         <VaultExpectedStatusProvider>
                                             <APYProvider>
                                                 <VaultInfo></VaultInfo>
                                                 <VaultOperations></VaultOperations>
                                             </APYProvider>
                                         </VaultExpectedStatusProvider>
-                                    </VaultInfoProvider>
-                                </VaultExpectedOperationProvider>
+                                    </VaultExpectedOperationProvider>
+                                </VaultInfoProvider>
                             </VaultSelectionProvider>
                         </ApolloProvider>
                     </div>

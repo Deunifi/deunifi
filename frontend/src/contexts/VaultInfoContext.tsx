@@ -39,7 +39,7 @@ export const getCollateralizationRatio = (ink: BigNumber, dart: BigNumber, price
  * @returns Liquidation price in RAY.
  */
 export const getLiquidationPrice = (ink: BigNumber, dart: BigNumber, mat: BigNumber) => {
-    return dart.isZero() ?
+    return dart.isZero() || ink.isZero() ?
         BigNumber.from(0)
         : mat
             .mul(dart)

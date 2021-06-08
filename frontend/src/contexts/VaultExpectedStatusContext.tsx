@@ -1,10 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { ethers } from 'ethers';
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useVaultExpectedOperationContext } from './VaultExpectedOperationContext';
-import { useVaultInfoContext } from './VaultInfoContext';
+import { getCollateralizationRatio, getLiquidationPrice, useVaultInfoContext } from './VaultInfoContext';
 
 interface Props { }
 
@@ -13,6 +13,11 @@ export interface IVaultExpectedStatus {
     dart: BigNumber, // Dai debt in WAD
     collateralizationRatio: BigNumber, // in WAD
     liquidationPrice: BigNumber, // in WAD    
+
+    minCollateralToLock?: BigNumber,
+    minCollateralizationRatio?: BigNumber,
+    maxLiquidationPrice?: BigNumber,
+
 }
 
 export const emptyVaultExpectedStatus: IVaultExpectedStatus = {
@@ -35,23 +40,52 @@ export const VaultExpectedStatusProvider: React.FC<Props> = ({ children }) => {
     const { vaultExpectedOperation } = useVaultExpectedOperationContext()
     const { vault } = useVaultContext()
 
+    useEffect( () => {
 
-    useEffectAutoCancel(function* () {
+        const vaultExpectedStatus = {...emptyVaultExpectedStatus}
 
-        if (!vault) {
-            setVaultExpectedStatus(emptyVaultExpectedStatus)
-            return
+        if (vault) {
+    
+            vaultExpectedStatus.ink = vaultInfo.ink.add(vaultExpectedOperation.collateralToLock)
+            vaultExpectedStatus.dart = vaultInfo.dart.add(vaultExpectedOperation.daiToDraw)
+    
+            vaultExpectedStatus.collateralizationRatio =
+                getCollateralizationRatio(
+                    vaultInfo.ink.add(vaultExpectedOperation.collateralToLock),
+                    vaultInfo.dart.add(vaultExpectedOperation.daiToDraw),
+                    vaultInfo.price
+                )
+    
+            vaultExpectedStatus.liquidationPrice =
+                getLiquidationPrice(
+                    vaultInfo.ink.add(vaultExpectedOperation.collateralToLock),
+                    vaultInfo.dart.add(vaultExpectedOperation.daiToDraw),
+                    vaultInfo.mat
+                )
+    
+            if (vaultExpectedOperation.minCollateralToLock){
+    
+                vaultExpectedStatus.minCollateralizationRatio =
+                    getCollateralizationRatio(
+                        vaultInfo.ink.add(vaultExpectedOperation.minCollateralToLock),
+                        vaultInfo.dart.add(vaultExpectedOperation.daiToDraw),
+                        vaultInfo.price
+                    )
+    
+                vaultExpectedStatus.maxLiquidationPrice =
+                    getLiquidationPrice(
+                        vaultInfo.ink.add(vaultExpectedOperation.minCollateralToLock),
+                        vaultInfo.dart.add(vaultExpectedOperation.daiToDraw),
+                        vaultInfo.mat
+                    )
+    
+            }
+    
         }
+    
+        setVaultExpectedStatus(vaultExpectedStatus)
 
-        setVaultExpectedStatus({
-            // TODO Add tollerance.
-            ink: vaultInfo.ink.add(vaultExpectedOperation.collateralToLock),
-            dart: vaultInfo.dart.add(vaultExpectedOperation.daiToDraw),
-            collateralizationRatio: vaultExpectedOperation.collateralizationRatio,
-            liquidationPrice: vaultExpectedOperation.liquidationPrice,
-        })
-
-    }, [vault, vaultExpectedOperation, vaultInfo])
+    }, [vaultInfo, vaultExpectedOperation, vault])
 
     return (
         <Provider value={{ vaultExpectedStatus: vaultExpectedStatus }}>

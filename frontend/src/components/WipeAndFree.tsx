@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseUnits } from '@ethersproject/units';
 import { Contract, ethers, PopulatedTransaction } from 'ethers';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSigner } from './Connection';
 import { useContract } from './Deployments';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
@@ -12,6 +12,7 @@ import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useBlockContext } from '../contexts/BlockContext';
 import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
+import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 
 interface Props { }
 
@@ -424,7 +425,18 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             daiFromFlashLoan: daiFromFlashLoan
         })
 
+        setVaultExpectedOperation({
+            collateralToLock: ethers.constants.Zero.sub(params.collateralToFree),
+            daiToDraw: ethers.constants.Zero.sub(params.daiToPayback),
+        })
+
     }, [params, blocknumber, vaultInfo])
+
+    const { setVaultExpectedOperation } = useVaultExpectedOperationContext()
+
+    useEffect( () => {
+        setVaultExpectedOperation(initialVaultExpectedOperation)
+    },[])
 
     const onChangeBigNumber = (e: React.ChangeEvent<HTMLInputElement>, decimals: number=18) => {
         try {
@@ -574,24 +586,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         setForm({...form, collateralToUseToPayFlashLoan: formatUnits(vaultInfo.ink), collateralToFree: formatUnits(vaultInfo.ink)})
                         setParams({...params, collateralToUseToPayFlashLoan: vaultInfo.ink, collateralToFree: vaultInfo.ink})
                     }}>Max</button>
-                    <br></br>
 
                     {errors.notEnoughCollateralToCoverDai? 
-                        errors.notEnoughCollateralToCoverDai: 
-                        <span>
-                            <span>
-                                Amount of {vaultInfo.ilkInfo.token0?.symbol} to recieve: 
-                                    {formatUnits(token0ToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol} (min: 
-                                        {formatUnits(token0MinAmountToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol})
-                                    <br></br>
-                            </span>
-                            <span>
-                                Amount of {vaultInfo.ilkInfo.token1?.symbol} to recieve: 
-                                    {formatUnits(token1ToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol} (min: 
-                                        {formatUnits(token1MinAmountToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol})
-                            </span>
-                        </span>}
-                    <br></br>
+                        <span><br></br>{errors.notEnoughCollateralToCoverDai}</span>: ''}
                 </label>
 
                 <br></br>
@@ -605,12 +602,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                     }}>Max</button>
                     {errors.tooMuchCollateralToFree ? <span><br></br>{errors.tooMuchCollateralToFree}</span> : ''}
                     {errors.notEnoughCollateralToFree ? <span><br></br>{errors.notEnoughCollateralToFree}</span> : ''}
-                    {(errors.tooMuchCollateralToFree || errors.notEnoughCollateralToFree) ? 
-                        '': 
-                        <span>
-                            <br></br>
-                            <span>Amount of {vaultInfo.ilkInfo.symbol} to recieve: {formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)} {vaultInfo.ilkInfo.symbol}<br></br></span>
-                        </span>}
 
                 </label>
             </p>
@@ -636,6 +627,33 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                     Transaction Deadline (minutes):
                     <input type="number" value={form.transactionDeadline} name="transactionDeadline" onChange={(e) => onChangeBigNumber(e,0)}/>
                 </label>
+            </p>
+
+            <p>
+
+                {errors.notEnoughCollateralToCoverDai? 
+                    '': 
+                    <span>
+                        <span>
+                            Amount of {vaultInfo.ilkInfo.token0?.symbol} to recieve: 
+                                {formatUnits(token0ToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol} (min: 
+                                    {formatUnits(token0MinAmountToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol})
+                                <br></br>
+                        </span>
+                        <span>
+                            Amount of {vaultInfo.ilkInfo.token1?.symbol} to recieve: 
+                                {formatUnits(token1ToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol} (min: 
+                                    {formatUnits(token1MinAmountToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol})
+                        </span>
+                    </span>}
+
+                {(errors.tooMuchCollateralToFree || errors.notEnoughCollateralToFree) ? 
+                    '': 
+                    <span>
+                        <br></br>
+                        <span>Amount of {vaultInfo.ilkInfo.symbol} to recieve: {formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)} {vaultInfo.ilkInfo.symbol}<br></br></span>
+                    </span>}
+
             </p>
 
             <button onClick={(e) => doOperation(e)}>

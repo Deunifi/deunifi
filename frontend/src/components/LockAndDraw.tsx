@@ -15,6 +15,7 @@ import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
 import { getCollateralizationRatio, getLiquidationPrice, useVaultInfoContext } from "../contexts/VaultInfoContext";
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from "../contexts/VaultExpectedOperationContext";
+import { useVaultExpectedStatusContext } from "../contexts/VaultExpectedStatusContext";
 
 interface Props { }
 
@@ -153,12 +154,6 @@ interface IExpectedResult {
     collateralToLock: BigNumber,
     minCollateralToLock: BigNumber,
 
-    collateralizationRatio: BigNumber,
-    minCollateralizationRatio: BigNumber,
-
-    liquidationPrice: BigNumber,
-    maxLiquidationPrice: BigNumber,
-
     needsGemApproval: boolean,
     needsToken0Approval: boolean,
     needsToken1Approval: boolean,
@@ -186,12 +181,6 @@ const emptyExpectedResult: IExpectedResult = {
     minCollateralToBuy: ethers.constants.Zero,
     collateralToLock: ethers.constants.Zero,
     minCollateralToLock: ethers.constants.Zero,
-
-    collateralizationRatio: ethers.constants.Zero,
-    minCollateralizationRatio: ethers.constants.Zero,
-
-    liquidationPrice: ethers.constants.Zero,
-    maxLiquidationPrice: ethers.constants.Zero,
 
     needsGemApproval: false,
     needsToken0Approval: false,
@@ -355,34 +344,6 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         expectedResult.minCollateralToLock = expectedResult.minCollateralToBuy
             .add(form.cleanedValues.collateralFromUser)
-
-        expectedResult.collateralizationRatio =
-            getCollateralizationRatio(
-                vaultInfo.ink.add(expectedResult.collateralToLock),
-                vaultInfo.dart.add(expectedResult.daiToDraw),
-                vaultInfo.price
-            )
-
-        expectedResult.minCollateralizationRatio =
-            getCollateralizationRatio(
-                vaultInfo.ink.add(expectedResult.minCollateralToLock),
-                vaultInfo.dart.add(expectedResult.daiToDraw),
-                vaultInfo.price
-            )
-
-        expectedResult.liquidationPrice =
-            getLiquidationPrice(
-                vaultInfo.ink.add(expectedResult.collateralToLock),
-                vaultInfo.dart.add(expectedResult.daiToDraw),
-                vaultInfo.mat
-            )
-
-        expectedResult.maxLiquidationPrice =
-            getLiquidationPrice(
-                vaultInfo.ink.add(expectedResult.minCollateralToLock),
-                vaultInfo.dart.add(expectedResult.daiToDraw),
-                vaultInfo.mat
-            )
 
         const needsApproval = async (token: Contract, owner: string, spender: string, amount: BigNumber, weth: string, useEth: boolean): Promise<boolean> => {
             if (amount.isZero())
@@ -617,6 +578,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     }
 
+    const { vaultExpectedStatus } = useVaultExpectedStatusContext()
+
     return (
         <div>
 
@@ -733,10 +696,12 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                 Dai to Draw: {formatEther(expectedResult.daiToDraw)}
             </p>
             <p>
-                Collateralization Ratio: {formatEther(expectedResult.collateralizationRatio)} (Min: {formatEther(expectedResult.minCollateralizationRatio)})
+                Collateralization Ratio: {formatEther(vaultExpectedStatus.collateralizationRatio)} 
+                    {vaultExpectedStatus.minCollateralizationRatio? ` (Min: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)})` : '' }
             </p>
             <p>
-                Liquidation Price: {formatUnits(expectedResult.liquidationPrice, 27)} (Max: {formatUnits(expectedResult.maxLiquidationPrice, 27)})
+                Liquidation Price: {formatUnits(vaultExpectedStatus.liquidationPrice, 27)}
+                     { vaultExpectedStatus.maxLiquidationPrice? ` (Max: ${formatUnits(vaultExpectedStatus.maxLiquidationPrice, 27)})` : '' }
             </p>
 
             <button onClick={(e) => doOperation(e)}>

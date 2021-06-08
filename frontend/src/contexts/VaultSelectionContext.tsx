@@ -1,6 +1,6 @@
 import { parseBytes32String } from "@ethersproject/strings";
 import { BigNumber } from "ethers";
-import { createContext, Dispatch, useContext, useState } from "react";
+import { createContext, Dispatch, useContext, useEffect, useState } from "react";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useContract } from "../components/Deployments";
@@ -130,7 +130,7 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
     const [vault, setVault] = useState<IVaultSelectionItem>()
     const value = {vault, setVault}
 
-    useEffectAutoCancel(function* (){
+    useEffect(() => {
         if (userVaults.length == 0) {
             setVault(undefined)
         } else {
