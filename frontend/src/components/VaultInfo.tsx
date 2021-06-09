@@ -29,7 +29,7 @@ const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({operationInProg
 export const VaultInfo: React.FC<Props> = ({ children }) => {
 
     const { vaultInfo } = useVaultInfoContext()
-    const { vaultExpectedStatus } = useVaultExpectedStatusContext()
+    const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
     const { apy } = useApyContext()
 
     const [operationInProgress, setOperationInProgress] = useState<boolean>(false)
@@ -106,7 +106,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                         <VaultExpectedValue 
                             operationInProgress 
                             value={vaultExpectedStatus.collateralizationRatio} 
-                            error={vaultInfo.mat.gt(vaultExpectedStatus.collateralizationRatio.mul(parseUnits('1', 9)))}
+                            error={vaultExpectedStatusErrors.collateralizationRatio? true : false}
                             />
                     </Typography>
                     <Typography variant="body2" component="p" color="textSecondary">

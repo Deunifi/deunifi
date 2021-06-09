@@ -13,6 +13,8 @@ import { useBlockContext } from '../contexts/BlockContext';
 import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
+import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
+import { ErrorMessage } from '../components/LockAndDraw'
 
 interface Props { }
 
@@ -512,22 +514,30 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 lendingPoolAddress,
         )
 
-        proxyExecute(
-            dsProxy, 'execute(address,bytes)',
-            deunifi, 'flashLoanFromDSProxy',[
-                sender,
-                deunifi.address,
-                params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
-                params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
-                await lendingPoolAddressesProvider.getLendingPool(),
-                expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
-                expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
-                [BigNumber.from(0)], //modes
-                dataForExecuteOperationCallback, // Data to be used on executeOperation
-                ethers.constants.AddressZero
-            ]
-        )
+        try{
+            await proxyExecute(
+                dsProxy, 'execute(address,bytes)',
+                deunifi, 'flashLoanFromDSProxy',[
+                    sender,
+                    deunifi.address,
+                    params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
+                    params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
+                    await lendingPoolAddressesProvider.getLendingPool(),
+                    expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
+                    expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
+                    [BigNumber.from(0)], //modes
+                    dataForExecuteOperationCallback, // Data to be used on executeOperation
+                    ethers.constants.AddressZero
+                ]
+            )
+        } catch (error) {
+            // TODO Handle error
+            console.error(error)
+        }
+
     }
+
+    const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
 
     return (
         <form>
@@ -630,7 +640,22 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             </p>
 
             <p>
+                <span>
+                    Remaining debt: { formatEther(vaultExpectedStatus.dart) }
+                    {ErrorMessage(vaultExpectedStatusErrors.debtFloor)}
+                    <br></br>
+                </span>
+                <span>
+                    Remaining collateral: { formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec) }
+                    <br></br>
+                </span>
+                <span>
+                    New collateralization ratio: { formatEther(vaultExpectedStatus.collateralizationRatio) }
+                    {ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio)}
+                    <br></br>
+                </span>
 
+                <br></br>
                 {errors.notEnoughCollateralToCoverDai? 
                     '': 
                     <span>

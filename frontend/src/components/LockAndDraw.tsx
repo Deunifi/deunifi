@@ -13,9 +13,9 @@ import { decreaseWithTolerance, getLoanFee, proxyExecute, deadline } from "./Wip
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
-import { getCollateralizationRatio, getLiquidationPrice, useVaultInfoContext } from "../contexts/VaultInfoContext";
+import { IVaultInfo, useVaultInfoContext } from "../contexts/VaultInfoContext";
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from "../contexts/VaultExpectedOperationContext";
-import { useVaultExpectedStatusContext } from "../contexts/VaultExpectedStatusContext";
+import { useVaultExpectedStatusContext, IVaultExpectedStatus } from "../contexts/VaultExpectedStatusContext";
 
 interface Props { }
 
@@ -559,26 +559,32 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             ownerTokensAmounts.push(amount)
         }
 
-        proxyExecute(
-            dsProxy, 'execute(address,bytes)',
-            deunifi, 'flashLoanFromDSProxy', [
-                sender,
-                deunifi.address,
-                ownerTokens, // owner tokens to transfer to target
-                ownerTokensAmounts, // owner token amounts to transfer to target
-                await lendingPoolAddressesProvider.getLendingPool(),
-                expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
-                expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
-                [BigNumber.from(0)], //modes
-                dataForExecuteOperationCallback, // Data to be used on executeOperation
-                weth.address
-            ],
-            ethToUse.isZero() ? { gasLimit: 1500000 } : {value: ethToUse, gasLimit: 1500000 }
-        )
+        try {
+            await proxyExecute(
+                dsProxy, 'execute(address,bytes)',
+                deunifi, 'flashLoanFromDSProxy', [
+                    sender,
+                    deunifi.address,
+                    ownerTokens, // owner tokens to transfer to target
+                    ownerTokensAmounts, // owner token amounts to transfer to target
+                    await lendingPoolAddressesProvider.getLendingPool(),
+                    expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
+                    expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
+                    [BigNumber.from(0)], //modes
+                    dataForExecuteOperationCallback, // Data to be used on executeOperation
+                    weth.address
+                ],
+                ethToUse.isZero() ? { gasLimit: 1500000 } : {value: ethToUse, gasLimit: 1500000 }
+            )
+        } catch (error) {
+            // TODO Handle error
+            console.error(error)
+        }
+
 
     }
 
-    const { vaultExpectedStatus } = useVaultExpectedStatusContext()
+    const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
 
     return (
         <div>
@@ -694,10 +700,13 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             </p>
             <p>
                 Dai to Draw: {formatEther(expectedResult.daiToDraw)}
+                {ErrorMessage(vaultExpectedStatusErrors.debtCeiling)}
+                {ErrorMessage(vaultExpectedStatusErrors.debtFloor)}
             </p>
             <p>
                 Collateralization Ratio: {formatEther(vaultExpectedStatus.collateralizationRatio)} 
                     {vaultExpectedStatus.minCollateralizationRatio? ` (Min: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)})` : '' }
+                {ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio)}
             </p>
             <p>
                 Liquidation Price: {formatUnits(vaultExpectedStatus.liquidationPrice, 27)}
@@ -711,4 +720,15 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         </div>
     )
 
+}
+
+export const ErrorMessage = function(message:string|undefined){
+    if (!message)
+        return
+    return (
+        <span>
+            <br></br>
+            {message}
+        </span>
+    )
 }

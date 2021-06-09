@@ -64,6 +64,10 @@ export interface IVaultInfo {
     price: BigNumber, // Market price in RAY
     collateralizationRatio: BigNumber, // in WAD
     liquidationPrice: BigNumber, // in WAD
+    Art: BigNumber, // Total Normalised Debt     [wad]
+    rate: BigNumber, // Accumulated Rates         [ray]
+    line: BigNumber, // Debt Ceiling              [rad]
+    dust: BigNumber, // Urn Debt Floor            [rad]
     ilkInfo: {
         ilk: string,
         name: string,
@@ -88,6 +92,10 @@ export const emptyVaultInfo: IVaultInfo = {
     price: BigNumber.from(0),
     collateralizationRatio: BigNumber.from(0),
     liquidationPrice: BigNumber.from(0),
+    Art: ethers.constants.Zero, // Total Normalised Debt     [wad]
+    rate: ethers.constants.Zero, // Accumulated Rates         [ray]
+    line: ethers.constants.Zero, // Debt Ceiling              [rad]
+    dust: ethers.constants.Zero, // Urn Debt Floor            [rad]
     ilkInfo: {
         ilk: '',
         name: '',
@@ -127,6 +135,8 @@ const getCdpInfo = function* (manager: Contract, vat: Contract, bytes32Ilk: stri
 
 }
 
+export const calculateDart = (art: BigNumber, rate: BigNumber) => art.isZero() ? art : art.mul(rate).div(ONE_RAY).add(1)
+
 export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
 
     const { vault } = useVaultContext()
@@ -165,9 +175,8 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
         const jugIlksInfoPromise = jug.ilks(bytes32Ilk)
 
 
-        const { spot, rate }: { spot: BigNumber, rate: BigNumber } = 
-            (yield vatIlksInfoPromise) as { spot: BigNumber, rate: BigNumber }
-
+        const { spot, rate, Art, line, dust }: { spot: BigNumber, rate: BigNumber, Art: BigNumber, line: BigNumber, dust: BigNumber } = 
+            (yield vatIlksInfoPromise) as { spot: BigNumber, rate: BigNumber, Art: BigNumber, line: BigNumber, dust: BigNumber }
 
         const getCdpInfoGenerator = getCdpInfo(manager, vat, bytes32Ilk, vault.cdp)
 
@@ -207,7 +216,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
 
         const {urn, ink, art} = (yield* getCdpInfoGenerator) as {urn: string, ink: BigNumber, art: BigNumber}
 
-        const dart = art.isZero() ? art : art.mul(rate).div(ONE_RAY).add(1)
+        const dart = calculateDart(art, rate)
 
         const collateralizationRatio = getCollateralizationRatio(ink, dart, price)
 
@@ -264,6 +273,10 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
             spot,
             mat,
             duty,
+            Art,
+            rate,
+            line,
+            dust,
             collateralizationRatio,
             liquidationPrice,
             ilkInfo: {
