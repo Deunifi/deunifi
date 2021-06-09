@@ -3,7 +3,7 @@ import { ethers } from 'ethers'
 import { InjectedConnector } from '@web3-react/injected-connector'
 import { useEffect, useState } from 'react';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
-import { AppBar, Button, Card, CardActions, CardContent, createStyles, makeStyles, Theme, Toolbar, Typography } from '@material-ui/core';
+import { AppBar, Button, Card, CardActions, CardContent, createStyles, Grid, makeStyles, Theme, Toolbar, Typography } from '@material-ui/core';
 import { CreateProxyButton } from './CreateProxyButton';
 import { useDsProxyContext } from '../contexts/DsProxyContext';
 
@@ -81,67 +81,73 @@ function ConnectButton() {
 
   return (
 
-    <div className={classes.root}>
+    
 
-      <AppBar position="static">
-        <Toolbar>
-          {/* <IconButton edge="start" className={classes.menuButton} color="inherit" aria-label="menu">
+      <Grid container spacing={2}>
+        <Grid item xs={12} >
+          <div className={classes.root}>
+          <AppBar position="static">
+            <Toolbar>
+              {/* <IconButton edge="start" className={classes.menuButton} color="inherit" aria-label="menu">
             <MenuIcon />
           </IconButton> */}
-          <Typography variant="h6" className={classes.title}>
-            DEUNIFI
+              <Typography variant="h6" className={classes.title}>
+                DEUNIFI
           </Typography>
-          <Button
-            size="small"
-            variant="contained"
-            color={web3React.active ? 'default' : 'secondary'}
-            onClick={() => toogleConnection()}
-          >
-            {web3React.active ? 'Disconnect' : 'Connect'}
-          </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color={web3React.active ? 'default' : 'secondary'}
+                onClick={() => toogleConnection()}
+              >
+                {web3React.active ? 'Disconnect' : 'Connect'}
+              </Button>
 
-        </Toolbar>
-      </AppBar>
+            </Toolbar>
+          </AppBar>
+          </div >
+        </Grid>
+        <Grid item xs={12}>
 
-      { 
-        web3React.active ?
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Connection
+          {
+            web3React.active ?
+              <Card>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    Connection
               </Typography>
-              {/* <Typography variant="h5" component="h2">
+                  {/* <Typography variant="h5" component="h2">
                 be{bull}nev{bull}o{bull}lent
               </Typography> */}
-              <Typography color="textSecondary">
-                Address: {address}
-              </Typography>
-              <Typography variant="body2" component="p" color="textSecondary">
-                Chain ID: {web3React.chainId}
-              </Typography>
-              {
-                dsProxy? 
+                  <Typography color="textSecondary">
+                    Address: {address}
+                  </Typography>
                   <Typography variant="body2" component="p" color="textSecondary">
-                    Proxy: {dsProxy.address}
-                  </Typography> :
-                  undefined
-              }
+                    Chain ID: {web3React.chainId}
+                  </Typography>
+                  {
+                    dsProxy ?
+                      <Typography variant="body2" component="p" color="textSecondary">
+                        Proxy: {dsProxy.address}
+                      </Typography> :
+                      undefined
+                  }
 
-            </CardContent>
+                </CardContent>
 
-            {
-              dsProxy? 
-                undefined : 
-                <CardActions>
-                  <CreateProxyButton></CreateProxyButton>
-                </CardActions>
-            }
+                {
+                  dsProxy ?
+                    undefined :
+                    <CardActions>
+                      <CreateProxyButton></CreateProxyButton>
+                    </CardActions>
+                }
 
-          </Card>
-          : undefined
-      }
-
-    </div>
+              </Card>
+              : undefined
+          }
+        </Grid>
+      </Grid>
   );
 }
 

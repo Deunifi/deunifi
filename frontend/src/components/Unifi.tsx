@@ -10,6 +10,7 @@ import { VaultExpectedOperationProvider } from '../contexts/VaultExpectedOperati
 import { VaultExpectedStatusProvider } from '../contexts/VaultExpectedStatusContext';
 import { ApolloClient, ApolloProvider, gql, InMemoryCache } from '@apollo/client';
 import { APYProvider } from '../contexts/APYContext';
+import { Grid } from '@material-ui/core';
 
 
 interface Props { }
@@ -39,8 +40,14 @@ export const Unifi: React.FC<Props> = () => {
                                     <VaultExpectedOperationProvider>
                                         <VaultExpectedStatusProvider>
                                             <APYProvider>
-                                                <VaultInfo></VaultInfo>
-                                                <VaultOperations></VaultOperations>
+                                                <Grid container spacing={2}>
+                                                    <Grid item xs={12}>
+                                                        <VaultInfo></VaultInfo>
+                                                    </Grid>
+                                                    <Grid item xs={12}>
+                                                        <VaultOperations></VaultOperations>
+                                                    </Grid>
+                                                </Grid>
                                             </APYProvider>
                                         </VaultExpectedStatusProvider>
                                     </VaultExpectedOperationProvider>

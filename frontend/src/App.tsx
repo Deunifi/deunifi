@@ -13,7 +13,7 @@ function App() {
   return (
     <React.Fragment>
       <CssBaseline />
-      <Container maxWidth="sm">
+      <Container maxWidth="md">
         <div>
           <Block>
             <DsProxyProvider>
