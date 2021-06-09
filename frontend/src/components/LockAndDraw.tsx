@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { TextField } from "@material-ui/core";
+import { TextField, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -728,7 +728,9 @@ export const ErrorMessage = function(message:string|undefined){
     return (
         <span>
             <br></br>
-            {message}
+            <Typography color='error'>
+                {message}
+            </Typography>
         </span>
     )
 }
