@@ -109,8 +109,14 @@ export interface IVaultSelectionItem {
 
 export function useVaults() {
 
-    const protocolVaults: IVaultSelectionItem[] = useIlkList().map( ilk => ({ ilk: parseBytes32String(ilk) }) )
+    const ilkList = useIlkList()
+
+    const [protocolVaults, setProtocolVaults] = useState<IVaultSelectionItem[]>([])
     const userVaults = useUserVaults()
+
+    useEffect(() => {
+        setProtocolVaults(ilkList.map( ilk => ({ ilk: parseBytes32String(ilk) }) ))
+    }, [ilkList])
 
     return { userVaults, protocolVaults }
 
@@ -126,15 +132,19 @@ export const useVaultContext = () => useContext(VaultSelectionContext)
 
 export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
 
-    const { userVaults } = useVaults()
+    const { userVaults, protocolVaults } = useVaults()
     const [vault, setVault] = useState<IVaultSelectionItem>()
     const value = {vault, setVault}
 
     useEffect(() => {
-        if (userVaults.length == 0) {
-            setVault(undefined)
-        } else {
+        if (userVaults.length != 0) {
             setVault(userVaults[userVaults.length-1])
+        // }
+        // FIXME
+        // else if (protocolVaults.length != 0){
+        //     setVault(protocolVaults[0])
+        } else {
+            setVault(undefined)
         }
     }, [userVaults])
 

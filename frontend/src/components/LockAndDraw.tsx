@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { TextField, Typography } from "@material-ui/core";
+import { Button, Chip, Grid, TextField, Tooltip, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -13,9 +13,10 @@ import { decreaseWithTolerance, getLoanFee, proxyExecute, deadline } from "./Wip
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
-import { IVaultInfo, useVaultInfoContext } from "../contexts/VaultInfoContext";
+import { IVaultInfo, useVaultInfoContext, ITokenInfo } from "../contexts/VaultInfoContext";
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from "../contexts/VaultExpectedOperationContext";
 import { useVaultExpectedStatusContext, IVaultExpectedStatus } from "../contexts/VaultExpectedStatusContext";
+import { SimpleCard } from "./VaultInfo";
 
 interface Props { }
 
@@ -588,135 +589,185 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     return (
         <div>
+            <Grid container spacing={2} alignItems="flex-start" direction="row" justify="space-evenly">
+                <Grid item xs={6}>
+                    <SimpleCard>
 
-            <TextField 
-                label={`${vaultInfo.ilkInfo.symbol} From Account`}  
-                type="number" 
-                value={form.textValues.collateralFromUser} 
-                name="collateralFromUser" 
-                onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
-                error={form.errors?.collateralFromUser? true : false }
-                helperText={form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : `The ${vaultInfo.ilkInfo.symbol} you want to use from your account.` }
-                />
-            <br></br>
+                        <TextField 
+                            fullWidth
+                            size="small"
+                            margin="normal"
+                            variant="outlined"
+                            label={`${vaultInfo.ilkInfo.symbol} From Account`}  
+                            type="number" 
+                            value={form.textValues.collateralFromUser} 
+                            name="collateralFromUser" 
+                            onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                            error={form.errors?.collateralFromUser? true : false }
+                            helperText={form.errors?.collateralFromUser? <span><br></br>{form.errors?.collateralFromUser}</span> : `The ${vaultInfo.ilkInfo.symbol} you want to use from your account.` }
+                            />
+                        <br></br>
 
 
-            <p>
-                <label>
-                    <input type="checkbox" checked={form.textValues.useETH} name="useETH" onChange={(e) => {
-                            form.setTextValues({...form.textValues, useETH: e.target.checked })
-                            form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
-                        }} />
-                    Use ETH
-                </label>
-            </p>
+                        <p>
+                            <label>
+                                <input type="checkbox" checked={form.textValues.useETH} name="useETH" onChange={(e) => {
+                                        form.setTextValues({...form.textValues, useETH: e.target.checked })
+                                        form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
+                                    }} />
+                                Use ETH
+                            </label>
+                        </p>
 
-            <p>
-                <label>
-                    {vaultInfo.ilkInfo.token0?.symbol} To Lock:
-                    <input type="number" value={form.textValues.tokenAToLock} name="tokenAToLock" onChange={(e) => tokenAToLockChange(e)} />
-                    {form.errors?.tokenAToLock? <span><br></br>{form.errors?.tokenAToLock}</span> : '' }
-                </label>
-                <br></br>
-                <label>
-                    {vaultInfo.ilkInfo.token0?.symbol} From Account:
-                    <input type="number" value={form.textValues.tokenAFromSigner} name="tokenAFromSigner" onChange={(e) => tokenAFromSignerChange(e)} />
-                    { expectedResult.needsToken0Approval ?
-                        <button onClick={async (e)=>{
-                            e.preventDefault()
-                            if (!vaultInfo.ilkInfo.token0 || !signer || !dsProxy)
-                                return
-                            await vaultInfo.ilkInfo.token0.contract
-                                .connect(signer)
-                                .approve(dsProxy.address, ethers.constants.MaxUint256)
-                        }}>Approve</button> : '' }
-                    {form.errors?.tokenAFromSigner? <span><br></br>{form.errors?.tokenAFromSigner}</span> : '' }
-                    <br></br>
-                    [{expectedResult.pathFromDaiToTokenA.join(', ')}]
-                </label>
-            </p>
+                        <TextField 
+                            fullWidth
+                            size="small"
+                            margin="normal"
+                            variant="outlined"
+                            required
+                            label={`${vaultInfo.ilkInfo.token0?.symbol} To Lock`} 
+                            type="number" 
+                            value={form.textValues.tokenAToLock} name="tokenAToLock" onChange={(e) => tokenAToLockChange(e)}
+                            error={form.errors?.tokenAToLock? true : false }
+                            helperText={form.errors?.tokenAToLock? <span>{form.errors?.tokenAToLock}</span> : `The ${vaultInfo.ilkInfo.token0?.symbol} amount to lock in your vault.` }
+                            />
 
-            <p>
-                <label>
-                    {vaultInfo.ilkInfo.token1?.symbol} To Lock:
-                    <input type="number" value={form.textValues.tokenBToLock} name="tokenBToLock" onChange={(e) => tokenBToLockChange(e)} />
-                    {form.errors?.tokenBToLock? <span><br></br>{form.errors?.tokenBToLock}</span> : '' }
-                </label>
-                <br></br>
-                <label>
-                    {vaultInfo.ilkInfo.token1?.symbol} From Account:
-                    <input type="number" value={form.textValues.tokenBFromSigner} name="tokenBFromSigner" onChange={(e) => tokenBFromSignerChange(e)} />
-                    { expectedResult.needsToken1Approval ?
-                        <button onClick={async (e)=>{
-                            e.preventDefault()
-                            if (!vaultInfo.ilkInfo.token1 || !signer || !dsProxy)
-                                return
-                            await vaultInfo.ilkInfo.token1.contract
-                                .connect(signer)
-                                .approve(dsProxy.address, ethers.constants.MaxUint256)
-                        }}>Approve</button> : '' }
-                    {form.errors?.tokenBFromSigner? <span><br></br>{form.errors?.tokenBFromSigner}</span> : '' }
-                    <br></br>
-                    [{expectedResult.pathFromDaiToTokenB.join(', ')}]
-                </label>
-            </p>
+                        <TextField 
+                            fullWidth
+                            size="small"
+                            margin="normal"
+                            variant="outlined"
+                            label={`${vaultInfo.ilkInfo.token0?.symbol} From Account`}  
+                            type="number" 
+                            value={form.textValues.tokenAFromSigner}
+                            name="tokenAFromSigner"
+                            onChange={(e) => tokenAFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
+                            error={form.errors?.tokenAFromSigner ? true : false }
+                            helperText={form.errors?.tokenAFromSigner ? <span>{form.errors?.tokenAFromSigner}</span> : `The ${vaultInfo.ilkInfo.token0?.symbol} amount to use from your account.` }
+                            />
 
-            <p>
-                <label>
-                    DAI From Account:
-                    <input type="number" value={form.textValues.daiFromSigner} name="daiFromSigner" onChange={(e) => daiFromSignerChange(e)} />
-                </label>
-                { expectedResult.needsDebtTokenApproval ?
-                    <button onClick={async (e)=>{
-                            e.preventDefault()
-                            if (!dai || !signer || !dsProxy)
-                                return
-                            await dai
-                                .connect(signer)
-                                .approve(dsProxy.address, ethers.constants.MaxUint256)
-                    }}>Approve</button> : '' }
-                {form.errors?.daiFromSigner? <span><br></br>{form.errors?.daiFromSigner}</span> : '' }
+                        {/* {expectedResult.pathFromDaiToTokenA.map(address => (<Chip label={address} />))} */}
+                    
+                        <ApprovalButton
+                            needsApproval={expectedResult.needsToken0Approval}
+                            dsProxy={dsProxy}
+                            signer={signer}
+                            token={vaultInfo.ilkInfo.token0} 
+                            />
 
-                <br></br>
-                <label>
-                    DAI From Flash Loan: {formatEther(expectedResult.daiFromFlashLoan)}
-                </label>
-            </p>
+                        <br></br>
+                        
+                        <TextField 
+                            required
+                            fullWidth
+                            size="small"
+                            margin="normal"
+                            variant="outlined"
+                            label={`${vaultInfo.ilkInfo.token1?.symbol} To Lock`}  
+                            type="number" 
+                            value={form.textValues.tokenBToLock}
+                            name="tokenBToLock" onChange={(e) => tokenBToLockChange(e)}
+                            error={form.errors?.tokenBToLock ? true : false }
+                            helperText={form.errors?.tokenBToLock ? <span>{form.errors?.tokenBToLock}</span> : `The ${vaultInfo.ilkInfo.token1?.symbol} amount to lock in your vault.` }
+                            />
 
-            <p>
-                <label>
-                    Slippage Tolerance (%):
-                    <input type="number" value={form.textValues.slippageTolerance} name="slippageTolerance" onChange={(e) => form.onChangeBigNumber(e, 4)} />
-                </label>
-                <br></br>
-                <label>
-                    Transaction Deadline (minutes):
-                    <input type="number" value={form.textValues.transactionDeadline} name="transactionDeadline" onChange={(e) => form.onChangeBigNumber(e, 0)} />
-                </label>
-            </p>
+                        <TextField 
+                            fullWidth
+                            size="small"
+                            margin="normal"
+                            variant="outlined"
+                            label={`${vaultInfo.ilkInfo.token1?.symbol} From Account`}  
+                            type="number" 
+                            value={form.textValues.tokenBFromSigner}
+                            name="tokenBFromSigner"
+                            onChange={(e) => tokenBFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
+                            error={form.errors?.tokenBFromSigner ? true : false }
+                            helperText={form.errors?.tokenBFromSigner ? <span>{form.errors?.tokenBFromSigner}</span> : `The ${vaultInfo.ilkInfo.token1?.symbol} amount to use from your account.` }
+                            />
 
-            <p>
-                Collateral to lock: {formatEther(expectedResult.collateralToLock)} (Min: {formatEther(expectedResult.minCollateralToLock)})
-            </p>
-            <p>
-                Dai to Draw: {formatEther(expectedResult.daiToDraw)}
-                {ErrorMessage(vaultExpectedStatusErrors.debtCeiling)}
-                {ErrorMessage(vaultExpectedStatusErrors.debtFloor)}
-            </p>
-            <p>
-                Collateralization Ratio: {formatEther(vaultExpectedStatus.collateralizationRatio)} 
-                    {vaultExpectedStatus.minCollateralizationRatio? ` (Min: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)})` : '' }
-                {ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio)}
-            </p>
-            <p>
-                Liquidation Price: {formatUnits(vaultExpectedStatus.liquidationPrice, 27)}
-                     { vaultExpectedStatus.maxLiquidationPrice? ` (Max: ${formatUnits(vaultExpectedStatus.maxLiquidationPrice, 27)})` : '' }
-            </p>
+                        {/* {expectedResult.pathFromDaiToTokenB.map(address => (<Chip label={address} />))} */}
 
-            <button onClick={(e) => doOperation(e)}>
-                Unifi :)
-            </button>
+                        <ApprovalButton
+                            needsApproval={expectedResult.needsToken1Approval}
+                            dsProxy={dsProxy}
+                            signer={signer}
+                            token={vaultInfo.ilkInfo.token1} 
+                            />
 
+                        <span hidden={dai?.address==vaultInfo.ilkInfo.token0?.contract.address || dai?.address==vaultInfo.ilkInfo.token1?.contract.address}>
+                            <TextField 
+                                fullWidth
+                                size="small"
+                                margin="normal"
+                                variant="outlined"
+                                label='DAI From Account'
+                                type="number" 
+                                value={form.textValues.daiFromSigner} name="daiFromSigner" onChange={(e) => daiFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
+                                error={form.errors?.daiFromSigner ? true : false }
+                                helperText={form.errors?.daiFromSigner ? <span>{form.errors?.daiFromSigner}</span> : `The DAI amount to use from your account.` }
+                                />
+
+                            <ApprovalButton
+                                needsApproval={expectedResult.needsDebtTokenApproval}
+                                dsProxy={dsProxy}
+                                signer={signer}
+                                token={{symbol: 'DAI', contract: dai}} 
+                                />
+                        </span>
+
+                        <TextField 
+                                fullWidth
+                                size="small"
+                                margin="normal"
+                                variant="outlined"
+                                label='Slippage Tolerance (%)'
+                                type="number" 
+                                value={form.textValues.slippageTolerance} name="slippageTolerance" onChange={(e) => form.onChangeBigNumber(e, 4)}
+                                helperText="If transaction conditions are modified beyond tolerance, then the transaction will be rejected."
+                                />
+                        
+                        <TextField 
+                                fullWidth
+                                size="small"
+                                margin="normal"
+                                variant="outlined"
+                                label='Transaction Deadline (minutes)'
+                                type="number" 
+                                value={form.textValues.transactionDeadline} name="transactionDeadline" onChange={(e) => form.onChangeBigNumber(e, 0)}
+                                helperText="If transaction is not confirmed before deadline, then the transaction will be rejected."
+                                />
+
+                    </SimpleCard>
+                </Grid>
+                <Grid item xs={6}>
+                    <SimpleCard>
+                        <p>
+                            DAI From Flash Loan: {formatEther(expectedResult.daiFromFlashLoan)}
+                        </p>
+                        <p>
+                            Collateral to lock: {formatEther(expectedResult.collateralToLock)} (Min: {formatEther(expectedResult.minCollateralToLock)})
+                        </p>
+                        <p>
+                            Dai to Draw: {formatEther(expectedResult.daiToDraw)}
+                            {ErrorMessage(vaultExpectedStatusErrors.debtCeiling)}
+                            {ErrorMessage(vaultExpectedStatusErrors.debtFloor)}
+                        </p>
+                        <p>
+                            Collateralization Ratio: {formatEther(vaultExpectedStatus.collateralizationRatio)} 
+                                {vaultExpectedStatus.minCollateralizationRatio? ` (Min: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)})` : '' }
+                            {ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio)}
+                        </p>
+                        <p>
+                            Liquidation Price: {formatUnits(vaultExpectedStatus.liquidationPrice, 27)}
+                                { vaultExpectedStatus.maxLiquidationPrice? ` (Max: ${formatUnits(vaultExpectedStatus.maxLiquidationPrice, 27)})` : '' }
+                        </p>
+
+                        <button onClick={(e) => doOperation(e)}>
+                            Unifi :)
+                        </button>
+                    </SimpleCard>
+                </Grid>
+            </Grid>
         </div>
     )
 
@@ -732,5 +783,33 @@ export const ErrorMessage = function(message:string|undefined){
                 {message}
             </Typography>
         </span>
+    )
+}
+
+export const ApprovalButton: React.FC<{
+    needsApproval: boolean,
+    token?: {symbol: string, contract: Contract|undefined},
+    signer?: ethers.providers.JsonRpcSigner,
+    dsProxy?: Contract,
+    }> = ({ needsApproval, token, signer, dsProxy }) => {
+    if (!needsApproval || !token || !(token.contract))
+        return (<span></span>)
+    return (
+        <Tooltip title={`To use ${token?.symbol}, your proxy needs your approval.`}>
+            <Button 
+                color="secondary" 
+                variant="outlined" 
+                size="small"
+                onClick={async (e)=>{
+                    e.preventDefault()
+                    if (!token || !signer || !dsProxy)
+                        return
+                    await (token.contract as Contract)
+                        .connect(signer)
+                        .approve(dsProxy.address, ethers.constants.MaxUint256)
+                }}>
+                Approve {token?.symbol}
+            </Button>
+        </Tooltip>
     )
 }

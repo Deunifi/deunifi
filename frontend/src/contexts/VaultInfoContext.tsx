@@ -47,7 +47,7 @@ export const getLiquidationPrice = (ink: BigNumber, dart: BigNumber, mat: BigNum
 }
 
 
-interface ITokenInfo {
+export interface ITokenInfo {
     contract: Contract,
     symbol: string,
     decimals: number,
