@@ -31,10 +31,10 @@ const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInPro
 const VaultActualValue: React.FC<{ label: string, value: string|number }> = ({ label, value }) => {
     return (
         <span>
-            <Typography variant="body2" component="p" color="textSecondary">
+            <Typography variant="caption" component="p" color="textSecondary">
                 {label}:
             </Typography>
-            <Typography variant="body2" component="p" color="textPrimary">
+            <Typography variant="h6" component="p" color="textPrimary">
                 {value}
             </Typography>
         </span>

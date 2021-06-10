@@ -13,8 +13,9 @@ const { CPromise } = require("c-promise2");
 
 interface Props { }
 
-const ONE_WAD = parseEther('1')
-const ONE_RAY = parseUnits('1', 27)
+export const ONE_WAD = parseEther('1')
+export const ONE_RAY = parseUnits('1', 27)
+export const ONE_RAD = parseUnits('1', 45)
 
 /**
  * 

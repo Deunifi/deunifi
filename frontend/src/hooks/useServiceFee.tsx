@@ -69,8 +69,16 @@ export const useServiceFee = () => {
         const serviceFeeRatio = BigNumber.from('0x'+hexStringFeeRatio)
 
         setServiceFee( {
-            getFeeFromGrossAmount: async (amount:BigNumber) => await feeManagerAttached.getFeeFromGrossAmount(signerAddress, amount),
-            getGrossAmountFromNetAmount: async (amount:BigNumber) => await feeManagerAttached.getGrossAmountFromNetAmount(signerAddress, amount),
+            getFeeFromGrossAmount: async (amount:BigNumber) => {
+                if (amount.isNegative())
+                    return ethers.constants.Zero
+                return await feeManagerAttached.getFeeFromGrossAmount(signerAddress, amount)
+            },
+            getGrossAmountFromNetAmount: async (amount:BigNumber) => {
+                if (amount.isNegative())
+                    return ethers.constants.Zero
+                return await feeManagerAttached.getGrossAmountFromNetAmount(signerAddress, amount)
+            },
             serviceFeeRatio
         })
 
