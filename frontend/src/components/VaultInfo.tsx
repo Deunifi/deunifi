@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
-import { Button, Card, CardActions, CardContent, createStyles, Dialog, DialogContent, DialogTitle, Grid, IconButton, makeStyles, Slider, Theme, Typography } from '@material-ui/core';
+import { Box, Button, Card, CardActions, CardContent, createStyles, Dialog, DialogContent, DialogTitle, Grid, IconButton, makeStyles, Slider, Theme, Typography } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useApyContext } from '../contexts/APYContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
@@ -28,7 +28,7 @@ const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInPro
     )
 }
 
-const VaultActualValue: React.FC<{ label: string, value: string|number }> = ({ label, value }) => {
+export const VaultActualValue: React.FC<{ label: string, value: string|number }> = ({ label, value }) => {
     return (
         <span>
             <Typography variant="caption" component="p" color="textSecondary">
@@ -36,6 +36,18 @@ const VaultActualValue: React.FC<{ label: string, value: string|number }> = ({ l
             </Typography>
             <Typography variant="h6" component="p" color="textPrimary">
                 {value}
+            </Typography>
+        </span>
+    )
+}
+
+const VaultParameter: React.FC<{ label: string, value: string|number }> = ({ label, value }) => {
+    return (
+        <span>
+            <Typography variant="caption" component="p" color="secondary">
+                ({label}: <Typography variant="caption" component="span" color="secondary">
+                    {value}
+                </Typography>)
             </Typography>
         </span>
     )
@@ -136,77 +148,79 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
         <div>
 
             <SimpleCard>
-                <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
-
-                    <Grid item xs={12}>
-                        <SimpleCard>
-                            <Grid container spacing={2} alignItems="center" direction="column" justify="space-evenly">
-                                <Grid item xs={12}>
+                            <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
+                                <Grid item xs={8}>
                                     <VaultSelection>
                                     </VaultSelection>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <OpenVaultButton></OpenVaultButton>
+                                <Grid item xs={4}>
+                                    <Box mt={2}>
+                                        <OpenVaultButton></OpenVaultButton>
+                                    </Box>
                                 </Grid>
                             </Grid>
-                        </SimpleCard>
-                    </Grid>
-
-                    
-                        <Grid item xs={6} hidden={vaultInfo.ilkInfo.ilk? false : true}>
-                            <SimpleCard>
-                                <VaultActualValue label='Collateral Locked' value={formatEther(vaultInfo.ink)} />
-                                <VaultExpectedValue operationInProgress actualValue={vaultInfo.ink} value={vaultExpectedStatus.ink} />
-                                <br></br>
-                                <VaultActualValue label='Debt' value={vaultInfo?.dart ? formatEther(vaultInfo.dart) : '0'} />
-                                <VaultExpectedValue operationInProgress actualValue={vaultInfo.dart} value={vaultExpectedStatus.dart}
-                                    error={vaultExpectedStatusErrors.debtCeiling || vaultExpectedStatusErrors.debtFloor ? true : false} />
-                            </SimpleCard>
-                        </Grid>
-
-                        <Grid item xs={6} hidden={vaultInfo.ilkInfo.ilk? false : true}>
-                            <Card>
-                                <CardContent>
-                                    <VaultActualValue label={`${vaultInfo.ilkInfo.ilk} APY`} value={apy.ilkApy} />
-                                    <br></br>
-                                    <VaultActualValue label="Vault's APY" value={apy.vaultApy} />
-                                    <VaultExpectedValue operationInProgress actualValue={parseEther(apy.vaultApy.toString())} value={parseEther(apy.vaultExpectedApy.toString())} />
-                                </CardContent>
-                                <CardActions>
-                                    <APYConFigButton></APYConFigButton>
-                                </CardActions>
-                            </Card>
-                        </Grid>
-
-                        <Grid item xs={6} hidden={vaultInfo.ilkInfo.ilk? false : true}>
-                            <SimpleCard>
-                                <VaultActualValue label='Collateralization Ratio' value={formatEther(vaultInfo.collateralizationRatio)} />
-                                <VaultExpectedValue
-                                    operationInProgress
-                                    actualValue={vaultInfo.collateralizationRatio}
-                                    value={vaultExpectedStatus.collateralizationRatio}
-                                    error={vaultExpectedStatusErrors.collateralizationRatio ? true : false}
-                                />
-                                <br></br>
-                                <VaultActualValue label='Liquidation Ratio' value={formatUnits(vaultInfo.mat, 27)} />
-                            </SimpleCard>
-                        </Grid>
-
-                        <Grid item xs={6} hidden={vaultInfo.ilkInfo.ilk? false : true}>
-                            <SimpleCard>
-                                <VaultActualValue label='Liquidation Price' value={formatUnits(vaultInfo.liquidationPrice, 27)} />
-                                <VaultExpectedValue
-                                    operationInProgress
-                                    actualValue={vaultInfo.liquidationPrice}
-                                    value={vaultExpectedStatus.liquidationPrice}
-                                    decimals={27}
-                                />
-                                <br></br>
-                                <VaultActualValue label='Price' value={formatUnits(vaultInfo.price, 27)} />
-                            </SimpleCard>
-                        </Grid>
-                </Grid>
             </SimpleCard>
+            <Box hidden={vaultInfo.ilkInfo.ilk? false : true} mt={1}>
+
+                <SimpleCard>
+
+                    <Typography color="textSecondary" gutterBottom>
+                        Vault Status
+                    </Typography>
+
+                    <Box m={1}>
+                        <Box mb={2} mt={2}>
+                                    <VaultActualValue label='Collateral Locked' value={formatEther(vaultInfo.ink)} />
+                                    <VaultExpectedValue operationInProgress actualValue={vaultInfo.ink} value={vaultExpectedStatus.ink} />
+                        </Box>
+
+                        <Box mb={2} mt={2}>
+                                    <VaultActualValue label='Debt' value={vaultInfo?.dart ? formatEther(vaultInfo.dart) : '0'} />
+                                    <VaultExpectedValue operationInProgress actualValue={vaultInfo.dart} value={vaultExpectedStatus.dart}
+                                        error={vaultExpectedStatusErrors.debtCeiling || vaultExpectedStatusErrors.debtFloor ? true : false} />
+                        </Box>
+
+                        <Box mb={2} mt={2}>
+                            <VaultActualValue label='Collateralization Ratio' value={formatEther(vaultInfo.collateralizationRatio)} />
+                            <VaultExpectedValue
+                                operationInProgress
+                                actualValue={vaultInfo.collateralizationRatio}
+                                value={vaultExpectedStatus.collateralizationRatio}
+                                error={vaultExpectedStatusErrors.collateralizationRatio ? true : false}
+                            />
+                            <VaultParameter label='Liquidation Ratio' value={formatUnits(vaultInfo.mat, 27)} />
+                        </Box>
+
+                        <Box mb={2} mt={2}>
+                            <VaultActualValue label='Liquidation Price' value={formatUnits(vaultInfo.liquidationPrice, 27)} />
+                            <VaultExpectedValue
+                                operationInProgress
+                                actualValue={vaultInfo.liquidationPrice}
+                                value={vaultExpectedStatus.liquidationPrice}
+                                decimals={27}
+                            />
+                            <VaultParameter label='Current Price' value={formatUnits(vaultInfo.price, 27)} />
+                        </Box>
+
+                        <Box mb={2} mt={2}>
+                            <VaultActualValue label="Vault's APY" value={apy.vaultApy} />
+                            <VaultExpectedValue operationInProgress actualValue={parseEther(apy.vaultApy.toString())} value={parseEther(apy.vaultExpectedApy.toString())} />
+                            <Grid container spacing={1} alignItems="center" direction="row" justify="center">
+                                <Grid item xs={10}>
+                                    <VaultParameter label={`Estimation based on ${vaultInfo.ilkInfo.ilk}'s APY from last ${apy.calculationDaysQuantity} day(s)`} value={apy.ilkApy} />
+                                </Grid>
+                                <Grid item xs={2}>
+                                    <Box m={1}>
+                                        <APYConFigButton></APYConFigButton>
+                                    </Box>
+                                </Grid>
+                            </Grid>                            
+                        </Box>
+                    </Box>
+
+                </SimpleCard>
+            </Box>
+            
 
         </div>
 

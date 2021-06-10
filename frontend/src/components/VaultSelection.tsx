@@ -31,9 +31,11 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
                         Vault Selection
                     </Typography> */}
 
-                    <FormControl>
+                    <FormControl fullWidth>
                         <InputLabel id="vault-selection-label">Vault</InputLabel>
                         <Select
+                            fullWidth
+                            // variant="outlined"
                             labelId="vault-selection-label"
                             id="vault-selection-select"
                             onChange={(e) => {

@@ -41,10 +41,10 @@ export const Unifi: React.FC<Props> = () => {
                                         <VaultExpectedStatusProvider>
                                             <APYProvider>
                                                 <Grid container spacing={2}>
-                                                    <Grid item xs={12}>
+                                                    <Grid item xs={4}>
                                                         <VaultInfo></VaultInfo>
                                                     </Grid>
-                                                    <Grid item xs={12}>
+                                                    <Grid item xs={8}>
                                                         <VaultOperations></VaultOperations>
                                                     </Grid>
                                                 </Grid>

@@ -19,8 +19,9 @@ export const CreateProxyButton: React.FC<Props> = ({ children }) => {
         <div>
             <Tooltip title="Please create your proxy to continue">
                 <Button
-                    size="small"
-                    variant="contained"
+                    fullWidth
+                    // size="small"
+                    variant="outlined"
                     color='secondary'
                     onClick={async (e) => {
                         e.preventDefault()

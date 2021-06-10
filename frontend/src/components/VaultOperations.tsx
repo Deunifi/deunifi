@@ -83,7 +83,7 @@ export const VaultTabsOperations: React.FC<Props> = ({ children }) => {
                     onChange={handleChange}
                     indicatorColor="primary"
                     textColor="primary"
-                    variant="fullWidth"
+                    variant="standard"
                     aria-label="full width tabs example"
                 >
                     <Tab label="Lock And Draw" {...a11yProps(0)} />
