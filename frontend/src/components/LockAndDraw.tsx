@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { Button, Chip, Grid, TextField, Tooltip, Typography } from "@material-ui/core";
+import { Box, Button, Chip, Grid, TextField, Tooltip, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -9,7 +9,7 @@ import { encodeParamsForLockGemAndDraw } from "../utils/format";
 import { useForm, defaultSideEffect, IChangeBigNumberEvent } from "../utils/forms";
 import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
-import { decreaseWithTolerance, getLoanFee, proxyExecute, deadline } from "./WipeAndFree";
+import { decreaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
@@ -17,6 +17,8 @@ import { IVaultInfo, useVaultInfoContext, ITokenInfo } from "../contexts/VaultIn
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from "../contexts/VaultExpectedOperationContext";
 import { useVaultExpectedStatusContext, IVaultExpectedStatus } from "../contexts/VaultExpectedStatusContext";
 import { SimpleCard } from "./VaultInfo";
+import { useApyContext } from "../contexts/APYContext";
+import { useLendingPool } from "../hooks/useLendingPool";
 
 interface Props { }
 
@@ -221,16 +223,16 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
     const { getGrossAmountFromNetAmount } = useServiceFee()
 
-    const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
-    const lendingPool = useContract('LendingPool')
+
+    const lendingPool = useLendingPool()
 
     const { blocknumber } = useBlockContext()
 
     useEffectAutoCancel(function* () {
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy ||
-            !lendingPoolAddressesProvider || !lendingPool) {
+            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy
+            || !lendingPool.contract) {
             form.setErrors(undefined)
             return
         }
@@ -299,10 +301,8 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             .add(expectedResult.daiForTokenB)
             .sub(form.cleanedValues.daiFromSigner)
 
-        const attachedLendingPool = lendingPool.attach((yield lendingPoolAddressesProvider.getLendingPool()) as string)
-
         const daiToDrawWithoutServiceFee = expectedResult.daiFromFlashLoan
-            .add((yield getLoanFee(attachedLendingPool, expectedResult.daiFromFlashLoan)) as BigNumber)
+            .add(lendingPool.getLoanFee(expectedResult.daiFromFlashLoan))
 
         // Flash loan plus fees.
         expectedResult.daiToDraw = (yield getGrossAmountFromNetAmount(daiToDrawWithoutServiceFee)) as BigNumber
@@ -486,7 +486,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
 
         e.preventDefault()
 
-        if (!deunifi || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy ||
+        if (!deunifi || !signer || !dai || !lendingPool.contract || !dsProxy ||
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
             !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth || !dssPsm || !vaultInfo.cdp)
@@ -495,8 +495,6 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         const sender = await signer.getAddress()
 
         const operation: BigNumber = await deunifi.LOCK_AND_DRAW()
-
-        const lendingPoolAddress = await lendingPoolAddressesProvider.getLendingPool()
 
         // const operation = BigNumber.from(2)
         const dataForExecuteOperationCallback = encodeParamsForLockGemAndDraw(
@@ -530,7 +528,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             expectedResult.daiToDraw, // debtTokenToDraw: BigNumber,
             true, // transferFrom: boolean,
             deadline(form.cleanedValues.transactionDeadline.toNumber() * 60), // deadline: BigNumber,
-            lendingPoolAddress,
+            lendingPool.contract.address,
         )
 
         const ethToUse = form.cleanedValues.useETH ? 
@@ -568,7 +566,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                     deunifi.address,
                     ownerTokens, // owner tokens to transfer to target
                     ownerTokensAmounts, // owner token amounts to transfer to target
-                    await lendingPoolAddressesProvider.getLendingPool(),
+                    lendingPool.contract.address,
                     expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
                     expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
                     [BigNumber.from(0)], //modes
@@ -586,6 +584,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
     }
 
     const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
+    const { apy } = useApyContext()
 
     return (
         <div>
@@ -761,10 +760,17 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                             Liquidation Price: {formatUnits(vaultExpectedStatus.liquidationPrice, 27)}
                                 { vaultExpectedStatus.maxLiquidationPrice? ` (Max: ${formatUnits(vaultExpectedStatus.maxLiquidationPrice, 27)})` : '' }
                         </p>
+                        <p>
+                            Expected APY: {apy.vaultExpectedApy}
+                        </p>
 
-                        <button onClick={(e) => doOperation(e)}>
-                            Unifi :)
-                        </button>
+                        <Button 
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            onClick={(e) => doOperation(e)}>
+                            Lock And Draw
+                        </Button>
                     </SimpleCard>
                 </Grid>
             </Grid>
@@ -796,20 +802,23 @@ export const ApprovalButton: React.FC<{
         return (<span></span>)
     return (
         <Tooltip title={`To use ${token?.symbol}, your proxy needs your approval.`}>
-            <Button 
-                color="secondary" 
-                variant="outlined" 
-                size="small"
-                onClick={async (e)=>{
-                    e.preventDefault()
-                    if (!token || !signer || !dsProxy)
-                        return
-                    await (token.contract as Contract)
-                        .connect(signer)
-                        .approve(dsProxy.address, ethers.constants.MaxUint256)
-                }}>
-                Approve {token?.symbol}
-            </Button>
+            <Box pb={2}>
+                <Button
+                    fullWidth
+                    color="secondary" 
+                    variant="outlined" 
+                    size="small"
+                    onClick={async (e)=>{
+                        e.preventDefault()
+                        if (!token || !signer || !dsProxy)
+                            return
+                        await (token.contract as Contract)
+                            .connect(signer)
+                            .approve(dsProxy.address, ethers.constants.MaxUint256)
+                    }}>
+                    Approve {token?.symbol}
+                </Button>
+            </Box>
         </Tooltip>
     )
 }

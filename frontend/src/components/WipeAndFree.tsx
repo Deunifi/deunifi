@@ -15,6 +15,7 @@ import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
 import { ErrorMessage } from '../components/LockAndDraw'
+import { useLendingPool } from '../hooks/useLendingPool';
 
 interface Props { }
 
@@ -83,11 +84,6 @@ const emptyWipeAndFreeForm: IWipeAndFreeForm = {
     transactionDeadline: emptyWipeAndFreeParameters.transactionDeadline.toString(),
     reciveETH: true,
 }
-
-export const getLoanFee = async (lendingPool: Contract, amount: BigNumber): Promise<BigNumber> => 
-    amount
-        .mul(await lendingPool.FLASHLOAN_PREMIUM_TOTAL())
-        .div(10000)
 
 export const parseBigNumber = (text:string, decimals=18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
 
@@ -224,30 +220,27 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const router02 = useContract('UniswapV2Router02')
     const dai = useContract('Dai')
-    const lendingPoolAddressesProvider = useContract('LendingPoolAddressesProvider')
-    const lendingPool = useContract('LendingPool')
+    const lendingPool = useLendingPool()
 
     const [token0MinAmountToRecieve, setToken0MinAmountToRecieve] = useState(BigNumber.from(0))
     const [token1MinAmountToRecieve, setToken1MinAmountToRecieve] = useState(BigNumber.from(0))
     const [token0ToRecieve, setToken0ToRecieve] = useState(BigNumber.from(0))
     const [token1ToRecieve, setToken1ToRecieve] = useState(BigNumber.from(0))
 
-    const { getFeeFromGrossAmount } = useServiceFee()
+    const { getFeeFromGrossAmount, serviceFeeRatio: feeRatio } = useServiceFee()
 
     useEffectAutoCancel(function* (){
 
         setExpectedResult(initialExpectedResult)
 
-        if (!lendingPoolAddressesProvider || !lendingPool)
+        if (!lendingPool.contract)
             return
         
-        const attachedLendingPool = lendingPool.attach((yield lendingPoolAddressesProvider.getLendingPool()) as string)
-
         const daiFromFlashLoan = params.daiToPayback.gt(params.daiFromSigner) ?
             params.daiToPayback.sub(params.daiFromSigner)
             : ethers.constants.Zero
 
-        const lastDaiLoanFees = (yield getLoanFee(attachedLendingPool, daiFromFlashLoan)) as BigNumber
+        const lastDaiLoanFees = lendingPool.getLoanFee(daiFromFlashLoan)
         if (!lastDaiLoanFees.eq(daiLoanFees))
             setDaiLoanFees(lastDaiLoanFees)
         
@@ -463,7 +456,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         e.preventDefault()
 
-        if (!deunifi || !signer || !dai || !lendingPoolAddressesProvider || !dsProxy || 
+        if (!deunifi || !signer || !dai || !lendingPool.contract || !dsProxy || 
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
             !daiJoin || !weth || !dssPsm || !vaultInfo.cdp)
@@ -473,8 +466,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         const gemJoinAddress = await dssPsm.gemJoin()
 
-        const lendingPoolAddress = await lendingPoolAddressesProvider.getLendingPool()
-        
         const dataForExecuteOperationCallback = encodeParamsForWipeAndFree(
                 await deunifi.WIPE_AND_FREE(),
                 sender, // address sender
@@ -511,7 +502,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 expectedResult.usePsmForToken0 ? params.daiFromTokenA : 
                     expectedResult.usePsmForToken1 ? params.daiFromTokenA :
                         ethers.constants.Zero,
-                lendingPoolAddress,
+                lendingPool.contract.address,
         )
 
         try{
@@ -522,7 +513,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                     deunifi.address,
                     params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
                     params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
-                    await lendingPoolAddressesProvider.getLendingPool(),
+                    lendingPool.contract.address,
                     expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
                     expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
                     [BigNumber.from(0)], //modes
@@ -560,8 +551,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
             <p>
                 {errors.tooMuchDai ? <span>{errors.tooMuchDai}<br></br></span> : ''}
-                {daiLoanFees.isZero() ? '' : <span>Flash Loan Fees (0.09%): {formatEther(daiLoanFees)} DAI<br></br></span>}
-                {daiServiceFee.isZero() ? '' : <span>Service Fee (0.03%): {formatEther(daiServiceFee)} DAI<br></br></span>}
+                {daiLoanFees.isZero() ? '' : <span>Flash Loan Fees ({formatUnits(lendingPool.loanFeeRatio,2)}%): {formatEther(daiLoanFees)} DAI<br></br></span>}
+                {daiServiceFee.isZero() ? '' : <span>Service Fee ({formatUnits(feeRatio, 2)}%): {formatEther(daiServiceFee)} DAI<br></br></span>}
                 {daiLoanPlusFees.isZero() ? '' : <span>Total Dai to get from collateral: {formatEther(daiLoanPlusFees)} DAI<br></br></span>}
             </p>
 

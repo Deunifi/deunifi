@@ -1,7 +1,8 @@
 import { BigNumber } from "@ethersproject/bignumber";
+import { parseUnits } from "@ethersproject/units";
 import { Contract, ethers } from "ethers";
 import { useState } from "react";
-import { useSigner } from "../components/Connection";
+import { useProvider, useSigner } from "../components/Connection";
 import { useContract } from "../components/Deployments";
 import { useEffectAutoCancel } from "./useEffectAutoCancel";
 
@@ -15,12 +16,14 @@ const identityFunction: FeeCalculationFunction = async (amount:BigNumber) => amo
 
 interface ServiceFee{
     getFeeFromGrossAmount: FeeCalculationFunction
-    getGrossAmountFromNetAmount: FinalAmountCalculationFunction
+    getGrossAmountFromNetAmount: FinalAmountCalculationFunction,
+    serviceFeeRatio: BigNumber, // 4 decimals
 }
 
 const zeroServiceFee: ServiceFee = {
     getFeeFromGrossAmount: zeroFunction,
-    getGrossAmountFromNetAmount: identityFunction
+    getGrossAmountFromNetAmount: identityFunction,
+    serviceFeeRatio: ethers.constants.Zero
 }
 
 /**
@@ -38,10 +41,11 @@ export const useServiceFee = () => {
 
     const signer = useSigner()
     const [serviceFee, setServiceFee] = useState<ServiceFee>(zeroServiceFee)
+    const provider = useProvider()
 
     useEffectAutoCancel(function* (){
         
-        if (!feeManager || !deunifi || !signer){
+        if (!feeManager || !deunifi || !signer || !provider){
             setServiceFee(zeroServiceFee)
             return
         }
@@ -59,9 +63,15 @@ export const useServiceFee = () => {
         const feeManagerAttached = (yield feeManagerAttachedPromise) as Contract
         const signerAddress = (yield signerAddressPromise) as string
 
+        const storageData = (yield provider.getStorageAt(feeManagerAddress, '0x1')) as string
+        const offset = 34
+        const hexStringFeeRatio = storageData.substring(offset,offset+32)
+        const serviceFeeRatio = BigNumber.from('0x'+hexStringFeeRatio)
+
         setServiceFee( {
             getFeeFromGrossAmount: async (amount:BigNumber) => await feeManagerAttached.getFeeFromGrossAmount(signerAddress, amount),
             getGrossAmountFromNetAmount: async (amount:BigNumber) => await feeManagerAttached.getGrossAmountFromNetAmount(signerAddress, amount),
+            serviceFeeRatio
         })
 
     }, [feeManager, deunifi])
