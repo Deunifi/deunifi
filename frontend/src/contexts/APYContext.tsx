@@ -30,7 +30,7 @@ export const useApyContext = () => useContext(ApyContext)
 
 interface Props { }
 
-const DAYS=30
+export const MAX_APY_DAYS=365
 
 const LAST_DAYS = gql`query Dog($pairAddress: String!, $dateFrom: Int!, $days: Int!) {
     pairDayDatas(first: $days, orderBy: date, orderDirection: asc,
@@ -45,12 +45,83 @@ const LAST_DAYS = gql`query Dog($pairAddress: String!, $dateFrom: Int!, $days: I
     }
 }`
 
+const apyFromRealApd = (data: any): number => {
+    return data.pairDayDatas.reduce(
+        (apd: number, x: any) => {
+            if (Number(x.reserveUSD) == 0)
+                return apd
+            return apd*(1+Number(x.dailyVolumeUSD)*.003/Number(x.reserveUSD))
+        },
+        1
+    )
+    **(365/data.pairDayDatas.length)
+}
+
+/**
+ * The results of this strategy are generally lower than apyFromRealApd.
+ * This strategy appearse to be more conservative and secure.
+ * 
+ */
+const apyFromTotalDailyVolumeUSDDividedByAverageOfTotalReserveUSD = (data: any): number => {
+    const [totalDailyVolumeUSD, totalReserveUSD] = data.pairDayDatas.reduce(
+        ([totalDailyVolumeUSD, totalReserveUSD]: number[], x: any) => {
+            return [totalDailyVolumeUSD+Number(x.dailyVolumeUSD), totalReserveUSD+Number(x.reserveUSD)]
+        },
+        [0, 0]
+    )
+    if (totalReserveUSD == 0)
+        return 1
+    else
+        return (1+(totalDailyVolumeUSD*data.pairDayDatas.length*.003/totalReserveUSD))**(365/data.pairDayDatas.length)
+}
+
+/**
+ * The results of this strategy I think are too high to be real.
+ */
+const apyFromApyAverage = (data: any): number => {
+    const sumOfApys = data.pairDayDatas.reduce(
+        (sumOfApysUntilNow: number, x: any) => {
+            if (x.reserveUSD == 0)
+                return sumOfApysUntilNow
+            const currentApy = (1+(Number(x.dailyVolumeUSD)*.003/Number(x.reserveUSD)))**(365)
+            return sumOfApysUntilNow + currentApy
+        },
+        0
+    )
+    if (sumOfApys == 0)
+        return 1
+    else
+        return sumOfApys/data.pairDayDatas.length
+}
+
+/**
+ * The results returned by this calculation strategy are almost identical with
+ * apyFromRealApd.
+ */
+const apyFromApdAverage = (data: any): number => {
+    const sumOfApds = data.pairDayDatas.reduce(
+        (sumOfApdsUntilNow: number, x: any) => {
+            if (x.reserveUSD == 0)
+                return sumOfApdsUntilNow
+            const currentApd = 1+(Number(x.dailyVolumeUSD*.003)/Number(x.reserveUSD))
+            return sumOfApdsUntilNow + currentApd
+        },
+        0
+    )
+    if (sumOfApds == 0)
+        return 1
+    else
+        return (sumOfApds/data.pairDayDatas.length)**(365)
+}
+
+const apyCalculationStrategy = apyFromTotalDailyVolumeUSDDividedByAverageOfTotalReserveUSD
+
 export const APYProvider: React.FC<Props> = ({ children }) => {
 
     const [apy, setApy] = useState<IApy>(initialApy)
     const { vaultInfo } = useVaultInfoContext()
     const { vaultExpectedStatus } = useVaultExpectedStatusContext()
-    const [days, setDays] = useState<number>(DAYS)
+    const [days, setDays] = useState<number>(MAX_APY_DAYS)
 
 
     // TODO Handle error using data.errors or error
@@ -90,15 +161,15 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
         if (data.pairDayDatas.length == 0)
             apy.ilkApy = 1
         else{
-            apy.ilkApy = data.pairDayDatas.reduce(
-                (apd: number, x: any) => {
-                    if (Number(x.reserveUSD) == 0)
-                        return apd
-                    return apd*(1+Number(x.dailyVolumeUSD)*.003/Number(x.reserveUSD))
-                },
-                1
-            )
-            **(365/data.pairDayDatas.length)    
+
+            // console.log('data.pairDayDatas.length', data.pairDayDatas.length);
+            // console.log('apyFromRealApd', apyFromRealApd(data))
+            // console.log('apyFromTotalDailyVolumeUSDDividedByAverageOfTotalReserveUSD', apyFromTotalDailyVolumeUSDDividedByAverageOfTotalReserveUSD(data))
+            // console.log('apyFromApyAverage', apyFromApyAverage(data))
+            // console.log('apyFromApdAverage', apyFromApdAverage(data))
+
+            apy.ilkApy = apyCalculationStrategy(data)
+
         }
 
         apy.calculationDaysQuantity = data.pairDayDatas.length

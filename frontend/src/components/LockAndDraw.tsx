@@ -199,6 +199,8 @@ const emptyExpectedResult: IExpectedResult = {
 }
 
 export const pairDelta = (token: string, [token0, token1]: string[], inSwapResult: IGetAmountsInResult): BigNumber => {
+    if (inSwapResult.psm.buyGem || inSwapResult.psm.sellGem)
+        return ethers.constants.Zero
     for (let i=0; i<inSwapResult.path.length-1; i++){
         if ((inSwapResult.path[i]==token0 && inSwapResult.path[i+1]==token1) ||
             (inSwapResult.path[i]==token1 && inSwapResult.path[i+1]==token0)){
@@ -637,7 +639,10 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                                 token={vaultInfo.ilkInfo.token0} 
                             />
                             
-                            {/* {expectedResult.pathFromDaiToTokenA.map(address => (<Chip label={address} />))} */}
+                            {/* <Box>
+                                {expectedResult.pathFromDaiToTokenA.map(address => (<Chip label={address} />))}
+                                {expectedResult.usePsmForTokenA ? 'usePsm' : ''}
+                            </Box> */}
                         
                             <TextField 
                                 required
@@ -671,7 +676,10 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
                                 token={vaultInfo.ilkInfo.token1} 
                             />
 
-                            {/* {expectedResult.pathFromDaiToTokenB.map(address => (<Chip label={address} />))} */}
+                            {/* <Box>
+                                {expectedResult.pathFromDaiToTokenB.map(address => (<Chip label={address} />))}
+                                {expectedResult.usePsmForTokenB ? 'usePsm' : ''}
+                            </Box> */}
 
                             <FormControlLabel
                                 control={
