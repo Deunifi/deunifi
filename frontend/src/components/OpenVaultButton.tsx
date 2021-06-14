@@ -1,18 +1,16 @@
 import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
-import { useState } from "react";
-import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { proxyExecute } from "./WipeAndFree";
-import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
-import { Button, Card, CardActions, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField, Typography } from "@material-ui/core";
+import { Button } from "@material-ui/core";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
-import { useIlkList, useVaultContext } from "../contexts/VaultSelectionContext";
+import { useVaultContext } from "../contexts/VaultSelectionContext";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 
 interface Props { }
 
 export const OpenVaultButton: React.FC<Props> = ({ children }) => {
 
-    const signer = useSigner()
+    const { signer } = useConnectionContext()
 
     const { dsProxy } = useDsProxyContext()
 

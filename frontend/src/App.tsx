@@ -7,6 +7,7 @@ import React from 'react';
 import { Container } from '@material-ui/core';
 import { Block } from './contexts/BlockContext';
 import { DsProxyProvider } from './contexts/DsProxyContext';
+import { ConnectionProvider } from './contexts/ConnectionContext';
 
 function App() {
 
@@ -15,12 +16,13 @@ function App() {
       <CssBaseline />
       <Container maxWidth="lg">
         <div>
-          <Block>
-            <DsProxyProvider>
-              <ConnectButton></ConnectButton>
-              <Unifi></Unifi>
-            </DsProxyProvider>
-          </Block>
+          <ConnectionProvider>
+            <Block>
+                <DsProxyProvider>
+                  <Unifi></Unifi>
+                </DsProxyProvider>
+            </Block>
+          </ConnectionProvider>
         </div>
       </Container>
     </React.Fragment>

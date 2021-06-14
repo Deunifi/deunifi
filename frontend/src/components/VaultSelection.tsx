@@ -1,7 +1,6 @@
-import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
-import { Card, CardContent, FormControl, FormHelperText, InputLabel, ListSubheader, MenuItem, Select, Typography } from "@material-ui/core";
+import { FormControl, FormHelperText, InputLabel, ListSubheader, MenuItem, Select } from "@material-ui/core";
 import { useContext } from "react";
-import { useVaultContext, useVaults, VaultSelectionContext, IVaultSelectionItem } from "../contexts/VaultSelectionContext";
+import { VaultSelectionContext, IVaultSelectionItem } from "../contexts/VaultSelectionContext";
 
 interface Props { }
 
@@ -16,9 +15,7 @@ function keyFromVault(v: IVaultSelectionItem | undefined){
 
 export const VaultSelection: React.FC<Props> = ({ children }) => {
 
-    const { vault, setVault } = useContext(VaultSelectionContext)
-
-    const { userVaults, protocolVaults } = useVaults()
+    const { vault, setVault, userVaults, protocolVaults } = useContext(VaultSelectionContext)
 
     const vaults: IVaultSelectionItem[] = [...userVaults, ...protocolVaults]
 
@@ -45,14 +42,14 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
                             value={keyFromVault(vault)} // TODO check vault.ilk 
                             >
 
-                            { userVaults.length == 0 ? '' : <ListSubheader>Your vaults</ListSubheader> }
+                            { userVaults.length == 0 ? undefined : <ListSubheader>Your vaults</ListSubheader> }
                             {userVaults.map(vault => (
                                 <MenuItem value={keyFromVault(vault)} key={keyFromVault(vault)}>
                                     { vault.cdp ? `#${vault.cdp.toString()} - ${vault.ilk}` : vault.ilk}
                                 </MenuItem>
                             ))}
 
-                            { userVaults.length == 0 ? '' : <ListSubheader>Open new vault</ListSubheader> }
+                            { userVaults.length == 0 ? undefined : <ListSubheader>Open new vault</ListSubheader> }
                             {protocolVaults.map(vault => (
                                 <MenuItem value={keyFromVault(vault)} key={keyFromVault(vault)}>
                                     { vault.cdp ? `#${vault.cdp.toString()} - ${vault.ilk}` : vault.ilk}

@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useProvider } from "../components/Connection";
+import { useConnectionContext } from "./ConnectionContext";
 
 const BlockContext = createContext<{ blocknumber: number }>({ blocknumber: 0 })
 const { Provider } = BlockContext
@@ -12,7 +12,7 @@ interface Props { }
 export const Block: React.FC<Props> = ({ children }) => {
 
     const [blocknumber, setBlocknumber] = useState<any>()
-    const provider = useProvider()
+    const { provider } = useConnectionContext()
 
     useEffect(() => {
         if (!provider)

@@ -1,8 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber"
 import { parseUnits } from "@ethersproject/units"
-import { type } from "node:os"
-import { InputType } from "node:zlib"
-import React, { useEffect, useState } from "react"
+import { useState } from "react"
 
 export const parseBigNumber = (text:string, decimals=18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
 

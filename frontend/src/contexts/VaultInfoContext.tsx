@@ -7,8 +7,8 @@ import React, { createContext, useContext, useState } from 'react';
 import { useBlockContext } from '../contexts/BlockContext';
 import { useVaultContext, VaultSelectionContext } from '../contexts/VaultSelectionContext';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
-import { useProvider } from '../components/Connection';
 import { useContract } from '../components/Deployments';
+import { useConnectionContext } from './ConnectionContext';
 const { CPromise } = require("c-promise2");
 
 interface Props { }
@@ -153,7 +153,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
     
     // TODO Decide if PIP is going to be used or calculation using spot and mat.
     const pip = useContract('Pip')
-    const provider = useProvider()
+    const { provider } = useConnectionContext()
 
     const [vaultInfo, setVaultInfo] = useState<IVaultInfo>(emptyVaultInfo)
 

@@ -7,7 +7,6 @@ import { useServiceFee } from "../hooks/useServiceFee";
 import { useSwapService, IGetAmountsInResult } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
 import { useForm, defaultSideEffect, IChangeBigNumberEvent } from "../utils/forms";
-import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { decreaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
@@ -19,6 +18,8 @@ import { useVaultExpectedStatusContext, IVaultExpectedStatus } from "../contexts
 import { SimpleCard } from "./VaultInfo";
 import { useApyContext } from "../contexts/APYContext";
 import { useLendingPool } from "../hooks/useLendingPool";
+import { useConnectionContext } from "../contexts/ConnectionContext";
+import { OpenVaultButton } from "./OpenVaultButton";
 
 interface Props { }
 
@@ -217,11 +218,11 @@ export const pairDelta = (token: string, [token0, token1]: string[], inSwapResul
 }
 
 
-export const LockAndDraw: React.FC<Props> = ({ children }) => {
+export const LockAndDraw: React.FC<Props> = ({}) => {
 
     const { vaultInfo } = useVaultInfoContext()
     const dai = useContract('Dai')
-    const signer = useSigner()
+    const { signer, address } = useConnectionContext()
 
     const form = useForm<ITextForm, IClenedForm, IFormErrors>(emptyTextForm, emptyClenedForm)
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(emptyExpectedResult)
@@ -248,7 +249,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
         const token0 = vaultInfo.ilkInfo.token0.contract
         const token1 = vaultInfo.ilkInfo.token1.contract
 
-        const signerAddress = (yield signer.getAddress()) as string
+        const signerAddress = address
 
         const errors: IFormErrors = { ...emptyFormErrors }
 
@@ -502,7 +503,7 @@ export const LockAndDraw: React.FC<Props> = ({ children }) => {
             !daiJoin || !vaultInfo.ilkInfo.univ2Pair || !jug || !weth || !dssPsm || !vaultInfo.cdp)
             return
 
-        const sender = await signer.getAddress()
+        const sender = address
 
         const operation: BigNumber = await deunifi.LOCK_AND_DRAW()
 
@@ -968,7 +969,7 @@ export const TokenFromUserInput: React.FC<{
             </Grid>
             
             {/* {expectedResult.pathFromDaiToTokenA.map(address => (<Chip label={address} />))} */}
-        
+            
             <ApprovalButton
                 needsApproval={needsApproval}
                 dsProxy={dsProxy}

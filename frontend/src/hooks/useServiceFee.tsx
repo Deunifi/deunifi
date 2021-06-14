@@ -2,8 +2,8 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { parseUnits } from "@ethersproject/units";
 import { Contract, ethers } from "ethers";
 import { useState } from "react";
-import { useProvider, useSigner } from "../components/Connection";
 import { useContract } from "../components/Deployments";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useEffectAutoCancel } from "./useEffectAutoCancel";
 
 type EffectAsyncCallback = () => Promise<void>;
@@ -39,9 +39,8 @@ export const useServiceFee = () => {
     const feeManager = useContract('FeeManager') // feeManager ABI should be available, no matters if it is deployed.
     const deunifi = useContract('Deunifi')
 
-    const signer = useSigner()
+    const { signer, provider } = useConnectionContext()
     const [serviceFee, setServiceFee] = useState<ServiceFee>(zeroServiceFee)
-    const provider = useProvider()
 
     useEffectAutoCancel(function* (){
         

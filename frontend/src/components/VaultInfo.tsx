@@ -146,20 +146,6 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
     return (
         <div>
-
-            <SimpleCard>
-                            <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
-                                <Grid item xs={8}>
-                                    <VaultSelection>
-                                    </VaultSelection>
-                                </Grid>
-                                <Grid item xs={4}>
-                                    <Box mt={2}>
-                                        <OpenVaultButton></OpenVaultButton>
-                                    </Box>
-                                </Grid>
-                            </Grid>
-            </SimpleCard>
             <Box hidden={vaultInfo.ilkInfo.ilk? false : true} mt={1}>
 
                 <SimpleCard>

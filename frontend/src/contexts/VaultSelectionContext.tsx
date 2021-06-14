@@ -6,7 +6,7 @@ import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useContract } from "../components/Deployments";
 import { useDsProxyContext } from "./DsProxyContext";
 
-export function useIlkList(){
+function useIlkList(){
 
     const ilkRegistry = useContract('IlkRegistry')
 
@@ -34,7 +34,7 @@ interface IUserVaultSelectionItem {
     ilk: string,
 }
 
-export function useUserVaults() {
+function useUserVaults() {
 
     const [vaults, setVaults] = useState<IUserVaultSelectionItem[]>([])
 
@@ -107,7 +107,7 @@ export interface IVaultSelectionItem {
     ilk: string,
 }
 
-export function useVaults() {
+function useVaults() {
 
     const ilkList = useIlkList()
 
@@ -125,7 +125,19 @@ export function useVaults() {
 
 interface Props { }
 
-export const VaultSelectionContext = createContext<{ vault?: IVaultSelectionItem, setVault: Dispatch<IVaultSelectionItem> }>({ setVault: () => { console.error('Call to default function')}})
+interface IVaultSelectionContextData{
+    vault?: IVaultSelectionItem,
+    setVault: Dispatch<IVaultSelectionItem>,
+    userVaults: IVaultSelectionItem[],
+    protocolVaults: IVaultSelectionItem[],
+}
+
+export const VaultSelectionContext = createContext<IVaultSelectionContextData>({
+    setVault: () => { console.error('Call to default function')},
+    userVaults: [],
+    protocolVaults: [],
+})
+
 const { Provider } = VaultSelectionContext
 
 export const useVaultContext = () => useContext(VaultSelectionContext)
@@ -134,22 +146,21 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
 
     const { userVaults, protocolVaults } = useVaults()
     const [vault, setVault] = useState<IVaultSelectionItem>()
-    const value = {vault, setVault}
 
     useEffect(() => {
         if (userVaults.length != 0) {
             setVault(userVaults[userVaults.length-1])
-        // }
+        }
         // FIXME
-        // else if (protocolVaults.length != 0){
-        //     setVault(protocolVaults[0])
+        else if (protocolVaults.length != 0){
+            setVault(protocolVaults[0])
         } else {
             setVault(undefined)
         }
-    }, [userVaults])
+    }, [userVaults, protocolVaults])
 
     return (
-        <Provider value={value}>
+        <Provider value={{vault, setVault, userVaults, protocolVaults}}>
             {children}
         </Provider>
     )

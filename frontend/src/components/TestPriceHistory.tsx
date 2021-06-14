@@ -5,8 +5,8 @@ import { id } from "@ethersproject/hash";
 import { formatBytes32String } from "@ethersproject/strings";
 import gql from "graphql-tag";
 import { useEffect, useState } from "react";
-import { useProvider } from "../components/Connection";
 import { DEFAULT_APY_DAYS, useApyContext } from "../contexts/APYContext";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useVaultInfoContext } from "../contexts/VaultInfoContext";
 import { useVaultContext } from "../contexts/VaultSelectionContext";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
@@ -31,7 +31,7 @@ export const TestPriceHistory: React.FC<Props> = ({ children }) => {
 
     // Prices from PIP
 
-    const provider = useProvider()
+    const { provider } = useConnectionContext()
     const pip = useContract('Pip')
     const spotter = useContract('Spotter')
     const { vault } = useVaultContext()

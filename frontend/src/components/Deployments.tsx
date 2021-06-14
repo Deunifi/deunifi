@@ -1,9 +1,7 @@
 import { Contract } from "@ethersproject/contracts";
-import { useWeb3React } from "@web3-react/core";
-import { ethers } from "ethers";
 import { useState } from "react";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
-import { useSigner, useProvider } from "./Connection";
 
 interface IContractDeployment {
     name?: string,
@@ -25,13 +23,13 @@ function folderByQueryParam(){
 
 export function useDeploymentsFolder() {
 
-    const web3React = useWeb3React<ethers.providers.Web3Provider>()
+    const {web3React} = useConnectionContext()
 
     const [deploymentsFolder, setDeploymentsFolder] = useState<string>()
 
     useEffectAutoCancel(function* (){
 
-            if (!web3React.chainId){
+            if (!web3React || !web3React.chainId){
                 setDeploymentsFolder(undefined)
                 return
             }
@@ -51,8 +49,7 @@ export function useContract(contractName: string){
     const [contract, setContract] = useState<Contract>()
 
     const deploymentsFolder = useDeploymentsFolder()
-    const provider = useProvider()
-    const signer = useSigner()
+    const {provider, signer} = useConnectionContext()
 
     useEffectAutoCancel(function* (){
 

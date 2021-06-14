@@ -2,14 +2,14 @@ import { Contract } from "@ethersproject/contracts";
 import { ethers } from "ethers";
 import { createContext, useContext, useState } from "react";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
-import { useSigner, useProvider } from "../components/Connection";
 import { useContract } from "../components/Deployments";
+import { useConnectionContext } from "./ConnectionContext";
 
 export function useDSProxyAddress() {
 
     const [dsProxyAddress, setDSProxyAddress] = useState<string>()
 
-    const signer = useSigner()
+    const { signer } = useConnectionContext()
     const proxyRegistry = useContract('ProxyRegistry')
     const proxyFactory = useContract('DSProxyFactory')
 
@@ -33,8 +33,6 @@ export function useDSProxyAddress() {
             )
 
     }, [proxyRegistry, signer, proxyFactory])
-
-    const provider = useProvider()
 
     return [dsProxyAddress, setDSProxyAddress]
 

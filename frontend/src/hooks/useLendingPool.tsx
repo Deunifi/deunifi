@@ -1,12 +1,8 @@
 import { BigNumber } from "@ethersproject/bignumber";
-import { parseUnits } from "@ethersproject/units";
 import { Contract, ethers } from "ethers";
 import { useState } from "react";
-import { useProvider, useSigner } from "../components/Connection";
 import { useContract } from "../components/Deployments";
 import { useEffectAutoCancel } from "./useEffectAutoCancel";
-
-type EffectAsyncCallback = () => Promise<void>;
 
 type LoanFeeCalculationFunction = (amount: BigNumber) => BigNumber
 const zeroFunction: LoanFeeCalculationFunction = () => ethers.constants.Zero

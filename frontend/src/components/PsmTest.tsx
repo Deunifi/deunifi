@@ -1,10 +1,10 @@
 import { Contract } from "@ethersproject/contracts";
 import { BigNumber, ethers } from "ethers";
 import React, { useState } from "react";
-import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { formatEther, formatUnits, parseEther, parseUnits } from "@ethersproject/units";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 
 interface IExpectedResult {
     gemAmountTo: BigNumber,
@@ -32,7 +32,7 @@ export const PsmTest: React.FC<Props> = ({ children }) => {
     const [amountFrom, setAmountFrom] = useState<BigNumber>(ethers.constants.Zero)
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(initialExpectedResult)
 
-    const signer = useSigner()
+    const { signer } = useConnectionContext()
 
     const dssPsm = useContract('DssPsm')
     const gem = useContract('Gem')

@@ -11,7 +11,8 @@ import { VaultExpectedStatusProvider } from '../contexts/VaultExpectedStatusCont
 import { ApolloClient, ApolloProvider, gql, InMemoryCache } from '@apollo/client';
 import { APYProvider } from '../contexts/APYContext';
 import { Grid } from '@material-ui/core';
-import { TestPriceHistory } from './TestPriceHistory';
+import ConnectButton from './Connection';
+// import { TestPriceHistory } from './TestPriceHistory';
 
 
 interface Props { }
@@ -32,15 +33,17 @@ export const Unifi: React.FC<Props> = () => {
             </PsmTest>
             <OneInchTest>
             </OneInchTest> */}
-            {
-                dsProxy?
-                    <div>
                         <ApolloProvider client={client}>
                             <VaultSelectionProvider>
                                 <VaultInfoProvider>
                                     <VaultExpectedOperationProvider>
                                         <VaultExpectedStatusProvider>
                                             <APYProvider>
+                                                <ConnectButton></ConnectButton>
+                                                {
+                                                dsProxy?
+                                                <div>
+
                                                 <Grid container spacing={2}>
                                                     <Grid item xs={4}>
                                                         <VaultInfo></VaultInfo>
@@ -50,15 +53,17 @@ export const Unifi: React.FC<Props> = () => {
                                                     </Grid>
                                                 </Grid>
                                                 {/* <PriceHistory></PriceHistory> */}
+                                                </div>
+                                                : undefined
+            }
+        
+
                                             </APYProvider>
                                         </VaultExpectedStatusProvider>
                                     </VaultExpectedOperationProvider>
                                 </VaultInfoProvider>
                             </VaultSelectionProvider>
                         </ApolloProvider>
-                    </div>
-                    : undefined
-            }
-        </div>
+                        </div>
     )
 }

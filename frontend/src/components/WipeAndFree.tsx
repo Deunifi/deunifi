@@ -2,7 +2,6 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseUnits } from '@ethersproject/units';
 import { Contract, ethers, PopulatedTransaction } from 'ethers';
 import React, { useEffect, useState } from 'react';
-import { useSigner } from './Connection';
 import { useContract } from './Deployments';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForWipeAndFree } from '../utils/format';
@@ -16,6 +15,7 @@ import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from 
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
 import { ErrorMessage } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
+import { useConnectionContext } from '../contexts/ConnectionContext';
 
 interface Props { }
 
@@ -444,7 +444,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     }
 
     const deunifi = useContract('Deunifi')
-    const signer = useSigner()
+    const {signer} = useConnectionContext()
     const {dsProxy} = useDsProxyContext()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')

@@ -1,10 +1,10 @@
 import { Contract } from "@ethersproject/contracts";
 import { BigNumber, ethers } from "ethers";
 import React, { useState } from "react";
-import { useSigner } from "./Connection";
 import { useContract } from "./Deployments";
 import { formatUnits, parseUnits } from "@ethersproject/units";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 
 interface IForm {
 }
@@ -84,7 +84,7 @@ export const OneInchTest: React.FC<Props> = ({ children }) => {
     const [form, setForm] = useState<ITextForm>(initialForm)
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(initialExpectedResult)
 
-    const signer = useSigner()
+    const { signer } = useConnectionContext()
 
     const oneSplitAudit = useContract('OneSplitAudit')
     const erc20 = useContract('Gem')

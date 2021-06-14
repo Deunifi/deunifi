@@ -1,46 +1,12 @@
 import { useWeb3React } from '@web3-react/core';
 import { ethers } from 'ethers'
-import { InjectedConnector } from '@web3-react/injected-connector'
-import { useEffect, useState } from 'react';
-import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
-import { AppBar, Box, Button, Card, CardActions, CardContent, createStyles, Grid, makeStyles, Theme, Toolbar, Typography } from '@material-ui/core';
+import { AppBar, Box, Button, Card, CardContent, createStyles, Grid, makeStyles, Theme, Toolbar, Typography } from '@material-ui/core';
 import { CreateProxyButton } from './CreateProxyButton';
 import { useDsProxyContext } from '../contexts/DsProxyContext';
-import { VaultActualValue } from '../components/VaultInfo';
+import { useConnectionContext } from '../contexts/ConnectionContext';
+import { SimpleCard } from './VaultInfo';
 import { VaultSelection } from './VaultSelection';
-
-const injectedConnector = new InjectedConnector({
-  supportedChainIds: [
-    1, // Mainet
-    3, // Ropsten
-    4, // Rinkeby
-    5, // Goerli
-    42, // Kovan
-    1337, //localhost
-  ],
-})
-
-export function useProvider() {
-  const web3React = useWeb3React<ethers.providers.Web3Provider>()
-  const [provider, setProvider] = useState<ethers.providers.Web3Provider>()
-
-  useEffect(() => {
-    setProvider(web3React.library)
-  }, [web3React])
-
-  return provider
-}
-
-export function useSigner() {
-  const web3React = useWeb3React<ethers.providers.Web3Provider>()
-  const [signer, setSigner] = useState<ethers.providers.JsonRpcSigner>()
-
-  useEffect(() => {
-    setSigner(web3React.library?.getSigner())
-  }, [web3React])
-
-  return signer
-}
+import { OpenVaultButton } from './OpenVaultButton';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -72,31 +38,13 @@ const ConnectionProperty: React.FC<{ label: string, value: string|number }> = ({
 function ConnectButton() {
 
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
-  const signer = useSigner()
-  const [address, setAddress] = useState<string>()
-
-  useEffectAutoCancel(function* () {
-    if (!signer)
-      setAddress(ethers.constants.AddressZero)
-    else
-      setAddress((yield signer.getAddress()) as string)
-  }, [signer])
-
-
-  const toogleConnection = () => {
-    if (!web3React.active)
-      web3React.activate(injectedConnector)
-    else
-      web3React.deactivate()
-  }
+  const { signer, address, toogleConnection } = useConnectionContext()
 
   const classes = useStyles();
 
   const { dsProxy } = useDsProxyContext()
 
   return (
-
-    
 
       <Grid container spacing={2}>
         <Grid item xs={12} >
@@ -121,7 +69,34 @@ function ConnectButton() {
           </AppBar>
           </div >
         </Grid>
-        <Grid item xs={12}>
+        
+        <Grid item xs={4}>
+          
+            { web3React.active ?
+              <SimpleCard>
+              {
+                          dsProxy ?
+                              <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
+                                  <Grid item xs={8}>
+                                      <VaultSelection>
+                                      </VaultSelection>
+                                  </Grid>
+                                  <Grid item xs={4}>
+                                      <Box mt={2}>
+                                          <OpenVaultButton></OpenVaultButton>
+                                      </Box>
+                                  </Grid>
+                              </Grid>
+                            : <CreateProxyButton></CreateProxyButton>
+                          }
+                </SimpleCard>
+                : undefined
+                        }
+                       
+
+        </Grid>
+        
+        <Grid item xs={8}>
 
           {
             web3React.active ?
@@ -133,27 +108,14 @@ function ConnectButton() {
 
                   <Grid container spacing={2} alignItems="center" direction="row" justify="space-around">
 
-                  <Grid item xs={4}>
-                      {
-                        dsProxy ?
-                          // <VaultSelection></VaultSelection>
-                          <ConnectionProperty 
-                          label='Proxy'
-                          value={dsProxy.address || ''}
-                          />
-                          : <CreateProxyButton></CreateProxyButton>
-                      }
-                    </Grid>
-
-
-                  <Grid item xs={4}>
+                  <Grid item xs={6}>
                       <ConnectionProperty 
                         label='Address'
                         value={address || ''}
                         />
                     </Grid>
 
-                    <Grid item xs={4}>
+                    <Grid item xs={6}>
                       <ConnectionProperty 
                         label='Chain ID'
                         value={web3React.chainId || ''}
