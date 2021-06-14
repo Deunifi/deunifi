@@ -30,9 +30,10 @@ export const useApyContext = () => useContext(ApyContext)
 
 interface Props { }
 
-export const MAX_APY_DAYS=365
+export const DEFAULT_APY_DAYS=30
+export const MAX_APY_DAYS=60
 
-const LAST_DAYS = gql`query Dog($pairAddress: String!, $dateFrom: Int!, $days: Int!) {
+const LAST_DAYS = gql`query LastDays($pairAddress: String!, $dateFrom: Int!, $days: Int!) {
     pairDayDatas(first: $days, orderBy: date, orderDirection: asc,
         where: {
             pairAddress: $pairAddress,
@@ -121,7 +122,7 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
     const [apy, setApy] = useState<IApy>(initialApy)
     const { vaultInfo } = useVaultInfoContext()
     const { vaultExpectedStatus } = useVaultExpectedStatusContext()
-    const [days, setDays] = useState<number>(MAX_APY_DAYS)
+    const [days, setDays] = useState<number>(DEFAULT_APY_DAYS)
 
 
     // TODO Handle error using data.errors or error
