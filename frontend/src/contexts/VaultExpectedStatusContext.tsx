@@ -83,7 +83,7 @@ export const VaultExpectedStatusProvider: React.FC<Props> = ({ children }) => {
                 vaultExpectedStatus.dart
                 .mul(parseUnits('1',27))
                 .lt(vaultInfo.dust))
-                vaultExpectedStatusErrors.debtFloor = `The debt's vault must be higher than ${formatUnits(vaultInfo.dust, 45)}.`
+                vaultExpectedStatusErrors.debtFloor = `The vault's debt must be higher than ${formatUnits(vaultInfo.dust, 45)}.`
     
             // Verifying Collateralization ratio
 

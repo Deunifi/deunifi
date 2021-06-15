@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseUnits } from '@ethersproject/units';
 import { Contract, ethers, PopulatedTransaction } from 'ethers';
-import React, { useEffect, useState } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import { useContract } from './Deployments';
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { encodeParamsForWipeAndFree } from '../utils/format';
@@ -13,9 +13,11 @@ import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
-import { ErrorMessage } from '../components/LockAndDraw'
+import { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
+import { Box, Button, ButtonBaseClassKey, FormControlLabel, Grid, Switch, TextField, TextFieldClassKey, Typography } from '@material-ui/core';
+import { SimpleCard } from './VaultInfo';
 
 interface Props { }
 
@@ -48,7 +50,7 @@ const emptyWipeAndFreeParameters: IWipeAndFreeParameters = {
     daiFromTokenB: BigNumber.from(0),
     pathFromTokenBToDai: [],
 
-    slippageTolerance: parseUnits('.01',6), // ratio with 6 decimals
+    slippageTolerance: parseUnits('.01', 6), // ratio with 6 decimals
     transactionDeadline: BigNumber.from(120), // minutes
 
     reciveETH: true,
@@ -69,6 +71,7 @@ interface IWipeAndFreeForm {
     transactionDeadline: string, // minutes
 
     reciveETH: boolean,
+    displayAdditionalOptions: boolean,
 }
 
 const emptyWipeAndFreeForm: IWipeAndFreeForm = {
@@ -83,9 +86,10 @@ const emptyWipeAndFreeForm: IWipeAndFreeForm = {
     slippageTolerance: formatUnits(emptyWipeAndFreeParameters.slippageTolerance, 4),
     transactionDeadline: emptyWipeAndFreeParameters.transactionDeadline.toString(),
     reciveETH: true,
+    displayAdditionalOptions: false,
 }
 
-export const parseBigNumber = (text:string, decimals=18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
+export const parseBigNumber = (text: string, decimals = 18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
 
 const SLIPPAGE_TOLERANCE_UNIT = parseUnits('1', 6)
 
@@ -102,35 +106,37 @@ export const decreaseWithTolerance = (amount: BigNumber, tolerance: BigNumber): 
 }
 
 export async function proxyExecute(
-    proxy: Contract, methodInProxy: string, 
+    proxy: Contract, methodInProxy: string,
     target: Contract, methodInTarget: string, params: any[],
-    overrides: { value?: BigNumber, gasLimit?: number } = {}): Promise<TransactionResponse>{
+    overrides: { value?: BigNumber, gasLimit?: number } = {}): Promise<TransactionResponse> {
 
     const transaction: PopulatedTransaction = await target.populateTransaction[methodInTarget](...params)
-  
+
     return await proxy[methodInProxy](target.address, transaction.data, overrides)
-  
+
 }
 
 export function deadline(secondsFromNow: number): BigNumber {
-    return BigNumber.from(Math.floor(Date.now()/1000)+secondsFromNow)
+    return BigNumber.from(Math.floor(Date.now() / 1000) + secondsFromNow)
 }
 
 interface IErrors {
     tooMuchDai?: string,
-    tooMuchCollateralToFree?: string
+    tooMuchCollateralToFree?: string,
+    tooMuchCollateralToSwap?: string,
     notEnoughCollateralToCoverDai?: string,
     notEnoughCollateralToFree?: string,
     notEnoughDaiToCoverFlashLoanAndFees?: string,
     invalidCombinationOfDaiAmount?: string,
 }
 
-interface IExpectedResult{
+interface IExpectedResult {
     daiFromFlashLoan: BigNumber,
     usePsmForToken0: boolean,
     usePsmForToken1: boolean,
     token0AmountForDai: BigNumber,
     token1AmountForDai: BigNumber,
+    debTokenNeedsApproval: boolean,
 }
 
 const initialExpectedResult: IExpectedResult = {
@@ -139,6 +145,7 @@ const initialExpectedResult: IExpectedResult = {
     usePsmForToken1: false,
     token0AmountForDai: ethers.constants.Zero,
     token1AmountForDai: ethers.constants.Zero,
+    debTokenNeedsApproval: false,
 }
 
 export const WipeAndFree: React.FC<Props> = ({ children }) => {
@@ -147,7 +154,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const swapService = useSwapService()
     const [params, setParams] = useState<IWipeAndFreeParameters>(emptyWipeAndFreeParameters)
     const [form, setForm] = useState<IWipeAndFreeForm>(emptyWipeAndFreeForm)
-    
+
     const [daiLoanPlusFees, setDaiLoanPlusFees] = useState<BigNumber>(BigNumber.from(0))
     const [daiLoanFees, setDaiLoanFees] = useState<BigNumber>(BigNumber.from(0))
     const [daiServiceFee, setDaiServiceFee] = useState<BigNumber>(BigNumber.from(0))
@@ -160,12 +167,12 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const [daiFromTokenAModifiedByUser, setDaiFromTokenAModifiedByUser] = useState(false)
     const [daiFromTokenBModifiedByUser, setDaiFromTokenBModifiedByUser] = useState(false)
 
-    useEffectAutoCancel(function* (){
+    useEffectAutoCancel(function* () {
         if (daiFromTokenAModifiedByUser)
-            daiFromTokenAChange({target: {value: form.daiFromTokenA}})
+            daiFromTokenAChange({ target: { value: form.daiFromTokenA } })
         else if (daiFromTokenBModifiedByUser)
-            daiFromTokenBChange({target: {value: form.daiFromTokenB}})
-    },[blocknumber])
+            daiFromTokenBChange({ target: { value: form.daiFromTokenB } })
+    }, [blocknumber])
 
     interface IChangeDaiFromTokenEvent {
         target: {
@@ -177,10 +184,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         try {
             let value = e.target.value
             let daiFromTokenA = parseBigNumber(value)
-            if (daiFromTokenA.gt(daiLoanPlusFees)){
+            if (daiFromTokenA.gt(daiLoanPlusFees)) {
                 daiFromTokenA = daiLoanPlusFees
                 value = formatEther(daiFromTokenA)
-            }else if (daiFromTokenA.isNegative()){
+            } else if (daiFromTokenA.isNegative()) {
                 daiFromTokenA = BigNumber.from(0)
                 value = '0'
             }
@@ -189,10 +196,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             setDaiFromTokenAModifiedByUser(true)
             setDaiFromTokenBModifiedByUser(false)
 
-            setParams({...params, daiFromTokenA, daiFromTokenB})
-            setForm({...form, daiFromTokenA: value, daiFromTokenB: formatEther(daiFromTokenB)})
+            setParams({ ...params, daiFromTokenA, daiFromTokenB })
+            setForm({ ...form, daiFromTokenA: value, daiFromTokenB: formatEther(daiFromTokenB) })
         } catch (error) {
-            setForm({...form, daiFromTokenA: e.target.value})
+            setForm({ ...form, daiFromTokenA: e.target.value })
         }
     }
 
@@ -200,10 +207,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         try {
             let value = e.target.value
             let daiFromTokenB = parseBigNumber(value)
-            if (daiFromTokenB.gt(daiLoanPlusFees)){
+            if (daiFromTokenB.gt(daiLoanPlusFees)) {
                 daiFromTokenB = daiLoanPlusFees
                 value = formatEther(daiFromTokenB)
-            }else if (daiFromTokenB.isNegative()){
+            } else if (daiFromTokenB.isNegative()) {
                 daiFromTokenB = BigNumber.from(0)
                 value = '0'
             }
@@ -211,10 +218,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
             setDaiFromTokenAModifiedByUser(false)
             setDaiFromTokenBModifiedByUser(true)
-            setParams({...params, daiFromTokenA, daiFromTokenB})
-            setForm({...form, daiFromTokenB: value, daiFromTokenA: formatEther(daiFromTokenA)})
+            setParams({ ...params, daiFromTokenA, daiFromTokenB })
+            setForm({ ...form, daiFromTokenB: value, daiFromTokenA: formatEther(daiFromTokenA) })
         } catch (error) {
-            setForm({...form, daiFromTokenB: e.target.value})            
+            setForm({ ...form, daiFromTokenB: e.target.value })
         }
     }
 
@@ -229,13 +236,15 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const { getFeeFromGrossAmount, serviceFeeRatio: feeRatio } = useServiceFee()
 
-    useEffectAutoCancel(function* (){
+    useEffectAutoCancel(function* () {
 
-        setExpectedResult(initialExpectedResult)
-
-        if (!lendingPool.contract)
+        if (!lendingPool.contract || !dsProxy || !dai || !weth){
+            setExpectedResult({...initialExpectedResult})
             return
-        
+        }
+
+        const debTokenNeedsApprovalPromise = needsApproval(dai, address, dsProxy.address, params.daiFromSigner, weth.address, false)
+
         const daiFromFlashLoan = params.daiToPayback.gt(params.daiFromSigner) ?
             params.daiToPayback.sub(params.daiFromSigner)
             : ethers.constants.Zero
@@ -243,7 +252,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const lastDaiLoanFees = lendingPool.getLoanFee(daiFromFlashLoan)
         if (!lastDaiLoanFees.eq(daiLoanFees))
             setDaiLoanFees(lastDaiLoanFees)
-        
+
         const lastDaiLoanPlusFeesWithNoServiceFees = daiFromFlashLoan
             .add(lastDaiLoanFees)
 
@@ -265,9 +274,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             errors.tooMuchCollateralToFree = `You are trying to free more collateral than available in your vault. Max collateral to free: ${formatEther(vaultInfo.ink)}`
 
         interface ICalculationResult {
-            collateralToRemove: BigNumber, 
-            token0AmountForDai: BigNumber, 
-            token1AmountForDai: BigNumber, 
+            collateralToRemove: BigNumber,
+            token0AmountForDai: BigNumber,
+            token1AmountForDai: BigNumber,
             pairToken0Balance: BigNumber,
             pairToken1Balance: BigNumber,
             pairTotalSupply: BigNumber,
@@ -281,13 +290,13 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
          * TokenB -> DAI TokenB: 2) getAmountsIn(DAI TokenB) to obtain TokenB
          */
         const {
-            collateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance, 
+            collateralToRemove, token0AmountForDai, token1AmountForDai, pairToken0Balance, pairToken1Balance,
             pairTotalSupply, swapFromTokenAToDaiResult, swapFromTokenBToDaiResult
-        } = (yield* (function* (){
+        } = (yield* (function* () {
 
             const { univ2Pair, token0, token1 } = vaultInfo.ilkInfo
 
-            if (!univ2Pair || !token0 || !token1 || !dai || !router02){
+            if (!univ2Pair || !token0 || !token1 || !dai || !router02) {
                 return {
                     collateralToRemove: BigNumber.from(0),
                     token0AmountForDai: BigNumber.from(0),
@@ -301,19 +310,19 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             }
 
             const pairTotalSupplyPromise = univ2Pair.totalSupply()
-                // // TODO collateral to free removed from total supply?
-                // .add(params.collateralToFree)
-            
-            
+            // // TODO collateral to free removed from total supply?
+            // .add(params.collateralToFree)
+
+
             let pairToken0BalancePromise = token0.contract.balanceOf(univ2Pair.address)
             let pairToken1BalancePromise = token1.contract.balanceOf(univ2Pair.address)
-    
+
             const swapFromTokenAToDaiResultPromise = swapService.getAmountsIn(
                 token0.contract.address, dai.address, params.daiFromTokenA)
 
             const swapFromTokenBToDaiResultPromise = swapService.getAmountsIn(
                 token1.contract.address, dai.address, params.daiFromTokenB)
-    
+
             // // TODO pairTokenBalance should be adjusted to consider more/less Token0/Token1,
             // // as a result of swap operations in case pair token0/token1 be used in swap operation.
             // // This do not apply for PSM case.
@@ -342,11 +351,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 .mul(pairTotalSupply)
                 .div(pairToken1Balance)
 
-            const collateralToRemove = 
+            const collateralToRemove =
                 minLiquidityToRemoveForToken0.gt(minLiquidityToRemoveForToken1) ?
                     minLiquidityToRemoveForToken0
                     : minLiquidityToRemoveForToken1
-            
+
             return {
                 collateralToRemove,
                 token0AmountForDai, token1AmountForDai,
@@ -361,32 +370,32 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             params.slippageTolerance
         )
 
-        const token0ToRecieve = 
-            pairTotalSupply.isZero() ? BigNumber.from(0) 
-            : params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply)
+        const token0ToRecieve =
+            pairTotalSupply.isZero() ? BigNumber.from(0)
+                : params.collateralToUseToPayFlashLoan.mul(pairToken0Balance).div(pairTotalSupply)
 
         setToken0ToRecieve(
             token0ToRecieve.sub(token0AmountForDai).isNegative() ? BigNumber.from(0) : token0ToRecieve.sub(token0AmountForDai)
         )
-    
-        const token1ToRecieve = 
-            pairTotalSupply.isZero() ? BigNumber.from(0) 
-            : params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply)
+
+        const token1ToRecieve =
+            pairTotalSupply.isZero() ? BigNumber.from(0)
+                : params.collateralToUseToPayFlashLoan.mul(pairToken1Balance).div(pairTotalSupply)
 
         setToken1ToRecieve(
             token1ToRecieve.sub(token1AmountForDai).isNegative() ? BigNumber.from(0) : token1ToRecieve.sub(token1AmountForDai)
         )
-    
+
         const token0MinAmountToRecieve = decreaseWithTolerance( // Introduced remove liquidity operation tolerance
-                token0ToRecieve,
-                params.slippageTolerance
-            )
+            token0ToRecieve,
+            params.slippageTolerance
+        )
             .sub(token0AmountForDai)
 
         const token1MinAmountToRecieve = decreaseWithTolerance( // Introduced remove liquidity operation tolerance
-                token1ToRecieve,
-                params.slippageTolerance
-            )
+            token1ToRecieve,
+            params.slippageTolerance
+        )
             .sub(token1AmountForDai)
 
         setToken0MinAmountToRecieve(
@@ -399,25 +408,31 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         )
 
         if (params.collateralToUseToPayFlashLoan.lt(minCollateralToRemove))
-            if (minCollateralToRemove.lt(vaultInfo.ink))
-                errors.notEnoughCollateralToCoverDai = `The amount to remove from pool it is not enough. Minimal amount is ${formatEther(minCollateralToRemove)}.`
+            if (minCollateralToRemove.lt(vaultInfo.ink)){
+                //Minimal amount is ${formatEther(params.collateralToUseToPayFlashLoan)}
+                errors.notEnoughCollateralToFree = `The amount to free from vault it is not enough. Minimal amount is ${formatEther(minCollateralToRemove)}.`
+                errors.notEnoughCollateralToCoverDai = `The amount of collateral to swap it is not enough. Minimal amount is ${formatEther(minCollateralToRemove)}.`
+            }
             else
-                errors.invalidCombinationOfDaiAmount = `The combination of DAI amounts exeeds the available collateral in your vault. Please try reducing the DAI covered with ${params.daiFromTokenA.gt(params.daiFromTokenB)? vaultInfo.ilkInfo.token0?.symbol : vaultInfo.ilkInfo.token1?.symbol}.`
+                errors.invalidCombinationOfDaiAmount = `The combination of DAI amounts exeeds the available collateral in your vault. Please try reducing the DAI covered with ${params.daiFromTokenA.gt(params.daiFromTokenB) ? vaultInfo.ilkInfo.token0?.symbol : vaultInfo.ilkInfo.token1?.symbol}.`
 
         if (params.collateralToFree.lt(params.collateralToUseToPayFlashLoan))
-            errors.notEnoughCollateralToFree = `The collateral amount to free from vault it is not enough. Minimal amount is ${formatEther(params.collateralToUseToPayFlashLoan)}.`
+            errors.tooMuchCollateralToSwap = `You are trying to swap more collateral than you are freeing from your vault.`
 
         if (daiLoanPlusFees.gt(params.daiFromTokenA.add(params.daiFromTokenB)))
             errors.notEnoughDaiToCoverFlashLoanAndFees = `The amount of DAI from LP tokens is not enough. Need to cover ${formatEther(daiLoanPlusFees)}.`
 
         setErrors(errors)
 
-        setExpectedResult({ 
+        const debTokenNeedsApproval = (yield debTokenNeedsApprovalPromise) as boolean
+
+        setExpectedResult({
             usePsmForToken0: swapFromTokenAToDaiResult.psm.sellGem,
             usePsmForToken1: swapFromTokenBToDaiResult.psm.sellGem,
             token0AmountForDai,
             token1AmountForDai,
-            daiFromFlashLoan: daiFromFlashLoan
+            daiFromFlashLoan: daiFromFlashLoan,
+            debTokenNeedsApproval: debTokenNeedsApproval
         })
 
         setVaultExpectedOperation({
@@ -429,34 +444,34 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const { setVaultExpectedOperation } = useVaultExpectedOperationContext()
 
-    useEffect( () => {
+    useEffect(() => {
         setVaultExpectedOperation(initialVaultExpectedOperation)
-    },[])
+    }, [])
 
-    const onChangeBigNumber = (e: React.ChangeEvent<HTMLInputElement>, decimals: number=18) => {
+    const onChangeBigNumber = (e: React.ChangeEvent<HTMLInputElement>, decimals: number = 18) => {
         try {
             const value = parseBigNumber(e.target.value, decimals)
-            setParams({...params, [e.target.name]: value})
+            setParams({ ...params, [e.target.name]: value })
         } catch (error) {
-            
+
         }
-        setForm({...form, [e.target.name]: e.target.value})
+        setForm({ ...form, [e.target.name]: e.target.value })
     }
 
     const deunifi = useContract('Deunifi')
-    const {signer} = useConnectionContext()
-    const {dsProxy} = useDsProxyContext()
+    const { signer, address } = useConnectionContext()
+    const { dsProxy } = useDsProxyContext()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')
     const daiJoin = useContract('DaiJoin')
     const weth = useContract('WETH')
     const dssPsm = useContract('DssPsm')
 
-    const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>)=>{
+    const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
 
         e.preventDefault()
 
-        if (!deunifi || !signer || !dai || !lendingPool.contract || !dsProxy || 
+        if (!deunifi || !signer || !dai || !lendingPool.contract || !dsProxy ||
             !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !vaultInfo.ilkInfo.gem ||
             !vaultInfo.ilkInfo.gemJoin || !router02 || !dssProxyActions || !manager ||
             !daiJoin || !weth || !dssPsm || !vaultInfo.cdp)
@@ -467,59 +482,59 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const gemJoinAddress = await dssPsm.gemJoin()
 
         const dataForExecuteOperationCallback = encodeParamsForWipeAndFree(
-                await deunifi.WIPE_AND_FREE(),
-                sender, // address sender
-                dai.address, // address debtToken;
-                params.daiFromSigner.add(expectedResult.daiFromFlashLoan), // daiToPay
-                vaultInfo.ilkInfo.token0.contract.address, // address tokenA;
-                vaultInfo.ilkInfo.token1.contract.address, // address tokenB;
-                vaultInfo.ilkInfo.gem.address, // address pairToken;
-                params.collateralToFree, // uint collateralAmountToFree;
-                params.collateralToUseToPayFlashLoan, // uint collateralAmountToUseToPayDebt;
-                params.daiFromTokenA, // uint debtToCoverWithTokenA;
-                params.daiFromTokenB, // uint debtToCoverWithTokenB;
-                params.pathFromTokenAToDai, // address[] pathTokenAToDebtToken;
-                params.pathFromTokenBToDai, // address[] pathTokenBToDebtToken;
-                token0MinAmountToRecieve, // uint minTokenAToRecive;
-                token1MinAmountToRecieve, // uint minTokenAToRecive;
-                deadline(params.transactionDeadline.toNumber()*60),
-                dsProxy.address,
-                dssProxyActions.address,
-                manager.address,
-                vaultInfo.ilkInfo.gemJoin.address,
-                daiJoin.address,
-                vaultInfo.cdp,
-                router02.address,
-                params.reciveETH ? weth.address : ethers.constants.AddressZero,
-                expectedResult.usePsmForToken0 ? vaultInfo.ilkInfo.token0.contract.address : 
-                    expectedResult.usePsmForToken1 ? vaultInfo.ilkInfo.token1.contract.address :
-                        ethers.constants.AddressZero,
-                gemJoinAddress,
-                dssPsm.address,
-                expectedResult.usePsmForToken0 ? expectedResult.token0AmountForDai : 
-                    expectedResult.usePsmForToken1 ? expectedResult.token1AmountForDai :
-                        ethers.constants.Zero,
-                expectedResult.usePsmForToken0 ? params.daiFromTokenA : 
-                    expectedResult.usePsmForToken1 ? params.daiFromTokenA :
-                        ethers.constants.Zero,
-                lendingPool.contract.address,
+            await deunifi.WIPE_AND_FREE(),
+            sender, // address sender
+            dai.address, // address debtToken;
+            params.daiFromSigner.add(expectedResult.daiFromFlashLoan), // daiToPay
+            vaultInfo.ilkInfo.token0.contract.address, // address tokenA;
+            vaultInfo.ilkInfo.token1.contract.address, // address tokenB;
+            vaultInfo.ilkInfo.gem.address, // address pairToken;
+            params.collateralToFree, // uint collateralAmountToFree;
+            params.collateralToUseToPayFlashLoan, // uint collateralAmountToUseToPayDebt;
+            params.daiFromTokenA, // uint debtToCoverWithTokenA;
+            params.daiFromTokenB, // uint debtToCoverWithTokenB;
+            params.pathFromTokenAToDai, // address[] pathTokenAToDebtToken;
+            params.pathFromTokenBToDai, // address[] pathTokenBToDebtToken;
+            token0MinAmountToRecieve, // uint minTokenAToRecive;
+            token1MinAmountToRecieve, // uint minTokenAToRecive;
+            deadline(params.transactionDeadline.toNumber() * 60),
+            dsProxy.address,
+            dssProxyActions.address,
+            manager.address,
+            vaultInfo.ilkInfo.gemJoin.address,
+            daiJoin.address,
+            vaultInfo.cdp,
+            router02.address,
+            params.reciveETH ? weth.address : ethers.constants.AddressZero,
+            expectedResult.usePsmForToken0 ? vaultInfo.ilkInfo.token0.contract.address :
+                expectedResult.usePsmForToken1 ? vaultInfo.ilkInfo.token1.contract.address :
+                    ethers.constants.AddressZero,
+            gemJoinAddress,
+            dssPsm.address,
+            expectedResult.usePsmForToken0 ? expectedResult.token0AmountForDai :
+                expectedResult.usePsmForToken1 ? expectedResult.token1AmountForDai :
+                    ethers.constants.Zero,
+            expectedResult.usePsmForToken0 ? params.daiFromTokenA :
+                expectedResult.usePsmForToken1 ? params.daiFromTokenA :
+                    ethers.constants.Zero,
+            lendingPool.contract.address,
         )
 
-        try{
+        try {
             await proxyExecute(
                 dsProxy, 'execute(address,bytes)',
-                deunifi, 'flashLoanFromDSProxy',[
-                    sender,
-                    deunifi.address,
-                    params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
-                    params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
-                    lendingPool.contract.address,
-                    expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
-                    expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
-                    [BigNumber.from(0)], //modes
-                    dataForExecuteOperationCallback, // Data to be used on executeOperation
-                    ethers.constants.AddressZero
-                ]
+                deunifi, 'flashLoanFromDSProxy', [
+                sender,
+                deunifi.address,
+                params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
+                params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
+                lendingPool.contract.address,
+                expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
+                expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
+                [BigNumber.from(0)], //modes
+                dataForExecuteOperationCallback, // Data to be used on executeOperation
+                ethers.constants.AddressZero
+            ]
             )
         } catch (error) {
             // TODO Handle error
@@ -531,152 +546,351 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
 
     return (
-        <form>
-            <p>
-                <label>
-                    DAI to payback:
-                    <input type="number" value={form.daiToPayback} name="daiToPayback" onChange={(e) => onChangeBigNumber(e)}/>
-                    <button onClick={(e)=>{
-                        e.preventDefault()
-                        setForm({...form, daiToPayback: formatEther(vaultInfo.dart)})
-                        setParams({...params, daiToPayback: vaultInfo.dart})
-                    }}>Max</button>
-                </label>
-                <br></br>
-                <label>
-                    DAI From Signer:
-                    <input type="number" value={form.daiFromSigner} name="daiFromSigner" onChange={(e) => onChangeBigNumber(e)}/>
-                </label>
-            </p>
+        <Grid container spacing={2} alignItems="flex-start" direction="row" justify="space-evenly">
+            <Grid item xs={6}>
+                <SimpleCard>
 
-            <p>
-                {errors.tooMuchDai ? <span>{errors.tooMuchDai}<br></br></span> : ''}
-                {daiLoanFees.isZero() ? '' : <span>Flash Loan Fees ({formatUnits(lendingPool.loanFeeRatio,2)}%): {formatEther(daiLoanFees)} DAI<br></br></span>}
-                {daiServiceFee.isZero() ? '' : <span>Service Fee ({formatUnits(feeRatio, 2)}%): {formatEther(daiServiceFee)} DAI<br></br></span>}
-                {daiLoanPlusFees.isZero() ? '' : <span>Total Dai to get from collateral: {formatEther(daiLoanPlusFees)} DAI<br></br></span>}
-            </p>
+                    <Typography color="textSecondary" gutterBottom>
+                        Transaction Parameters
+                        </Typography>
 
-            <p>
-                <label>
-                    DAI Covered With {vaultInfo.ilkInfo.token0?.symbol}:
-                    <input type="number" value={form.daiFromTokenA} name="daiFromTokenA" onChange={ (e) => daiFromTokenAChange(e) }/>
-                    <br></br>
-                    [{params.pathFromTokenAToDai.join(', ')}]
-                </label>
-                <br></br>
-                <label>
-                    DAI Covered With {vaultInfo.ilkInfo.token1?.symbol}:
-                    <input type="number" value={form.daiFromTokenB} name="daiFromTokenB"  onChange={ (e) => daiFromTokenBChange(e) }/>
-                    <br></br>
-                    [{params.pathFromTokenBToDai.join(', ')}]
-                </label>
-            </p>
+                    <Box m={1}>
 
-            <p>
-                {errors.notEnoughDaiToCoverFlashLoanAndFees ? <span>{errors.notEnoughDaiToCoverFlashLoanAndFees}<br></br></span> : ''}
-                {errors.invalidCombinationOfDaiAmount ? <span>{errors.invalidCombinationOfDaiAmount}<br></br></span> : ''}
-            </p>
+                        <TextFieldWithOneButton
+                            textField={
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    margin="normal"
+                                    variant="outlined"
+                                    required
+                                    label='DAI to payback'
+                                    type="number"
+                                    value={form.daiToPayback} name="daiToPayback" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                                    helperText='Amount of DAI debt to payback'
+                                />
+                            }
+                            button={
+                                <Button
+                                    fullWidth
+                                    variant="outlined"
+                                    color="secondary"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        setForm({ ...form, daiToPayback: formatEther(vaultInfo.dart) })
+                                        setParams({ ...params, daiToPayback: vaultInfo.dart })
+                                    }}>
+                                    Max
+                                </Button>
+                            }
+                        ></TextFieldWithOneButton>
 
+                        <TextField
+                            fullWidth
+                            size="small"
+                            margin="normal"
+                            variant="outlined"
+                            required
+                            label={`DAI Covered With ${vaultInfo.ilkInfo.token0?.symbol}`}
+                            type="number"
+                            value={form.daiFromTokenA} name="daiFromTokenA" onChange={(e) => daiFromTokenAChange(e)}
+                            error={errors.notEnoughDaiToCoverFlashLoanAndFees || errors.invalidCombinationOfDaiAmount ? true : false}
+                            helperText={
+                                errors.notEnoughDaiToCoverFlashLoanAndFees 
+                                || errors.invalidCombinationOfDaiAmount
+                                || `Amount of ${vaultInfo.ilkInfo.token0?.symbol} to use to cover DAI debt`
+                            }
+                        />
+                        {/* [{params.pathFromTokenAToDai.join(', ')}] */}
 
-            <p>
-                <label>
-                    {vaultInfo.ilkInfo.symbol} To Remove From Pool:
-                    <input type="number" value={form.collateralToUseToPayFlashLoan} name="collateralToUseToPayFlashLoan" onChange={(e) => onChangeBigNumber(e)}/>
-                    <button onClick={(e)=>{
-                        e.preventDefault()
-                        setForm({...form, collateralToUseToPayFlashLoan: formatUnits(vaultInfo.ink), collateralToFree: formatUnits(vaultInfo.ink)})
-                        setParams({...params, collateralToUseToPayFlashLoan: vaultInfo.ink, collateralToFree: vaultInfo.ink})
-                    }}>Max</button>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            margin="normal"
+                            variant="outlined"
+                            required
+                            label={`DAI Covered With ${vaultInfo.ilkInfo.token1?.symbol}`}
+                            type="number"
+                            value={form.daiFromTokenB} name="daiFromTokenB" onChange={(e) => daiFromTokenBChange(e)}
+                            error={errors.notEnoughDaiToCoverFlashLoanAndFees || errors.invalidCombinationOfDaiAmount ? true : false}
+                            helperText={
+                                errors.notEnoughDaiToCoverFlashLoanAndFees
+                                || errors.invalidCombinationOfDaiAmount
+                                || `Amount of ${vaultInfo.ilkInfo.token1?.symbol} to use to cover DAI debt`
+                            }
+                        />
+                        {/* [{params.pathFromTokenBToDai.join(', ')}] */}
 
-                    {errors.notEnoughCollateralToCoverDai? 
-                        <span><br></br>{errors.notEnoughCollateralToCoverDai}</span>: ''}
-                </label>
+                        <TextFieldWithOneButton
+                            textField={
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    margin="normal"
+                                    variant="outlined"
+                                    required
+                                    label={`${vaultInfo.ilkInfo.symbol} To Free From Vault`}
+                                    type="number"
+                                    value={form.collateralToFree} name="collateralToFree" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                                    error={errors.tooMuchCollateralToFree || errors.notEnoughCollateralToFree ? true : false}
+                                    helperText={
+                                        errors.tooMuchCollateralToFree 
+                                        || errors.notEnoughCollateralToFree 
+                                        || `Amount of ${vaultInfo.ilkInfo.symbol} to use from your vault`
+                                    }
+                                />
+                            }
+                            button={
+                                <Button
+                                    fullWidth
+                                    variant="outlined"
+                                    color="secondary"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        setForm({ ...form, collateralToFree: formatUnits(vaultInfo.ink) })
+                                        setParams({ ...params, collateralToFree: vaultInfo.ink })
+                                    }}>
+                                    Max
+                                </Button>
+                            }
+                        ></TextFieldWithOneButton>
 
-                <br></br>
-                <label>
-                    {vaultInfo.ilkInfo.symbol} To Free From Vault:
-                    <input type="number" value={form.collateralToFree} name="collateralToFree" onChange={(e) => onChangeBigNumber(e)}/>
-                    <button onClick={(e)=>{
-                        e.preventDefault()
-                        setForm({...form, collateralToFree: formatUnits(vaultInfo.ink)})
-                        setParams({...params, collateralToFree: vaultInfo.ink})
-                    }}>Max</button>
-                    {errors.tooMuchCollateralToFree ? <span><br></br>{errors.tooMuchCollateralToFree}</span> : ''}
-                    {errors.notEnoughCollateralToFree ? <span><br></br>{errors.notEnoughCollateralToFree}</span> : ''}
+                        <TextFieldWithOneButton
+                            textField={
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    margin="normal"
+                                    variant="outlined"
+                                    required
+                                    label={`${vaultInfo.ilkInfo.symbol} To Swap`}
+                                    type="number"
+                                    value={form.collateralToUseToPayFlashLoan} name="collateralToUseToPayFlashLoan" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                                    error={errors.notEnoughCollateralToCoverDai || errors.tooMuchCollateralToSwap ? true : false}
+                                    helperText={
+                                        errors.notEnoughCollateralToCoverDai
+                                        || errors.tooMuchCollateralToSwap
+                                        || `Amount of ${vaultInfo.ilkInfo.symbol} to swap to ${vaultInfo.ilkInfo.token0?.symbol} and ${vaultInfo.ilkInfo.token1?.symbol}`
+                                    }
+                                />
+                            }
+                            button={
+                                <Button
+                                    fullWidth
+                                    variant="outlined"
+                                    color="secondary"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        setForm({ ...form, collateralToUseToPayFlashLoan: formatUnits(vaultInfo.ink), collateralToFree: formatUnits(vaultInfo.ink) })
+                                        setParams({ ...params, collateralToUseToPayFlashLoan: vaultInfo.ink, collateralToFree: vaultInfo.ink })
+                                    }}>
+                                    Max
+                                </Button>
+                            }
+                        ></TextFieldWithOneButton>
 
-                </label>
-            </p>
+                        <FormControlLabel
+                            control={
+                            <Switch
+                                size="medium"
+                                checked={form.displayAdditionalOptions}
+                                onChange={(e) => setForm({ ...form, displayAdditionalOptions: e.target.checked })}
+                                name="additionalOptions"
+                                color="primary"
+                            />
+                            }
+                            label="Display additional options"
+                            labelPlacement="end"
+                        />
 
-            <p>
-                <label>
-                    <input type="checkbox" checked={form.reciveETH} name="useETH" onChange={(e) => {
-                            setForm({...form, reciveETH: e.target.checked })
-                            setParams({...params, reciveETH: e.target.checked })
-                        }} />
-                    Recive ETH
-                </label>
-            </p>
+                        <Box hidden={!form.displayAdditionalOptions} m={1}>
 
+                            <TextFieldWithOneButton
+                                textField={
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        margin="normal"
+                                        variant="outlined"
+                                        label='DAI From Your Account'
+                                        type="number"
+                                        value={form.daiFromSigner} name="daiFromSigner" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                                        error={errors.tooMuchDai? true : false}
+                                        helperText={errors.tooMuchDai ? <span>{errors.tooMuchDai}<br></br></span> : 'Amount of DAI to use from your account'}
+                                    />
+                                }
+                                button={
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        color="secondary"
+                                        onClick={async (e) => {
+                                            e.preventDefault()
+                                            if (!dai)
+                                                return
+                                            const balance: BigNumber = await dai.balanceOf(address)
+                                            const max = params.daiToPayback.gt(balance) ? balance : params.daiToPayback
+                                            setForm({ ...form, daiFromSigner: formatEther(max) })
+                                            setParams({ ...params, daiFromSigner: max })
+                                        }}>
+                                        Max
+                                    </Button>
+                                }
+                            ></TextFieldWithOneButton>
+                            <ApprovalButton
+                                needsApproval={expectedResult.debTokenNeedsApproval}
+                                dsProxy={dsProxy}
+                                signer={signer}
+                                token={{ symbol: 'DAI', contract: dai }}
+                                >
+                            </ApprovalButton>
 
-            <p>
-                <label>
-                    Slippage Tolerance (%):
-                    <input type="number" value={form.slippageTolerance} name="slippageTolerance" onChange={(e) => onChangeBigNumber(e,4)}/>
-                </label>
-                <br></br>
-                <label>
-                    Transaction Deadline (minutes):
-                    <input type="number" value={form.transactionDeadline} name="transactionDeadline" onChange={(e) => onChangeBigNumber(e,0)}/>
-                </label>
-            </p>
+                            <Box
+                                p={1}
+                                hidden={vaultInfo.ilkInfo.token0?.symbol != 'WETH' && vaultInfo.ilkInfo.token1?.symbol != 'WETH'}
+                                >
+                                <FormControlLabel
+                                    control={
+                                    <Switch
+                                        size="medium"
+                                        checked={form.reciveETH}
+                                        onChange={(e) => {
+                                            setForm({ ...form, reciveETH: e.target.checked })
+                                            setParams({ ...params, reciveETH: e.target.checked })
+                                        }}
+                                        name="useETH"
+                                        color="secondary"
+                                    />
+                                    }
+                                    label="Recive ETH"
+                                    // labelPlacement="bottom"
+                                />
+                            </Box>
 
-            <p>
-                <span>
-                    Remaining debt: { formatEther(vaultExpectedStatus.dart) }
-                    {ErrorMessage(vaultExpectedStatusErrors.debtFloor)}
-                    <br></br>
-                </span>
-                <span>
-                    Remaining collateral: { formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec) }
-                    <br></br>
-                </span>
-                <span>
-                    New collateralization ratio: { formatEther(vaultExpectedStatus.collateralizationRatio) }
-                    {ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio)}
-                    <br></br>
-                </span>
+                            <TextField 
+                                    fullWidth
+                                    required
+                                    size="small"
+                                    margin="normal"
+                                    variant="outlined"
+                                    label='Slippage Tolerance (%)'
+                                    type="number" 
+                                    value={form.slippageTolerance} name="slippageTolerance" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>, 4)}
+                                    helperText="If transaction conditions are modified beyond tolerance, then the transaction will be rejected."
+                                    />
+                            
+                            <TextField 
+                                    fullWidth
+                                    required
+                                    size="small"
+                                    margin="normal"
+                                    variant="outlined"
+                                    label='Transaction Deadline (minutes)'
+                                    type="number" 
+                                    value={form.transactionDeadline} name="transactionDeadline" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>, 0)}
+                                    helperText="If transaction is not confirmed before deadline, then the transaction will be rejected."
+                                    />
 
-                <br></br>
-                {errors.notEnoughCollateralToCoverDai? 
-                    '': 
-                    <span>
-                        <span>
-                            Amount of {vaultInfo.ilkInfo.token0?.symbol} to recieve: 
-                                {formatUnits(token0ToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol} (min: 
-                                    {formatUnits(token0MinAmountToRecieve,vaultInfo.ilkInfo.token0?.decimals || 18)} {vaultInfo.ilkInfo.token0?.symbol})
-                                <br></br>
-                        </span>
-                        <span>
-                            Amount of {vaultInfo.ilkInfo.token1?.symbol} to recieve: 
-                                {formatUnits(token1ToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol} (min: 
-                                    {formatUnits(token1MinAmountToRecieve,vaultInfo.ilkInfo.token1?.decimals || 18)} {vaultInfo.ilkInfo.token1?.symbol})
-                        </span>
-                    </span>}
+                        </Box>
+                    </Box>
 
-                {(errors.tooMuchCollateralToFree || errors.notEnoughCollateralToFree) ? 
-                    '': 
-                    <span>
-                        <br></br>
-                        <span>Amount of {vaultInfo.ilkInfo.symbol} to recieve: {formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)} {vaultInfo.ilkInfo.symbol}<br></br></span>
-                    </span>}
+                </SimpleCard>
+            </Grid>
+                <Grid item xs={6}>
+                    <SimpleCard>
 
-            </p>
+                        <Typography color="textSecondary" gutterBottom>
+                            Transaction Summary
+                        </Typography>
 
-            <button onClick={(e) => doOperation(e)}>
-                Unifi :)
-            </button>
-        </form>
+                        <SummaryValue
+                            label='Remaining debt'
+                            value={formatEther(vaultExpectedStatus.dart)}
+                            units='DAI'
+                            errors={[ErrorMessage(vaultExpectedStatusErrors.debtFloor), ]}
+                            />
+
+                        <SummaryValue
+                            label='Remaining collateral'
+                            value={formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec)}
+                            units={vaultInfo.ilkInfo.symbol}
+                            />
+
+                        <SummaryValue
+                            label='New collateralization ratio'
+                            value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
+                            units='%'
+                            errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
+                            />
+
+                        <SummaryValue
+                            label={`Amount of ${vaultInfo.ilkInfo.token0?.symbol} to recieve`}
+                            value={formatUnits(token0ToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)}
+                            units={vaultInfo.ilkInfo.token0?.symbol}
+                            comments={[`Min: ${formatUnits(token0MinAmountToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)} ${vaultInfo.ilkInfo.token0?.symbol}`]}
+                            />
+
+                        <SummaryValue
+                            label={`Amount of ${vaultInfo.ilkInfo.token1?.symbol} to recieve`}
+                            value={formatUnits(token1ToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)}
+                            units={vaultInfo.ilkInfo.token1?.symbol}
+                            comments={[`Min: ${formatUnits(token1MinAmountToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)} ${vaultInfo.ilkInfo.token1?.symbol}`]}
+                            />
+
+                        <SummaryValue
+                            label={`Amount of ${vaultInfo.ilkInfo.symbol} to recieve`}
+                            value={formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)}
+                            units={vaultInfo.ilkInfo.symbol}
+                            />
+
+                        <SummaryValue
+                            label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
+                            value={formatEther(daiLoanFees)}
+                            units='DAI'
+                            />
+
+                        <SummaryValue
+                            label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
+                            value={formatEther(daiServiceFee)}
+                            units='DAI'
+                            />
+
+                        {/* <SummaryValue
+                            label='Total Dai to get from collateral'
+                            value={formatEther(daiLoanPlusFees)}
+                            units='DAI'
+                            /> */}
+
+                        <Button 
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            onClick={(e) => doOperation(e)}>
+                            Wipe And Free
+                        </Button>
+
+                    </SimpleCard>
+                </Grid>
+            </Grid>
+
 
     )
 
 }
+
+
+export const TextFieldWithOneButton: React.FC<{ textField: any, button: any}> = ({ textField, button }) => {
+    return (
+        <Grid container>
+            <Grid xs={9}>
+                {textField}
+            </Grid>
+            <Grid xs={3}>
+                <Box p={2}>
+                    {button}
+                </Box>
+            </Grid>
+        </Grid>
+    )
+}
+

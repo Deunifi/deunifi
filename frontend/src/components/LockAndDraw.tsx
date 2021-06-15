@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { Box, Button, Chip, FormControlLabel, FormGroup, Grid, Switch, TextField, Tooltip, Typography } from "@material-ui/core";
+import { Box, Button, Chip, Divider, FormControlLabel, FormGroup, Grid, Switch, TextField, Tooltip, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -217,6 +217,15 @@ export const pairDelta = (token: string, [token0, token1]: string[], inSwapResul
     return ethers.constants.Zero
 }
 
+export const needsApproval = async (token: Contract, owner: string, spender: string, amount: BigNumber, weth: string, useEth: boolean): Promise<boolean> => {
+    if (amount.isZero())
+        return false
+    if (token.address == weth && useEth)
+        return false
+    const allowance: BigNumber = await token.allowance(owner, spender)
+    return allowance.lt(amount);
+}
+
 
 export const LockAndDraw: React.FC<Props> = ({}) => {
 
@@ -353,16 +362,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
             .add(form.cleanedValues.collateralFromUser)
 
         expectedResult.minCollateralToLock = expectedResult.minCollateralToBuy
-            .add(form.cleanedValues.collateralFromUser)
-
-        const needsApproval = async (token: Contract, owner: string, spender: string, amount: BigNumber, weth: string, useEth: boolean): Promise<boolean> => {
-            if (amount.isZero())
-                return false
-            if (token.address == weth && useEth)
-                return false
-            const allowance: BigNumber = await token.allowance(owner, spender)
-            return allowance.lt(amount);
-        }
+            .add(form.cleanedValues.collateralFromUser);
 
         [
             expectedResult.needsGemApproval,
@@ -609,6 +609,21 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                         <Box m={1}>
 
+                            <TokenFromUserInput 
+                                useETH={false}
+                                amount={form.textValues.collateralFromUser}
+                                name="collateralFromUser"
+                                onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                                errorMessage={form.errors?.collateralFromUser}
+
+                                onChangeUseEth={() => {}}
+
+                                needsApproval={expectedResult.needsGemApproval}
+                                dsProxy={dsProxy}
+                                signer={signer}
+                                token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem}} 
+                                />
+                            
                             <TextField 
                                 fullWidth
                                 size="small"
@@ -697,21 +712,6 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                             />
 
                             <Box hidden={!form.cleanedValues.displayAdditionalOptions} m={1}>
-
-                                <TokenFromUserInput 
-                                    useETH={false}
-                                    amount={form.textValues.collateralFromUser}
-                                    name="collateralFromUser"
-                                    onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
-                                    errorMessage={form.errors?.collateralFromUser}
-
-                                    onChangeUseEth={() => {}}
-
-                                    needsApproval={expectedResult.needsGemApproval}
-                                    dsProxy={dsProxy}
-                                    signer={signer}
-                                    token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem}} 
-                                    />
 
                                 <span hidden={dai?.address==vaultInfo.ilkInfo.token0?.contract.address || dai?.address==vaultInfo.ilkInfo.token1?.contract.address}>
 
@@ -818,15 +818,21 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
 }
 
-const SummaryValue: React.FC<{ label: string, value: string|number, comments?: string[], errors?: JSX.Element[] }> = ({ label, value, comments=[], errors=[] }) => {
+export const SummaryValue: React.FC<{ 
+    label: string, value: string|number, comments?: string[], errors?: JSX.Element[], units?: string
+    }> = ({ label, value, comments=[], errors=[], units }) => {
     return (
         <Box m={2}>
             <Typography variant="caption" component="p" color="textSecondary">
                 {label}:
             </Typography>
-            <Typography variant="h6" component="h6" color="textPrimary">
-                {value}
-            </Typography>
+            <Box>
+                <Typography variant="h6" component="h6" color="textPrimary" style={{display: 'inline-block'}}>
+                    {value} <Typography variant="body2" component="body" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
+                        {units} 
+                    </Typography>
+                </Typography>
+            </Box>
             {comments.map( comment => 
                 <Typography hidden={comment==undefined} variant="caption" component="p" color="textSecondary">
                     ({comment})
@@ -881,7 +887,7 @@ export const ApprovalButton: React.FC<{
     )
 }
 
-const getTokenSymbolForLabel = (symbol:string|undefined, useEth:boolean) => useEth && symbol == 'WETH' ? 'ETH' : symbol
+export const getTokenSymbolForLabel = (symbol:string|undefined, useEth:boolean) => useEth && symbol == 'WETH' ? 'ETH' : symbol
 
 export const TokenFromUserInput: React.FC<{
     useETH: boolean,
