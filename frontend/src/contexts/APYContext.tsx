@@ -148,11 +148,13 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
             }
         })
 
+        setApy({...apy, calculationDaysQuantity: days, setCalculationDays: setDays})
+
     }, [vaultInfo, days])
 
     useEffectAutoCancel(function* (){
 
-        const apy: IApy = {...initialApy, setCalculationDays: setDays}
+        const apy: IApy = {...initialApy, setCalculationDays: setDays, calculationDaysQuantity: days}
 
         if (!data){
             return

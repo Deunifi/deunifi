@@ -2,6 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { formatUnits, parseUnits } from '@ethersproject/units';
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { formatBigNumber } from '../components/VaultInfo';
 import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useEffectAutoCancel } from '../hooks/useEffectAutoCancel';
 import { useVaultExpectedOperationContext } from './VaultExpectedOperationContext';
@@ -83,11 +84,11 @@ export const VaultExpectedStatusProvider: React.FC<Props> = ({ children }) => {
                 vaultExpectedStatus.dart
                 .mul(parseUnits('1',27))
                 .lt(vaultInfo.dust))
-                vaultExpectedStatusErrors.debtFloor = `The vault's debt must be higher than ${formatUnits(vaultInfo.dust, 45)}.`
+                vaultExpectedStatusErrors.debtFloor = `The vault's debt must be higher than ${formatBigNumber(vaultInfo.dust, 45)}.`
     
             // Verifying Collateralization ratio
 
-            const collateralizationRatioError = `Collateralization ratio must be higher than ${formatUnits(vaultInfo.mat, 27)}.`
+            const collateralizationRatioError = `Collateralization ratio must be higher than ${formatBigNumber(vaultInfo.mat, 27)}.`
             if (vaultExpectedStatus.collateralizationRatio.gt(ethers.constants.Zero)){
 
                 if (vaultExpectedStatus.collateralizationRatio
@@ -111,7 +112,7 @@ export const VaultExpectedStatusProvider: React.FC<Props> = ({ children }) => {
                 if (vaultExpectedOperation.daiToDraw
                     .mul(parseUnits('1',27))
                     .gt(maxDaiToDraw)){
-                    vaultExpectedStatusErrors.debtCeiling = `The debt's vault to generate must be lower than ${formatUnits(maxDaiToDraw, 45)}.`
+                    vaultExpectedStatusErrors.debtCeiling = `The debt's vault to generate must be lower than ${formatBigNumber(maxDaiToDraw, 45)}.`
                 }
 
             }
@@ -137,7 +138,7 @@ export const VaultExpectedStatusProvider: React.FC<Props> = ({ children }) => {
                     vaultExpectedStatus.minCollateralizationRatio
                     .mul(parseUnits('1',9))
                     .lt(vaultInfo.mat))
-                    vaultExpectedStatusErrors.collateralizationRatio = `Min. collateralization ratio must be higher than ${formatUnits(vaultInfo.mat, 27)}.`
+                    vaultExpectedStatusErrors.collateralizationRatio = `Min. collateralization ratio must be higher than ${formatBigNumber(vaultInfo.mat, 27)}.`
     
             }
 

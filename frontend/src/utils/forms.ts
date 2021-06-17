@@ -47,7 +47,7 @@ export const useForm = <T, C, E>(textInitialValues: T, cleanedInitialValues: C) 
         ) => {
         
         try {
-            const value = parseBigNumber(e.target.value, decimals)
+            const value = parseBigNumber(e.target.value.replace(',','.'), decimals)
             const sideEffectResult = await sideEffect(e.target.name, e.target.value, value)
             setCleanedValues({...cleanedValues, ...sideEffectResult.cleanedValues})
             setTextValues({...textValues, ...sideEffectResult.textValues})

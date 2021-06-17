@@ -91,7 +91,7 @@ const emptyWipeAndFreeForm: IWipeAndFreeForm = {
 
 }
 
-export const parseBigNumber = (text: string, decimals = 18) => text ? parseUnits(text, decimals) : BigNumber.from(0)
+export const parseBigNumber = (text: string, decimals = 18) => text.replace(',','.') ? parseUnits(text.replace(',','.'), decimals) : BigNumber.from(0)
 
 const SLIPPAGE_TOLERANCE_UNIT = parseUnits('1', 6)
 
@@ -952,64 +952,79 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         <Typography color="textSecondary" gutterBottom>
                             Transaction Summary
                         </Typography>
+                        
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label='Remaining debt'
+                                    value={formatEther(vaultExpectedStatus.dart)}
+                                    units='DAI'
+                                    errors={[ErrorMessage(vaultExpectedStatusErrors.debtFloor), ]}
+                                    />
 
-                        <SummaryValue
-                            label='Remaining debt'
-                            value={formatEther(vaultExpectedStatus.dart)}
-                            units='DAI'
-                            errors={[ErrorMessage(vaultExpectedStatusErrors.debtFloor), ]}
-                            />
+                                <SummaryValue
+                                    label='Remaining collateral'
+                                    value={formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec)}
+                                    units={vaultInfo.ilkInfo.symbol}
+                                    />
 
-                        <SummaryValue
-                            label='Remaining collateral'
-                            value={formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec)}
-                            units={vaultInfo.ilkInfo.symbol}
-                            />
+                                <SummaryValue
+                                    label='New collateralization ratio'
+                                    value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
+                                    units='%'
+                                    errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
+                                    />
+                            </Card>
+                        </Box>
+                        
 
-                        <SummaryValue
-                            label='New collateralization ratio'
-                            value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
-                            units='%'
-                            errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
-                            />
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label={`Amount of ${vaultInfo.ilkInfo.token0?.symbol} to recieve`}
+                                    value={formatUnits(token0ToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)}
+                                    units={vaultInfo.ilkInfo.token0?.symbol}
+                                    comments={[`Min: ${formatUnits(token0MinAmountToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)} ${vaultInfo.ilkInfo.token0?.symbol}`]}
+                                    />
 
-                        <SummaryValue
-                            label={`Amount of ${vaultInfo.ilkInfo.token0?.symbol} to recieve`}
-                            value={formatUnits(token0ToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)}
-                            units={vaultInfo.ilkInfo.token0?.symbol}
-                            comments={[`Min: ${formatUnits(token0MinAmountToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)} ${vaultInfo.ilkInfo.token0?.symbol}`]}
-                            />
+                                <SummaryValue
+                                    label={`Amount of ${vaultInfo.ilkInfo.token1?.symbol} to recieve`}
+                                    value={formatUnits(token1ToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)}
+                                    units={vaultInfo.ilkInfo.token1?.symbol}
+                                    comments={[`Min: ${formatUnits(token1MinAmountToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)} ${vaultInfo.ilkInfo.token1?.symbol}`]}
+                                    />
 
-                        <SummaryValue
-                            label={`Amount of ${vaultInfo.ilkInfo.token1?.symbol} to recieve`}
-                            value={formatUnits(token1ToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)}
-                            units={vaultInfo.ilkInfo.token1?.symbol}
-                            comments={[`Min: ${formatUnits(token1MinAmountToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)} ${vaultInfo.ilkInfo.token1?.symbol}`]}
-                            />
+                                <SummaryValue
+                                    label={`Amount of ${vaultInfo.ilkInfo.symbol} to recieve`}
+                                    value={formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)}
+                                    units={vaultInfo.ilkInfo.symbol}
+                                    />
+                            </Card>
+                        </Box>
+                        
 
-                        <SummaryValue
-                            label={`Amount of ${vaultInfo.ilkInfo.symbol} to recieve`}
-                            value={formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)}
-                            units={vaultInfo.ilkInfo.symbol}
-                            />
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiLoanFees)}
+                                    units='DAI'
+                                    />
 
-                        <SummaryValue
-                            label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
-                            value={formatEther(expectedResult.daiLoanFees)}
-                            units='DAI'
-                            />
+                                <SummaryValue
+                                    label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiServiceFee)}
+                                    units='DAI'
+                                    />
 
-                        <SummaryValue
-                            label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
-                            value={formatEther(expectedResult.daiServiceFee)}
-                            units='DAI'
-                            />
+                                {/* <SummaryValue
+                                    label='Total Dai to get from collateral'
+                                    value={formatEther(daiLoanPlusFees)}
+                                    units='DAI'
+                                    /> */}
+                            </Card>
+                        </Box>
 
-                        {/* <SummaryValue
-                            label='Total Dai to get from collateral'
-                            value={formatEther(daiLoanPlusFees)}
-                            units='DAI'
-                            /> */}
 
                         <Button 
                             fullWidth

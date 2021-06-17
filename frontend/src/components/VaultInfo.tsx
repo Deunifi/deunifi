@@ -22,7 +22,7 @@ const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInPro
     return (
         <span>{
             operationInProgress && !actualValue.eq(value) ?
-                <Typography variant="body2" color={error ? 'error' : 'primary'}>{formatUnits(value, decimals)}</Typography>
+                <Typography variant="body2" color={error ? 'error' : 'primary'}>{formatBigNumber(value, decimals)}</Typography>
                 : ''
         }</span>
     )
@@ -34,7 +34,7 @@ export const VaultActualValue: React.FC<{ label: string, value: string|number }>
             <Typography variant="caption" component="p" color="textSecondary">
                 {label}:
             </Typography>
-            <Typography variant="h6" component="p" color="textPrimary">
+            <Typography variant="body1" component="p" color="textPrimary">
                 {value}
             </Typography>
         </span>
@@ -91,11 +91,6 @@ function APYConFigDialog(props: SimpleDialogProps) {
         onClose();
     };
 
-    const handleListItemClick = () => {
-        onClose();
-    };
-
-
     return (
         <Dialog onClose={handleClose} aria-labelledby="simple-dialog-title" open={open}>
             <DialogTitle id="simple-dialog-title">APY: Days to consider</DialogTitle>
@@ -125,6 +120,11 @@ export default function APYConFigButton() {
             <APYConFigDialog open={open} onClose={handleClose} />
         </div>
     );
+}
+
+export const formatBigNumber = (x: BigNumber, decimals: number = 18): string => {
+    const rest = decimals > 18 ? decimals - 18 : 0
+    return formatUnits(x.div(parseUnits('1',rest)), decimals-rest)
 }
 
 export const VaultInfo: React.FC<Props> = ({ children }) => {
@@ -174,18 +174,18 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                                 value={vaultExpectedStatus.collateralizationRatio}
                                 error={vaultExpectedStatusErrors.collateralizationRatio ? true : false}
                             />
-                            <VaultParameter label='Liquidation Ratio' value={formatUnits(vaultInfo.mat, 27)} />
+                            <VaultParameter label='Liquidation Ratio' value={formatBigNumber(vaultInfo.mat, 27)} />
                         </Box>
 
                         <Box mb={2} mt={2}>
-                            <VaultActualValue label='Liquidation Price' value={formatUnits(vaultInfo.liquidationPrice, 27)} />
+                            <VaultActualValue label='Liquidation Price' value={formatBigNumber(vaultInfo.liquidationPrice, 27)} />
                             <VaultExpectedValue
                                 operationInProgress
                                 actualValue={vaultInfo.liquidationPrice}
                                 value={vaultExpectedStatus.liquidationPrice}
                                 decimals={27}
                             />
-                            <VaultParameter label='Current Price' value={formatUnits(vaultInfo.price, 27)} />
+                            <VaultParameter label='Current Price' value={formatBigNumber(vaultInfo.price, 27)} />
                         </Box>
 
                         <Box mb={2} mt={2}>
