@@ -654,7 +654,6 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         size="small"
                                         margin="normal"
                                         variant="outlined"
-                                        required
                                         label={`${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, form.cleanedValues.useETH)} To Lock`}
                                         value={form.textValues.tokenAToLock} name="tokenAToLock" onChange={(e) => tokenAToLockChange(e)}
                                         error={form.errors?.tokenAToLock? true : false }
@@ -692,7 +691,6 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                             <Box mt={1}><Card variant="outlined"><Box m={1} p={1}>
                                 
                                     <TextField 
-                                        required
                                         fullWidth
                                         size="small"
                                         margin="normal"
