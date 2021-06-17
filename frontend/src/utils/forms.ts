@@ -57,7 +57,13 @@ export const useForm = <T, C, E>(textInitialValues: T, cleanedInitialValues: C) 
 
     }
 
-    return { textValues, cleanedValues, setTextValues, setCleanedValues, onChangeBigNumber, errors, setErrors }
+    const clear = () => {
+        setTextValues(textInitialValues)
+        setCleanedValues(cleanedInitialValues)
+        setErrors(undefined)
+    }
+
+    return { textValues, cleanedValues, setTextValues, setCleanedValues, onChangeBigNumber, errors, setErrors, clear }
 
 }
 

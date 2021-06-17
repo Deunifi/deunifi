@@ -20,6 +20,7 @@ import { useApyContext } from "../contexts/APYContext";
 import { useLendingPool } from "../hooks/useLendingPool";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { OpenVaultButton } from "./OpenVaultButton";
+import { useVaultContext } from "../contexts/VaultSelectionContext";
 
 interface Props { }
 
@@ -229,6 +230,8 @@ export const needsApproval = async (token: Contract, owner: string, spender: str
 
 export const LockAndDraw: React.FC<Props> = ({}) => {
 
+    const { vault, ilkChanged } = useVaultContext()
+
     const { vaultInfo } = useVaultInfoContext()
     const dai = useContract('Dai')
     const { signer, address } = useConnectionContext()
@@ -245,6 +248,11 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
     const lendingPool = useLendingPool()
 
     const { blocknumber } = useBlockContext()
+
+    useEffect(() => {
+        if (ilkChanged)
+            form.clear()
+    }, [vault, ilkChanged])
 
     useEffectAutoCancel(function* () {
 
@@ -570,7 +578,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         }
 
         try {
-            await proxyExecute(
+            const transactionResponse = await proxyExecute(
                 dsProxy, 'execute(address,bytes)',
                 deunifi, 'flashLoanFromDSProxy', [
                     sender,
@@ -586,6 +594,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                 ],
                 ethToUse.isZero() ? { gasLimit: 1500000 } : {value: ethToUse, gasLimit: 1500000 }
             )
+            await transactionResponse.wait(1)
+            form.clear()
         } catch (error) {
             // TODO Handle error
             console.error(error)

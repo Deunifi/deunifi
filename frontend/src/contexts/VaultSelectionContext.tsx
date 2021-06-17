@@ -130,12 +130,14 @@ interface IVaultSelectionContextData{
     setVault: Dispatch<IVaultSelectionItem>,
     userVaults: IVaultSelectionItem[],
     protocolVaults: IVaultSelectionItem[],
+    ilkChanged: boolean,
 }
 
 export const VaultSelectionContext = createContext<IVaultSelectionContextData>({
     setVault: () => { console.error('Call to default function')},
     userVaults: [],
     protocolVaults: [],
+    ilkChanged: true
 })
 
 const { Provider } = VaultSelectionContext
@@ -145,7 +147,13 @@ export const useVaultContext = () => useContext(VaultSelectionContext)
 export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
 
     const { userVaults, protocolVaults } = useVaults()
-    const [vault, setVault] = useState<IVaultSelectionItem>()
+    const [vault, _setVault] = useState<IVaultSelectionItem>()
+    const [ilkChanged, setIlkChanged] = useState<boolean>(true)
+
+    const setVault = (_vault: IVaultSelectionItem|undefined) => {
+        setIlkChanged(vault?.ilk != _vault?.ilk)
+        _setVault(_vault)
+    }
 
     useEffect(() => {
         if (userVaults.length != 0) {
@@ -160,7 +168,7 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
     }, [userVaults, protocolVaults])
 
     return (
-        <Provider value={{vault, setVault, userVaults, protocolVaults}}>
+        <Provider value={{vault, setVault, userVaults, protocolVaults, ilkChanged}}>
             {children}
         </Provider>
     )
