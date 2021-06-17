@@ -41,7 +41,7 @@ interface IFormFields {
     useETH: any,
 }
 
-interface IFormErrors extends IFormFields {
+interface IFormErrors {
 
     daiFromSigner: string,
     collateralFromUser: string,
@@ -56,6 +56,9 @@ interface IFormErrors extends IFormFields {
     transactionDeadline: string, // minutes
 
     useETH: string,
+
+    toleranceMustBeHigherThanZero: string,
+    deadlineMustBeHigherThanZero: string,
 }
 
 const emptyFormErrors: IFormErrors = {
@@ -72,6 +75,9 @@ const emptyFormErrors: IFormErrors = {
     transactionDeadline: '',
 
     useETH: '',
+
+    toleranceMustBeHigherThanZero: '',
+    deadlineMustBeHigherThanZero: '',
 }
 
 interface IClenedForm extends IFormFields {
@@ -392,6 +398,13 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         ])) as boolean[]
 
         expectedResult.collateralToLockInUSD = expectedResult.collateralToLock.mul(vaultInfo.price).div(ONE_RAY)
+
+        if (form.cleanedValues.slippageTolerance.lte(0))
+            errors.toleranceMustBeHigherThanZero = 'Slippage tolerance must be higher than zero'
+
+        if (form.cleanedValues.transactionDeadline.lte(0))
+            errors.deadlineMustBeHigherThanZero = 'Transaction deadline must be higher than zero'
+
 
         setExpectedResult(expectedResult)
         setVaultExpectedOperation(expectedResult)
@@ -782,7 +795,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         variant="outlined"
                                         label='Slippage Tolerance (%)'
                                         value={form.textValues.slippageTolerance} name="slippageTolerance" onChange={(e) => form.onChangeBigNumber(e, 4)}
-                                        helperText="If transaction conditions are modified beyond tolerance, then the transaction will be rejected."
+                                        error={form.errors?.toleranceMustBeHigherThanZero ? true : false }
+                                        helperText={ form.errors?.toleranceMustBeHigherThanZero || "If transaction conditions are modified beyond tolerance, then the transaction will be rejected." }
                                         InputProps={{
                                             endAdornment: <InputAdornment position="end">%</InputAdornment>,
                                         }}
@@ -796,7 +810,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         variant="outlined"
                                         label='Transaction Deadline (minutes)'
                                         value={form.textValues.transactionDeadline} name="transactionDeadline" onChange={(e) => form.onChangeBigNumber(e, 0)}
-                                        helperText="If transaction is not confirmed before deadline, then the transaction will be rejected."
+                                        error={form.errors?.deadlineMustBeHigherThanZero ? true : false }
+                                        helperText={ form.errors?.deadlineMustBeHigherThanZero || "If transaction is not confirmed before deadline, then the transaction will be rejected." }
                                         InputProps={{
                                             endAdornment: <InputAdornment position="end">min.</InputAdornment>,
                                         }}

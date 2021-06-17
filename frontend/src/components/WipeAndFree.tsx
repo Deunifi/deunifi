@@ -133,6 +133,8 @@ interface IErrors {
     toMuchDaiToCoverFlashLoanAndFees?: string,
     invalidCombinationOfDaiAmountCoveredWithToken0?: string,
     invalidCombinationOfDaiAmountCoveredWithToken1?: string,
+    toleranceMustBeHigherThanZero?: string,
+    deadlineMustBeHigherThanZero?: string,
 }
 
 interface IExpectedResult {
@@ -455,6 +457,13 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             errors.notEnoughDaiToCoverFlashLoanAndFees = `The amount of DAI covered is not enough. Need to cover ${formatEther(daiLoanPlusFees)}.`
         else if (daiLoanPlusFees.lt(params.daiFromTokenA.add(params.daiFromTokenB)))
             errors.toMuchDaiToCoverFlashLoanAndFees = `You are covering more DAI than needed. Only need to cover ${formatEther(daiLoanPlusFees)}.`
+
+        if (params.slippageTolerance.lte(0))
+            errors.toleranceMustBeHigherThanZero = 'Slippage tolerance must be higher than zero'
+
+        if (params.transactionDeadline.lte(0))
+            errors.deadlineMustBeHigherThanZero = 'Transaction deadline must be higher than zero'
+
 
         setErrors(errors)
 
@@ -946,7 +955,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         label='Slippage Tolerance (%)'
                                         // type="number" 
                                         value={form.slippageTolerance} name="slippageTolerance" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>, 4)}
-                                        helperText="If transaction conditions are modified beyond tolerance, then the transaction will be rejected."
+                                        error={errors?.toleranceMustBeHigherThanZero ? true : false }
+                                        helperText={ errors?.toleranceMustBeHigherThanZero || "If transaction conditions are modified beyond tolerance, then the transaction will be rejected." }
                                         InputProps={{
                                             endAdornment: <InputAdornment position="end">%</InputAdornment>,
                                         }}
@@ -961,7 +971,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         label='Transaction Deadline (minutes)'
                                         // type="number" 
                                         value={form.transactionDeadline} name="transactionDeadline" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>, 0)}
-                                        helperText="If transaction is not confirmed before deadline, then the transaction will be rejected."
+                                        error={errors?.deadlineMustBeHigherThanZero ? true : false }
+                                        helperText={ errors?.deadlineMustBeHigherThanZero || "If transaction is not confirmed before deadline, then the transaction will be rejected." }
                                         InputProps={{
                                             endAdornment: <InputAdornment position="end">min.</InputAdornment>,
                                         }}
