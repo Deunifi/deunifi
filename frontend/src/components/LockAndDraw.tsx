@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { Box, Button, Card, Chip, Divider, FormControlLabel, FormGroup, Grid, InputAdornment, Switch, TextField, Tooltip, Typography } from "@material-ui/core";
+import { Backdrop, Box, Button, Card, Chip, CircularProgress, createStyles, Divider, FormControlLabel, FormGroup, Grid, InputAdornment, makeStyles, Switch, TextField, Theme, Tooltip, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -259,6 +259,9 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
     useEffectAutoCancel(function* () {
 
+        if (operationInProgress)
+            return
+
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
             || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy
             || !lendingPool.contract) {
@@ -406,6 +409,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
     const [tokenBToLockModifiedByUser, setTokenBToLockModifiedByUser] = useState(false)
 
     useEffectAutoCancel(function* (){
+        if (operationInProgress)
+            return
         if (tokenAToLockModifiedByUser)
             tokenAToLockChange({target: {name: 'tokenAToLock', value: form.textValues.tokenAToLock}})
         else if (tokenBToLockModifiedByUser)
@@ -581,6 +586,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         }
 
         try {
+            setOperationInProgress(true)
             const transactionResponse = await proxyExecute(
                 dsProxy, 'execute(address,bytes)',
                 deunifi, 'flashLoanFromDSProxy', [
@@ -602,6 +608,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         } catch (error) {
             // TODO Handle error
             console.error(error)
+        }finally{
+            setOperationInProgress(false)
         }
 
 
@@ -609,6 +617,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
     const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
     const { apy } = useApyContext()
+
+    const [operationInProgress, setOperationInProgress] = useState(false)
 
     return (
         <div>
@@ -865,6 +875,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                     </SimpleCard>
                 </Grid>
             </Grid>
+            <BusyBackdrop open={operationInProgress}></BusyBackdrop>
         </div>
     )
 
@@ -1051,3 +1062,21 @@ export const TokenFromUserInput: React.FC<{
         </span>
     )
 }
+
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    backdrop: {
+      zIndex: theme.zIndex.drawer + 1,
+      color: '#fff',
+    },
+  }),
+);
+
+export default function BusyBackdrop({open}: {open:boolean}) {
+    const classes = useStyles();
+    return (
+        <Backdrop className={classes.backdrop} open={open} >
+            <CircularProgress color="primary" />
+        </Backdrop>
+    );
+  }

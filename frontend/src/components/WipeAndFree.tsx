@@ -13,7 +13,7 @@ import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
-import { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors } from '../components/LockAndDraw'
+import BusyBackdrop, { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
 import { Box, Button, ButtonBaseClassKey, Card, FormControlLabel, Grid, InputAdornment, Slider, Switch, TextField, TextFieldClassKey, Typography } from '@material-ui/core';
@@ -194,6 +194,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
 
     useEffectAutoCancel(function* () {
+        if (operationInProgress)
+            return
         if (daiFromTokenAModifiedByUser)
             daiFromTokenAChange({ target: { value: form.daiFromTokenA } })
         else if (daiFromTokenBModifiedByUser)
@@ -263,6 +265,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const { getFeeFromGrossAmount, serviceFeeRatio: feeRatio } = useServiceFee()
 
     useEffectAutoCancel(function* () {
+
+        if (operationInProgress)
+            return
 
         if (!lendingPool.contract || !dsProxy || !dai || !weth){
             setExpectedResult({...initialExpectedResult})
@@ -500,6 +505,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const weth = useContract('WETH')
     const dssPsm = useContract('DssPsm')
 
+    const [operationInProgress, setOperationInProgress] = useState(false)
+
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
 
         e.preventDefault()
@@ -554,6 +561,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         )
 
         try {
+            setOperationInProgress(true)
             const transactionResponse = await proxyExecute(
                 dsProxy, 'execute(address,bytes)',
                 deunifi, 'flashLoanFromDSProxy', [
@@ -574,6 +582,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         } catch (error) {
             // TODO Handle error
             console.error(error)
+        } finally{
+            setOperationInProgress(false)
         }
 
     }
@@ -1060,6 +1070,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
                     </SimpleCard>
                 </Grid>
+                <BusyBackdrop open={operationInProgress}></BusyBackdrop>
             </Grid>
 
 
