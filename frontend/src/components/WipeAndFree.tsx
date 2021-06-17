@@ -18,6 +18,7 @@ import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
 import { Box, Button, ButtonBaseClassKey, Card, FormControlLabel, Grid, InputAdornment, Slider, Switch, TextField, TextFieldClassKey, Typography } from '@material-ui/core';
 import { SimpleCard } from './VaultInfo';
+import { useVaultContext } from '../contexts/VaultSelectionContext';
 
 interface Props { }
 
@@ -164,9 +165,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const { vaultInfo } = useVaultInfoContext()
     const swapService = useSwapService()
+
     const [params, setParams] = useState<IWipeAndFreeParameters>(emptyWipeAndFreeParameters)
     const [form, setForm] = useState<IWipeAndFreeForm>(emptyWipeAndFreeForm)
-
     const [errors, setErrors] = useState<IErrors>({})
 
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(initialExpectedResult)
@@ -176,6 +177,21 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const [daiFromTokenAModifiedByUser, setDaiFromTokenAModifiedByUser] = useState(false)
     const [daiFromTokenBModifiedByUser, setDaiFromTokenBModifiedByUser] = useState(false)
+
+    const { vault } = useVaultContext()
+
+    const clear = () => {
+        setDaiFromTokenAModifiedByUser(false)
+        setDaiFromTokenBModifiedByUser(false)
+        setParams(emptyWipeAndFreeParameters)
+        setForm(emptyWipeAndFreeForm)
+        setErrors({})
+    }
+
+    useEffect(() => {
+        clear()
+    }, [vault])
+
 
     useEffectAutoCancel(function* () {
         if (daiFromTokenAModifiedByUser)
@@ -538,7 +554,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         )
 
         try {
-            await proxyExecute(
+            const transactionResponse = await proxyExecute(
                 dsProxy, 'execute(address,bytes)',
                 deunifi, 'flashLoanFromDSProxy', [
                 sender,
@@ -553,6 +569,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 ethers.constants.AddressZero
             ]
             )
+            await transactionResponse.wait(1)
+            clear()
         } catch (error) {
             // TODO Handle error
             console.error(error)

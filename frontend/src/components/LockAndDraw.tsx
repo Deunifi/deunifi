@@ -250,8 +250,11 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
     const { blocknumber } = useBlockContext()
 
     useEffect(() => {
-        if (ilkChanged)
+        if (ilkChanged){
+            setTokenAToLockModifiedByUser(false)
+            setTokenBToLockModifiedByUser(false)
             form.clear()
+        }
     }, [vault, ilkChanged])
 
     useEffectAutoCancel(function* () {
