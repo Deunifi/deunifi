@@ -13,7 +13,7 @@ import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
-import { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue } from '../components/LockAndDraw'
+import { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
 import { Box, Button, ButtonBaseClassKey, Card, FormControlLabel, Grid, InputAdornment, Slider, Switch, TextField, TextFieldClassKey, Typography } from '@material-ui/core';
@@ -1027,6 +1027,12 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
 
                         <Button 
+                            disabled={
+                                hasErrors(errors) 
+                                || hasErrors(vaultExpectedStatusErrors)
+                                || expectedResult.debTokenNeedsApproval
+                                || ( vaultInfo.ink.eq(vaultExpectedStatus.ink) && vaultInfo.dart.eq(vaultExpectedStatus.dart) )
+                            }
                             fullWidth
                             variant="contained"
                             color="primary"
