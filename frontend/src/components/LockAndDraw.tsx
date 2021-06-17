@@ -290,7 +290,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         const expectedResult = { ...emptyExpectedResult }
 
         if (form.cleanedValues.tokenAFromSigner.gt(form.cleanedValues.tokenAToLock)){
-            errors.tokenAFromSigner = `${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0.symbol, form.cleanedValues.useETH)} from signer could not be higher than ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0.symbol, form.cleanedValues.useETH)} to lock.`
+            errors.tokenAFromSigner = `${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0.symbol, form.cleanedValues.useETH)} from your account could not be higher than ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0.symbol, form.cleanedValues.useETH)} to lock.`
             expectedResult.tokenAToBuyWithDai = ethers.constants.Zero
         }else{
             expectedResult.tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
@@ -303,7 +303,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         expectedResult.usePsmForTokenA = tokenAFromResult.psm.buyGem
 
         if (form.cleanedValues.tokenBFromSigner.gt(form.cleanedValues.tokenBToLock)){
-            errors.tokenBFromSigner = `${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} from signer could not be higher than ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} to lock.`
+            errors.tokenBFromSigner = `${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} from your account could not be higher than ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} to lock.`
             expectedResult.tokenBToBuyWithDai = ethers.constants.Zero
         }else{
             expectedResult.tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
@@ -754,6 +754,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                 </span>
 
                                 <TextField 
+                                        required
                                         fullWidth
                                         size="small"
                                         margin="normal"
@@ -767,6 +768,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         />
                                 
                                 <TextField 
+                                        required
                                         fullWidth
                                         size="small"
                                         margin="normal"
@@ -830,8 +832,19 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                             />
 
                         <Button 
+                            disabled={
+                                hasErrors(form.errors) 
+                                || hasErrors(vaultExpectedStatusErrors)
+                                || expectedResult.needsDebtTokenApproval
+                                || expectedResult.needsGemApproval
+                                || expectedResult.needsToken0Approval
+                                || expectedResult.needsToken1Approval
+                                || expectedResult.collateralToLock.lte(0)
+                                || !vaultInfo.cdp
+                                || vaultInfo.cdp.isZero()
+                            }
                             fullWidth
-                            variant="contained"
+                            variant="contained" 
                             color="primary"
                             onClick={(e) => doOperation(e)}>
                             Lock And Draw
@@ -842,6 +855,16 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         </div>
     )
 
+}
+
+export const hasErrors = (errors: object|undefined): boolean => {
+    if (!errors)
+        return false
+    for (const k in errors){
+        if ((errors as any)[k])
+            return true
+    }
+    return false
 }
 
 export const SummaryValue: React.FC<{ 
