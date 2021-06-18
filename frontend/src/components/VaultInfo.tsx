@@ -8,6 +8,7 @@ import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { OpenVaultButton } from './OpenVaultButton';
 import { VaultSelection } from './VaultSelection';
 import { Settings } from '@material-ui/icons';
+import { apyToPercentage } from './LockAndDraw';
 
 interface Props { }
 
@@ -197,12 +198,12 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                         </Box>
 
                         <Box mb={2} mt={2}>
-                            <VaultActualValue label="Vault's APY" value={(apy.vaultApy-1)*100} units='%'/>
-                            <VaultExpectedValue operationInProgress actualValue={parseEther(((apy.vaultApy-1)*100).toString())} value={parseEther(((apy.vaultExpectedApy-1)*100).toString())} 
+                            <VaultActualValue label="Vault's APY" value={apyToPercentage(apy.vaultApy)} units='%'/>
+                            <VaultExpectedValue operationInProgress actualValue={parseEther(apyToPercentage(apy.vaultApy).toString())} value={parseEther(apyToPercentage(apy.vaultExpectedApy).toString())} 
                             units='%'/>
                             <Grid container spacing={1} alignItems="center" direction="row" justify="center">
                                 <Grid item xs={10}>
-                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics`} value={(apy.ilkApy-1)*100} 
+                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics`} value={apyToPercentage(apy.ilkApy)} 
                                         units='%'/>
                                 </Grid>
                                 <Grid item xs={2}>

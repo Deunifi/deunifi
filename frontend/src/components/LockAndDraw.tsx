@@ -875,7 +875,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                         <SummaryValue 
                             label="Expected Vault's APY"
-                            value={(apy.vaultExpectedApy-1)*100}
+                            value={apyToPercentage(apy.vaultExpectedApy)}
                             units="%"
                             comments={[`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`,]}
                             />
@@ -1106,3 +1106,7 @@ export default function BusyBackdrop({open}: {open:boolean}) {
         </Backdrop>
     );
   }
+
+export const apyToPercentage = (apy: number): number => {
+    return apy ? (apy-1)*100 : 0
+}
