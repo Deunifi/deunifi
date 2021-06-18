@@ -296,7 +296,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const daiLoanPlusFees = lastDaiLoanPlusFeesWithNoServiceFees
             .add((yield getFeeFromGrossAmount(daiFromFlashLoan)) as BigNumber)
 
-        const daiServiceFee = expectedResult.daiLoanPlusFees.sub(lastDaiLoanPlusFeesWithNoServiceFees)
+        const daiServiceFee = daiLoanPlusFees.sub(lastDaiLoanPlusFeesWithNoServiceFees)
 
         let errors: IErrors = {}
 
