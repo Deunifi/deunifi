@@ -847,32 +847,37 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                         <SummaryValue 
                             label='Collateral to lock'
                             value={formatEther(expectedResult.collateralToLock)}
-                            comments={[`~ $${formatEther(expectedResult.collateralToLockInUSD)}`, `min.: ${formatEther(expectedResult.minCollateralToLock)}`]}
+                            units={vaultInfo.ilkInfo.symbol}
+                            comments={[`~ ${formatEther(expectedResult.collateralToLockInUSD)} USD`, `Min.: ${formatEther(expectedResult.minCollateralToLock)} ${vaultInfo.ilkInfo.symbol}`]}
                             />
 
                         <SummaryValue 
                             label='Dai to Draw'
                             value={formatEther(expectedResult.daiToDraw)}
+                            units="DAI"
                             errors={[ErrorMessage(vaultExpectedStatusErrors.debtCeiling), ErrorMessage(vaultExpectedStatusErrors.debtFloor)]}
                             />
 
                         <SummaryValue 
                             label='Expected Collateralization Ratio'
-                            value={formatEther(vaultExpectedStatus.collateralizationRatio)}
-                            comments={vaultExpectedStatus.minCollateralizationRatio? [`min.: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)}`] : []}
+                            value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
+                            units="%"
+                            comments={vaultExpectedStatus.minCollateralizationRatio? [`Min.: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)} %`] : []}
                             errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
                             />
 
                         <SummaryValue 
                             label='Expected Liquidation Price'
+                            units="USD"
                             value={formatBigNumber(vaultExpectedStatus.liquidationPrice, 27)}
-                            comments={ vaultExpectedStatus.maxLiquidationPrice? [`max.: ${formatBigNumber(vaultExpectedStatus.maxLiquidationPrice, 27)}`, ] : [] }
+                            comments={ vaultExpectedStatus.maxLiquidationPrice? [`max.: ${formatBigNumber(vaultExpectedStatus.maxLiquidationPrice, 27)} USD`, ] : [] }
                             />
 
                         <SummaryValue 
                             label="Expected Vault's APY"
-                            value={apy.vaultExpectedApy}
-                            comments={[`Estimation based on APY from last ${apy.calculationDaysQuantity} day(s)`,]}
+                            value={apy.vaultExpectedApy*100}
+                            units="%"
+                            comments={[`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`,]}
                             />
 
                         <Button 
