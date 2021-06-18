@@ -6,9 +6,9 @@ import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
 import { useSwapService, IGetAmountsInResult } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
-import { useForm, defaultSideEffect, IChangeBigNumberEvent } from "../utils/forms";
+import { useForm, defaultSideEffect, IChangeBigNumberEvent, IForm } from "../utils/forms";
 import { useContract } from "./Deployments";
-import { decreaseWithTolerance, proxyExecute, deadline } from "./WipeAndFree";
+import { decreaseWithTolerance, proxyExecute, deadline, TextFieldWithOneButton } from "./WipeAndFree";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
@@ -660,12 +660,13 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                 onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
                                 errorMessage={form.errors?.collateralFromUser}
 
-                                onChangeUseEth={() => {}}
-
                                 needsApproval={expectedResult.needsGemApproval}
                                 dsProxy={dsProxy}
                                 signer={signer}
                                 token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem}} 
+
+                                owner={address}
+                                form={form as IForm}
                                 />
                             
                             <Card variant="outlined"><Box m={1} p={1} >
@@ -691,15 +692,13 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         onChange={(e) => tokenAFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
                                         errorMessage={form.errors?.tokenAFromSigner}
 
-                                        onChangeUseEth={(e) => {
-                                            form.setTextValues({...form.textValues, useETH: e.target.checked })
-                                            form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
-                                        }}
-
                                         needsApproval={expectedResult.needsToken0Approval}
                                         dsProxy={dsProxy}
                                         signer={signer}
-                                        token={vaultInfo.ilkInfo.token0} 
+                                        token={vaultInfo.ilkInfo.token0}
+
+                                        owner={address}
+                                        form={form as IForm}
                                     />
                                     
                                     {/* <Box>
@@ -733,15 +732,13 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         onChange={(e) => tokenBFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
                                         errorMessage={form.errors?.tokenBFromSigner}
 
-                                        onChangeUseEth={(e) => {
-                                            form.setTextValues({...form.textValues, useETH: e.target.checked })
-                                            form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
-                                        }}
-
                                         needsApproval={expectedResult.needsToken1Approval}
                                         dsProxy={dsProxy}
                                         signer={signer}
                                         token={vaultInfo.ilkInfo.token1} 
+
+                                        owner={address}
+                                        form={form as IForm}
                                     />
 
                                     {/* <Box>
@@ -777,7 +774,27 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                 </Typography>
 
                                 <span hidden={dai?.address==vaultInfo.ilkInfo.token0?.contract.address || dai?.address==vaultInfo.ilkInfo.token1?.contract.address}>
-
+                                    <Box
+                                        m={2}
+                                        hidden={!(vaultInfo.ilkInfo.token0?.symbol === 'WETH' || vaultInfo.ilkInfo.token1?.symbol === 'WETH')}
+                                        >
+                                        <FormControlLabel
+                                            control={
+                                            <Switch
+                                                size="medium"
+                                                checked={form.cleanedValues.useETH}
+                                                onChange={(e) => {
+                                                    form.setTextValues({...form.textValues, useETH: e.target.checked })
+                                                    form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
+                                                }}
+                                                name="useETH"
+                                                color="secondary"
+                                            />
+                                            }
+                                            label="Use ETH"
+                                            labelPlacement="end"
+                                        />
+                                    </Box>
                                     <TokenFromUserInput 
                                         useETH={false}
                                         amount={form.textValues.daiFromSigner}
@@ -785,12 +802,13 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         onChange={(e) => daiFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
                                         errorMessage={form.errors?.daiFromSigner || form.errors?.tooMuchDaiFromAccount}
 
-                                        onChangeUseEth={() => {}}
-
                                         needsApproval={expectedResult.needsDebtTokenApproval}
                                         dsProxy={dsProxy}
                                         signer={signer}
                                         token={{symbol: 'DAI', contract: dai}} 
+
+                                        owner={address}
+                                        form={form as IForm}
                                         />
 
                                 </span>
@@ -994,51 +1012,27 @@ export const TokenFromUserInput: React.FC<{
     amount: string,
     onChange: (e: ChangeEvent<HTMLInputElement>) => void,
     errorMessage: string|undefined,
-    onChangeUseEth: (e: ChangeEvent<HTMLInputElement>) => void,
 
     needsApproval: boolean,
     dsProxy?: Contract,
     signer?: ethers.providers.JsonRpcSigner,
     token?: {symbol: string, contract: Contract|undefined},
+
+    owner: string,
+    form: IForm
     }> = ({ 
-        useETH, name, amount, onChange, errorMessage, onChangeUseEth,
-        needsApproval, token, signer, dsProxy }) => {
+        useETH, name, amount, onChange, errorMessage,
+        needsApproval, token, signer, dsProxy, owner, form }) => {
+
+    const { provider } = useConnectionContext()
 
     if (!token || !(token.contract))
         return (<span></span>)
 
-    if (token.symbol!='WETH')
-        return (
-            <Box>
-                <TextField
-                            fullWidth
-                            size="small"
-                            margin="normal"
-                            variant="outlined"
-                            label={`${getTokenSymbolForLabel(token?.symbol, useETH)} From Account`}  
-                            value={amount}
-                            name={name}
-                            onChange={onChange}
-                            error={errorMessage ? true : false }
-                            helperText={errorMessage ? <span>{errorMessage}</span> : `The ${getTokenSymbolForLabel(token?.symbol, useETH)} amount to use from your account.` }
-                            InputProps={{
-                                endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(token?.symbol, useETH)}</InputAdornment>,
-                            }}
-                            />
-                
-                <ApprovalButton
-                    needsApproval={needsApproval}
-                    dsProxy={dsProxy}
-                    signer={signer}
-                    token={token}
-                    />
-            </Box>
-        )
-        
     return (
-        <span>
-            <Grid container>
-                <Grid xs={8}>
+        <Box>
+            <TextFieldWithOneButton
+                textField={
                     <TextField
                         fullWidth
                         size="small"
@@ -1049,44 +1043,48 @@ export const TokenFromUserInput: React.FC<{
                         name={name}
                         onChange={onChange}
                         error={errorMessage ? true : false }
-                        helperText={errorMessage ? <span>{errorMessage}</span> : `The ${getTokenSymbolForLabel(token?.symbol, useETH)} amount to use from your account.` }
+                        helperText={errorMessage ? errorMessage : `The ${getTokenSymbolForLabel(token?.symbol, useETH)} amount to use from your account.` }
                         InputProps={{
                             endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(token?.symbol, useETH)}</InputAdornment>,
                         }}
-                        />
-                </Grid>
-                <Grid xs={4}>
-                    <Box
-                        mt={2}
-                        hidden={token?.symbol != 'WETH'}
-                        >
-                        <FormControlLabel
-                            control={
-                            <Switch
-                                size="small"
-                                checked={useETH}
-                                onChange={onChangeUseEth}
-                                name="useETH"
-                                color="secondary"
-                            />
+                    />
+                }
+                button={
+                    <Button
+                        fullWidth
+                        // variant="outlined"
+                        color="secondary"
+                        onClick={async (e) => {
+                            e.preventDefault()
+                            if (!token || !(token.contract))
+                                return
+                            
+                            let balance: BigNumber = ethers.constants.Zero
+                            if (getTokenSymbolForLabel(token?.symbol, useETH) === 'ETH'){
+                                if (provider)
+                                    balance = await provider.getBalance(owner)
                             }
-                            label="Use ETH"
-                            labelPlacement="bottom"
-                        />
-                    </Box>
-                </Grid>
-            </Grid>
-            
-            {/* {expectedResult.pathFromDaiToTokenA.map(address => (<Chip label={address} />))} */}
-            
+                            else{
+                                if (token && token.contract)
+                                    balance = await token.contract.balanceOf(owner)
+                            }
+                                
+                            form.setTextValues({ ...(form.textValues as object), [name]: formatEther(balance) })
+                            form.setCleanedValues({ ...(form.cleanedValues as object), [name]: balance })
+                        }}>
+                        Max
+                    </Button>
+                }
+            ></TextFieldWithOneButton>
             <ApprovalButton
                 needsApproval={needsApproval}
                 dsProxy={dsProxy}
                 signer={signer}
                 token={token}
                 />
-        </span>
+        </Box>
     )
+
 }
 
 const useStyles = makeStyles((theme: Theme) =>

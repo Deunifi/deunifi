@@ -67,3 +67,5 @@ export const useForm = <T, C, E>(textInitialValues: T, cleanedInitialValues: C) 
 
 }
 
+export type IForm = ReturnType<typeof useForm>;
+
