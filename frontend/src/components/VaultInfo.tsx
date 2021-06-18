@@ -16,37 +16,42 @@ interface IVaultExpectedValueProps {
     actualValue: BigNumber,
     value: BigNumber,
     error?: boolean,
-    decimals?: number
+    decimals?: number,
+    units?: string
 }
-const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInProgress, actualValue, value, error = false, decimals = 18 }) => {
+const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInProgress, actualValue, value, error = false, decimals = 18, units }) => {
     return (
         <span>{
             operationInProgress && !actualValue.eq(value) ?
-                <Typography variant="body2" color={error ? 'error' : 'primary'}>{formatBigNumber(value, decimals)}</Typography>
+                <Typography variant="body2" color={error ? 'error' : 'primary'}>{formatBigNumber(value, decimals)} {units}</Typography>
                 : ''
         }</span>
     )
 }
 
-export const VaultActualValue: React.FC<{ label: string, value: string|number }> = ({ label, value }) => {
+export const VaultActualValue: React.FC<{ label: string, units?: string, value: string|number }> = ({ label, value, units }) => {
     return (
         <span>
             <Typography variant="caption" component="p" color="textSecondary">
                 {label}:
             </Typography>
-            <Typography variant="body1" component="p" color="textPrimary">
-                {value}
-            </Typography>
+            <Box>
+                <Typography variant="body1" component="body" color="textPrimary" style={{display: 'inline-block'}}>
+                    {value} <Typography variant="body2" component="body" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
+                        {units} 
+                    </Typography>
+                </Typography>
+            </Box>
         </span>
     )
 }
 
-const VaultParameter: React.FC<{ label: string, value: string|number }> = ({ label, value }) => {
+const VaultParameter: React.FC<{ label: string, value: string|number, units?:string }> = ({ label, value, units }) => {
     return (
         <span>
             <Typography variant="caption" component="p" color="secondary">
                 ({label}: <Typography variant="caption" component="span" color="secondary">
-                    {value}
+                    {value} {units}
                 </Typography>)
             </Typography>
         </span>
@@ -156,44 +161,49 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
 
                     <Box m={1}>
                         <Box mb={2} mt={2}>
-                                    <VaultActualValue label='Collateral Locked' value={formatEther(vaultInfo.ink)} />
-                                    <VaultExpectedValue operationInProgress actualValue={vaultInfo.ink} value={vaultExpectedStatus.ink} />
+                                    <VaultActualValue label='Collateral Locked' value={formatEther(vaultInfo.ink)} units={vaultInfo.ilkInfo.symbol}/>
+                                    <VaultExpectedValue operationInProgress actualValue={vaultInfo.ink} value={vaultExpectedStatus.ink} units={vaultInfo.ilkInfo.symbol}/>
                         </Box>
 
                         <Box mb={2} mt={2}>
-                                    <VaultActualValue label='Debt' value={vaultInfo?.dart ? formatEther(vaultInfo.dart) : '0'} />
+                                    <VaultActualValue label='Debt' value={vaultInfo?.dart ? formatEther(vaultInfo.dart) : '0'} units='DAI'/>
                                     <VaultExpectedValue operationInProgress actualValue={vaultInfo.dart} value={vaultExpectedStatus.dart}
-                                        error={vaultExpectedStatusErrors.debtCeiling || vaultExpectedStatusErrors.debtFloor ? true : false} />
+                                        error={vaultExpectedStatusErrors.debtCeiling || vaultExpectedStatusErrors.debtFloor ? true : false} 
+                                        units='DAI'/>
                         </Box>
 
                         <Box mb={2} mt={2}>
-                            <VaultActualValue label='Collateralization Ratio' value={formatEther(vaultInfo.collateralizationRatio)} />
+                            <VaultActualValue label='Collateralization Ratio' value={formatEther(vaultInfo.collateralizationRatio.mul(100))} units='%'/>
                             <VaultExpectedValue
                                 operationInProgress
-                                actualValue={vaultInfo.collateralizationRatio}
-                                value={vaultExpectedStatus.collateralizationRatio}
+                                actualValue={vaultInfo.collateralizationRatio.mul(100)}
+                                value={vaultExpectedStatus.collateralizationRatio.mul(100)}
+                                units='%'
                                 error={vaultExpectedStatusErrors.collateralizationRatio ? true : false}
                             />
-                            <VaultParameter label='Liquidation Ratio' value={formatBigNumber(vaultInfo.mat, 27)} />
+                            <VaultParameter label='Liquidation Ratio' value={formatBigNumber(vaultInfo.mat.mul(100), 27)} units='%' />
                         </Box>
 
                         <Box mb={2} mt={2}>
-                            <VaultActualValue label='Liquidation Price' value={formatBigNumber(vaultInfo.liquidationPrice, 27)} />
+                            <VaultActualValue label='Liquidation Price' value={formatBigNumber(vaultInfo.liquidationPrice, 27)} units='USD'/>
                             <VaultExpectedValue
                                 operationInProgress
                                 actualValue={vaultInfo.liquidationPrice}
                                 value={vaultExpectedStatus.liquidationPrice}
+                                units='USD'
                                 decimals={27}
                             />
-                            <VaultParameter label='Current Price' value={formatBigNumber(vaultInfo.price, 27)} />
+                            <VaultParameter label='Current Price' value={formatBigNumber(vaultInfo.price, 27)} units='USD'/>
                         </Box>
 
                         <Box mb={2} mt={2}>
-                            <VaultActualValue label="Vault's APY" value={apy.vaultApy} />
-                            <VaultExpectedValue operationInProgress actualValue={parseEther(apy.vaultApy.toString())} value={parseEther(apy.vaultExpectedApy.toString())} />
+                            <VaultActualValue label="Vault's APY" value={(apy.vaultApy-1)*100} units='%'/>
+                            <VaultExpectedValue operationInProgress actualValue={parseEther(((apy.vaultApy-1)*100).toString())} value={parseEther(((apy.vaultExpectedApy-1)*100).toString())} 
+                            units='%'/>
                             <Grid container spacing={1} alignItems="center" direction="row" justify="center">
                                 <Grid item xs={10}>
-                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics`} value={apy.ilkApy} />
+                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics`} value={(apy.ilkApy-1)*100} 
+                                        units='%'/>
                                 </Grid>
                                 <Grid item xs={2}>
                                     <Box m={1}>

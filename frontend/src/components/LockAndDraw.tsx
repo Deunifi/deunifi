@@ -875,7 +875,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                         <SummaryValue 
                             label="Expected Vault's APY"
-                            value={apy.vaultExpectedApy*100}
+                            value={(apy.vaultExpectedApy-1)*100}
                             units="%"
                             comments={[`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`,]}
                             />
