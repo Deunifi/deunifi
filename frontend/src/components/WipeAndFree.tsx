@@ -151,6 +151,7 @@ interface IExpectedResult {
     token1AmountForDai: BigNumber,
     debTokenNeedsApproval: boolean,
     minCollateralToRemove: BigNumber,
+    collateralAmountToRecive: BigNumber,
 }
 
 const initialExpectedResult: IExpectedResult = {
@@ -164,6 +165,7 @@ const initialExpectedResult: IExpectedResult = {
     token1AmountForDai: ethers.constants.Zero,
     debTokenNeedsApproval: false,
     minCollateralToRemove: ethers.constants.Zero,
+    collateralAmountToRecive: ethers.constants.Zero,
 }
 
 export const WipeAndFree: React.FC<Props> = ({ children }) => {
@@ -485,6 +487,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         const debTokenNeedsApproval = (yield debTokenNeedsApprovalPromise) as boolean
 
+        const collateralAmountToRecive = params.collateralToFree.sub(params.collateralToUseToPayFlashLoan)
+
         setExpectedResult({
             daiLoanPlusFees,
             daiLoanFees,
@@ -495,7 +499,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             token1AmountForDai,
             daiFromFlashLoan: daiFromFlashLoan,
             debTokenNeedsApproval: debTokenNeedsApproval,
-            minCollateralToRemove
+            minCollateralToRemove,
+            collateralAmountToRecive
         })
 
         setVaultExpectedOperation({
@@ -1033,32 +1038,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                             </Card>
                         </Box>
                         
-
-                        <Box m={1}>
-                            <Card variant="outlined">
-                                <SummaryValue
-                                    label={`Amount of ${vaultInfo.ilkInfo.token0?.symbol} to recieve`}
-                                    value={formatUnits(token0ToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)}
-                                    units={vaultInfo.ilkInfo.token0?.symbol}
-                                    comments={[`Min: ${formatUnits(token0MinAmountToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)} ${vaultInfo.ilkInfo.token0?.symbol}`]}
-                                    />
-
-                                <SummaryValue
-                                    label={`Amount of ${vaultInfo.ilkInfo.token1?.symbol} to recieve`}
-                                    value={formatUnits(token1ToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)}
-                                    units={vaultInfo.ilkInfo.token1?.symbol}
-                                    comments={[`Min: ${formatUnits(token1MinAmountToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)} ${vaultInfo.ilkInfo.token1?.symbol}`]}
-                                    />
-
-                                <SummaryValue
-                                    label={`Amount of ${vaultInfo.ilkInfo.symbol} to recieve`}
-                                    value={formatUnits(params.collateralToFree.sub(params.collateralToUseToPayFlashLoan), vaultInfo.ilkInfo.dec)}
-                                    units={vaultInfo.ilkInfo.symbol}
-                                    />
-                            </Card>
-                        </Box>
-                        
-
                         <Box m={1}>
                             <Card variant="outlined">
                                 <SummaryValue
@@ -1081,6 +1060,33 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                             </Card>
                         </Box>
 
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label={`Amount of ${vaultInfo.ilkInfo.token0?.symbol} to recieve`}
+                                    value={formatUnits(token0ToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)}
+                                    units={vaultInfo.ilkInfo.token0?.symbol}
+                                    comments={[`Min: ${formatUnits(token0MinAmountToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)} ${vaultInfo.ilkInfo.token0?.symbol}`]}
+                                    />
+
+                                <SummaryValue
+                                    label={`Amount of ${vaultInfo.ilkInfo.token1?.symbol} to recieve`}
+                                    value={formatUnits(token1ToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)}
+                                    units={vaultInfo.ilkInfo.token1?.symbol}
+                                    comments={[`Min: ${formatUnits(token1MinAmountToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)} ${vaultInfo.ilkInfo.token1?.symbol}`]}
+                                    />
+
+                                <SummaryValue
+                                    label={`Amount of ${vaultInfo.ilkInfo.symbol} to recieve`}
+                                    value={formatUnits(
+                                        expectedResult.collateralAmountToRecive.isNegative() ?
+                                            ethers.constants.Zero : expectedResult.collateralAmountToRecive,
+                                        vaultInfo.ilkInfo.dec)}
+                                    units={vaultInfo.ilkInfo.symbol}
+                                    />
+                            </Card>
+                        </Box>
+                        
 
                         <Button 
                             disabled={

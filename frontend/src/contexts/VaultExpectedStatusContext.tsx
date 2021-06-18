@@ -63,6 +63,8 @@ export const VaultExpectedStatusProvider: React.FC<Props> = ({ children }) => {
         if (vault) {
     
             vaultExpectedStatus.ink = vaultInfo.ink.add(vaultExpectedOperation.collateralToLock)
+            vaultExpectedStatus.ink = vaultExpectedStatus.ink.isNegative() ? 
+                ethers.constants.Zero : vaultExpectedStatus.ink 
             vaultExpectedStatus.dart = vaultInfo.dart.add(vaultExpectedOperation.daiToDraw)
     
             vaultExpectedStatus.collateralizationRatio =
