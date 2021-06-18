@@ -295,10 +295,12 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const lastDaiLoanPlusFeesWithNoServiceFees = daiFromFlashLoan
             .add(daiLoanFees)
 
-        const daiLoanPlusFees = lastDaiLoanPlusFeesWithNoServiceFees
-            .add((yield getFeeFromGrossAmount(daiFromFlashLoan)) as BigNumber)
+        // FIXME This should apply to daiFromFlashLoan instead of params.daiToPayback,
+        // but first must be changed the Deunifi.sol contract.
+        const daiServiceFee = (yield getFeeFromGrossAmount(params.daiToPayback)) as BigNumber
 
-        const daiServiceFee = daiLoanPlusFees.sub(lastDaiLoanPlusFeesWithNoServiceFees)
+        const daiLoanPlusFees = lastDaiLoanPlusFeesWithNoServiceFees
+            .add(daiServiceFee)
 
         let errors: IErrors = {}
 
