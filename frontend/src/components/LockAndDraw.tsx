@@ -59,6 +59,7 @@ interface IFormErrors {
 
     toleranceMustBeHigherThanZero: string,
     deadlineMustBeHigherThanZero: string,
+    tooMuchDaiFromAccount: string,
 }
 
 const emptyFormErrors: IFormErrors = {
@@ -78,6 +79,8 @@ const emptyFormErrors: IFormErrors = {
 
     toleranceMustBeHigherThanZero: '',
     deadlineMustBeHigherThanZero: '',
+
+    tooMuchDaiFromAccount: '',
 }
 
 interface IClenedForm extends IFormFields {
@@ -405,6 +408,11 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
         if (form.cleanedValues.transactionDeadline.lte(0))
             errors.deadlineMustBeHigherThanZero = 'Transaction deadline must be higher than zero'
 
+        if (form.cleanedValues.daiFromSigner.gt(
+            expectedResult.daiForTokenA.add(expectedResult.daiForTokenB)))
+            errors.tooMuchDaiFromAccount = `You are using more DAI than needed. Max DAI to use ${formatEther(
+                expectedResult.daiForTokenA.add(expectedResult.daiForTokenB)
+            )}`
 
         setExpectedResult(expectedResult)
         setVaultExpectedOperation(expectedResult)
@@ -775,7 +783,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         amount={form.textValues.daiFromSigner}
                                         name="daiFromSigner"
                                         onChange={(e) => daiFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
-                                        errorMessage={form.errors?.daiFromSigner}
+                                        errorMessage={form.errors?.daiFromSigner || form.errors?.tooMuchDaiFromAccount}
 
                                         onChangeUseEth={() => {}}
 
