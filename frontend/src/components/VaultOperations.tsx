@@ -76,9 +76,9 @@ export const VaultTabsOperations: React.FC<Props> = ({ children }) => {
     useEffect(() => {
         // In case the vault it is not already created, then we
         // set the LockAnDraw tab.
-        if (vault && !vault.cdp)
+        if ((vault && !vault.cdp) || !isVaultApplyesForWipeAndFree(vaultInfo))
             setValue(0)
-    }, [vault])
+    }, [vault, vaultInfo])
 
     return (
         <div className={classes.root}>
