@@ -135,6 +135,9 @@ interface IErrors {
     invalidCombinationOfDaiAmountCoveredWithToken1?: string,
     toleranceMustBeHigherThanZero?: string,
     deadlineMustBeHigherThanZero?: string,
+    tooMuchDebtToPayback?: string,
+    tooMuchDaiFromAccount?: string,
+    notEnoughDaiInAccount?: string,
 }
 
 interface IExpectedResult {
@@ -195,14 +198,15 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     }, [vault])
 
 
-    useEffectAutoCancel(function* () {
-        if (operationInProgress)
-            return
-        if (daiFromTokenAModifiedByUser)
-            daiFromTokenAChange({ target: { value: form.daiFromTokenA } })
-        else if (daiFromTokenBModifiedByUser)
-            daiFromTokenBChange({ target: { value: form.daiFromTokenB } })
-    }, [blocknumber])
+    // TODO remove
+    // useEffectAutoCancel(function* () {
+    //     if (operationInProgress)
+    //         return
+    //     if (daiFromTokenAModifiedByUser)
+    //         daiFromTokenAChange({ target: { value: form.daiFromTokenA } })
+    //     else if (daiFromTokenBModifiedByUser)
+    //         daiFromTokenBChange({ target: { value: form.daiFromTokenB } })
+    // }, [blocknumber])
 
     interface IChangeDaiFromTokenEvent {
         target: {
@@ -276,6 +280,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             return
         }
 
+        const daiBalanceOfAccountPromise = dai.balanceOf(address)
+
         const debTokenNeedsApprovalPromise = needsApproval(dai, address, dsProxy.address, params.daiFromSigner, weth.address, false)
 
         const daiFromFlashLoan = params.daiToPayback.gt(params.daiFromSigner) ?
@@ -294,8 +300,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         let errors: IErrors = {}
 
-        if (params.daiFromSigner.add(daiFromFlashLoan).gt(vaultInfo.dart))
-            errors.tooMuchDai = `You are using more DAI than needed. Max DAI to use ${formatEther(vaultInfo.dart)}.`
+        // if (params.daiFromSigner.add(daiFromFlashLoan).gt(vaultInfo.dart))
+        //     errors.tooMuchDai = `You are using more DAI than needed. Max DAI to use ${formatEther(vaultInfo.dart)}.`
+        if (params.daiFromSigner.gt(params.daiToPayback))
+            errors.tooMuchDai = `You are using more DAI than needed. Max DAI to use ${formatEther(params.daiToPayback)}.`
 
         if (params.collateralToFree.gt(vaultInfo.ink))
             errors.tooMuchCollateralToFree = `You are trying to free more collateral than available in your vault. Max collateral to free: ${formatEther(vaultInfo.ink)}`
@@ -464,6 +472,14 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         if (params.transactionDeadline.lte(0))
             errors.deadlineMustBeHigherThanZero = 'Transaction deadline must be higher than zero'
 
+        if (params.daiToPayback.gt(vaultInfo.dart))
+            errors.tooMuchDebtToPayback = `You are trying to cover more debt than needed. Max debt to cover ${formatEther(vaultInfo.dart)}.`
+
+        if (params.daiFromSigner.gt(params.daiToPayback))
+            errors.tooMuchDaiFromAccount = `You using more DAI than needed. Max DAI to cover ${formatEther(params.daiToPayback)}.`
+
+        if (params.daiFromSigner.gt((yield daiBalanceOfAccountPromise) as BigNumber))
+            errors.notEnoughDaiInAccount = 'You do not have enough DAI in your account'
 
         setErrors(errors)
 
@@ -624,7 +640,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     onChange={(e) => {
                                         onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)
                                     }}
-                                    helperText='Amount of DAI debt to payback'
+                                    error={errors.tooMuchDebtToPayback ? true : false}
+                                    helperText={ errors.tooMuchDebtToPayback || 'Amount of DAI debt to payback' }
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
                                     }}
@@ -644,6 +661,49 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                 </Button>
                             }
                         ></TextFieldWithOneButton>
+
+                        <TextFieldWithOneButton
+                            textField={
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    margin="normal"
+                                    variant="outlined"
+                                    label='DAI From Your Account'
+                                    // type="number"
+                                    value={form.daiFromSigner} name="daiFromSigner" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                                    error={errors.tooMuchDai || errors.notEnoughDaiInAccount ? true : false}
+                                    helperText={errors.tooMuchDai || errors.notEnoughDaiInAccount || 'Amount of DAI to use from your account'}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
+                                    }}
+                                />
+                            }
+                            button={
+                                <Button
+                                    fullWidth
+                                    // variant="outlined"
+                                    color="secondary"
+                                    onClick={async (e) => {
+                                        e.preventDefault()
+                                        if (!dai)
+                                            return
+                                        const balance: BigNumber = await dai.balanceOf(address)
+                                        const max = params.daiToPayback.gt(balance) ? balance : params.daiToPayback
+                                        setForm({ ...form, daiFromSigner: formatEther(max) })
+                                        setParams({ ...params, daiFromSigner: max })
+                                    }}>
+                                    Max
+                                </Button>
+                            }
+                        ></TextFieldWithOneButton>
+                        <ApprovalButton
+                            needsApproval={expectedResult.debTokenNeedsApproval}
+                            dsProxy={dsProxy}
+                            signer={signer}
+                            token={{ symbol: 'DAI', contract: dai }}
+                            >
+                        </ApprovalButton>
 
                         {/* <Slider 
 
@@ -880,49 +940,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                 <Typography color="textSecondary" gutterBottom>
                                     Additional options
                                 </Typography>
-
-                                <TextFieldWithOneButton
-                                    textField={
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            margin="normal"
-                                            variant="outlined"
-                                            label='DAI From Your Account'
-                                            // type="number"
-                                            value={form.daiFromSigner} name="daiFromSigner" onChange={(e) => onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
-                                            error={errors.tooMuchDai? true : false}
-                                            helperText={errors.tooMuchDai ? <span>{errors.tooMuchDai}<br></br></span> : 'Amount of DAI to use from your account'}
-                                            InputProps={{
-                                                endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
-                                            }}
-                                        />
-                                    }
-                                    button={
-                                        <Button
-                                            fullWidth
-                                            // variant="outlined"
-                                            color="secondary"
-                                            onClick={async (e) => {
-                                                e.preventDefault()
-                                                if (!dai)
-                                                    return
-                                                const balance: BigNumber = await dai.balanceOf(address)
-                                                const max = params.daiToPayback.gt(balance) ? balance : params.daiToPayback
-                                                setForm({ ...form, daiFromSigner: formatEther(max) })
-                                                setParams({ ...params, daiFromSigner: max })
-                                            }}>
-                                            Max
-                                        </Button>
-                                    }
-                                ></TextFieldWithOneButton>
-                                <ApprovalButton
-                                    needsApproval={expectedResult.debTokenNeedsApproval}
-                                    dsProxy={dsProxy}
-                                    signer={signer}
-                                    token={{ symbol: 'DAI', contract: dai }}
-                                    >
-                                </ApprovalButton>
 
                                 <Box
                                     p={1}
