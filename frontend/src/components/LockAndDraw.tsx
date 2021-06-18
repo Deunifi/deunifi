@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { Backdrop, Box, Button, Card, Chip, CircularProgress, createStyles, Divider, FormControlLabel, FormGroup, Grid, InputAdornment, makeStyles, Switch, TextField, Theme, Tooltip, Typography } from "@material-ui/core";
+import { Backdrop, Box, Button, Card, Chip, CircularProgress, CircularProgressProps, createStyles, Divider, FormControlLabel, FormGroup, Grid, InputAdornment, makeStyles, Switch, TextField, Theme, Tooltip, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -640,6 +640,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
     const { apy } = useApyContext()
 
     const [operationInProgress, setOperationInProgress] = useState(false)
+    const [secondaryOperationInProgress, setSecondaryOperationInProgress] = useState(false)
 
     return (
         <div>
@@ -667,6 +668,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                                 owner={address}
                                 form={form as IForm}
+                                setApprovalInProgress={setSecondaryOperationInProgress}
                                 />
                             
                             <Card variant="outlined"><Box m={1} p={1} >
@@ -699,6 +701,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                                         owner={address}
                                         form={form as IForm}
+                                        setApprovalInProgress={setSecondaryOperationInProgress}
                                     />
                                     
                                     {/* <Box>
@@ -739,6 +742,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                                         owner={address}
                                         form={form as IForm}
+                                        setApprovalInProgress={setSecondaryOperationInProgress}
                                     />
 
                                     {/* <Box>
@@ -809,6 +813,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                                         owner={address}
                                         form={form as IForm}
+                                        setApprovalInProgress={setSecondaryOperationInProgress}
                                         />
 
                                 </span>
@@ -920,6 +925,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                 </Grid>
             </Grid>
             <BusyBackdrop open={operationInProgress}></BusyBackdrop>
+            <BusyBackdrop open={secondaryOperationInProgress} color="secondary"></BusyBackdrop>
         </div>
     )
 
@@ -978,7 +984,8 @@ export const ApprovalButton: React.FC<{
     token?: {symbol: string, contract: Contract|undefined},
     signer?: ethers.providers.JsonRpcSigner,
     dsProxy?: Contract,
-    }> = ({ needsApproval, token, signer, dsProxy }) => {
+    setApprovalInProgress?: (inProgress: boolean) => void
+    }> = ({ needsApproval, token, signer, dsProxy, setApprovalInProgress=()=>{} }) => {
     if (!needsApproval || !token || !(token.contract))
         return (<span></span>)
     return (
@@ -993,9 +1000,17 @@ export const ApprovalButton: React.FC<{
                         e.preventDefault()
                         if (!token || !signer || !dsProxy)
                             return
-                        await (token.contract as Contract)
-                            .connect(signer)
-                            .approve(dsProxy.address, ethers.constants.MaxUint256)
+                        try {
+                            setApprovalInProgress(true)
+                            const transactionResponse = await (token.contract as Contract)
+                                .connect(signer)
+                                .approve(dsProxy.address, ethers.constants.MaxUint256)
+                            await transactionResponse.wait(1)
+                        } catch (error) {
+                            console.error(error)
+                        } finally {
+                            setApprovalInProgress(false)
+                        }
                     }}>
                     Approve {token?.symbol}
                 </Button>
@@ -1019,10 +1034,11 @@ export const TokenFromUserInput: React.FC<{
     token?: {symbol: string, contract: Contract|undefined},
 
     owner: string,
-    form: IForm
+    form: IForm,
+    setApprovalInProgress?: (inProgress: boolean) => void
     }> = ({ 
         useETH, name, amount, onChange, errorMessage,
-        needsApproval, token, signer, dsProxy, owner, form }) => {
+        needsApproval, token, signer, dsProxy, owner, form, setApprovalInProgress }) => {
 
     const { provider } = useConnectionContext()
 
@@ -1081,6 +1097,7 @@ export const TokenFromUserInput: React.FC<{
                 dsProxy={dsProxy}
                 signer={signer}
                 token={token}
+                setApprovalInProgress={setApprovalInProgress}
                 />
         </Box>
     )
@@ -1096,11 +1113,11 @@ const useStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-export default function BusyBackdrop({open}: {open:boolean}) {
+export default function BusyBackdrop({open, color="primary"}: {open:boolean, color?: CircularProgressProps['color']}) {
     const classes = useStyles();
     return (
         <Backdrop className={classes.backdrop} open={open} >
-            <CircularProgress color="primary" />
+            <CircularProgress color={color} />
         </Backdrop>
     );
   }
