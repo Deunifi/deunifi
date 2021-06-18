@@ -664,7 +664,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                 needsApproval={expectedResult.needsGemApproval}
                                 dsProxy={dsProxy}
                                 signer={signer}
-                                token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem}} 
+                                token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem, decimals: vaultInfo.ilkInfo.dec.toNumber()}} 
 
                                 owner={address}
                                 form={form as IForm}
@@ -809,7 +809,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         needsApproval={expectedResult.needsDebtTokenApproval}
                                         dsProxy={dsProxy}
                                         signer={signer}
-                                        token={{symbol: 'DAI', contract: dai}} 
+                                        token={{symbol: 'DAI', contract: dai, decimals: 18}} 
 
                                         owner={address}
                                         form={form as IForm}
@@ -1031,7 +1031,7 @@ export const TokenFromUserInput: React.FC<{
     needsApproval: boolean,
     dsProxy?: Contract,
     signer?: ethers.providers.JsonRpcSigner,
-    token?: {symbol: string, contract: Contract|undefined},
+    token?: {symbol: string, contract: Contract|undefined, decimals: number},
 
     owner: string,
     form: IForm,
@@ -1085,7 +1085,7 @@ export const TokenFromUserInput: React.FC<{
                                     balance = await token.contract.balanceOf(owner)
                             }
                                 
-                            form.setTextValues({ ...(form.textValues as object), [name]: formatEther(balance) })
+                            form.setTextValues({ ...(form.textValues as object), [name]: formatUnits(balance, token.decimals) })
                             form.setCleanedValues({ ...(form.cleanedValues as object), [name]: balance })
                         }}>
                         Max

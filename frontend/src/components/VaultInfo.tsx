@@ -24,7 +24,11 @@ const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInPro
     return (
         <span>{
             operationInProgress && !actualValue.eq(value) ?
-                <Typography variant="body2" color={error ? 'error' : 'primary'}>{formatBigNumber(value, decimals)} {units}</Typography>
+                <Typography variant="body2" color={error ? 'error' : 'primary'}>
+                    {formatBigNumber(value, decimals)} <Typography variant="body2" component="body" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
+                        {units} 
+                    </Typography>
+                </Typography>
                 : ''
         }</span>
     )
@@ -50,8 +54,8 @@ export const VaultActualValue: React.FC<{ label: string, units?: string, value: 
 const VaultParameter: React.FC<{ label: string, value: string|number, units?:string }> = ({ label, value, units }) => {
     return (
         <span>
-            <Typography variant="caption" component="p" color="secondary">
-                ({label}: <Typography variant="caption" component="span" color="secondary">
+            <Typography variant="caption" component="span" color="textSecondary">
+                ({label}: <Typography variant="caption" component="span" color="textSecondary">
                     {value} {units}
                 </Typography>)
             </Typography>
