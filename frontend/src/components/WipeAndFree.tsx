@@ -19,6 +19,7 @@ import { useConnectionContext } from '../contexts/ConnectionContext';
 import { Box, Button, ButtonBaseClassKey, Card, FormControlLabel, Grid, InputAdornment, Slider, Switch, TextField, TextFieldClassKey, Typography } from '@material-ui/core';
 import { SimpleCard } from './VaultInfo';
 import { useVaultContext } from '../contexts/VaultSelectionContext';
+import { useBusyBackdrop } from '../hooks/useBusyBackdrop';
 
 interface Props { }
 
@@ -621,6 +622,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     }
 
     const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
+    
+    const { backdrop: secondaryOperationInProgressBackdrop, setInProgress: setSecondaryOperationInProgress } = useBusyBackdrop({ color: "secondary"})
 
     return (
         <Grid container spacing={2} alignItems="flex-start" direction="row" justify="space-evenly">
@@ -709,8 +712,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                             dsProxy={dsProxy}
                             signer={signer}
                             token={{ symbol: 'DAI', contract: dai }}
+                            setApprovalInProgress={setSecondaryOperationInProgress}
                             >
                         </ApprovalButton>
+                        {secondaryOperationInProgressBackdrop}
 
                         {/* <Slider 
 

@@ -777,28 +777,29 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                     Additional options
                                 </Typography>
 
-                                <span hidden={dai?.address==vaultInfo.ilkInfo.token0?.contract.address || dai?.address==vaultInfo.ilkInfo.token1?.contract.address}>
-                                    <Box
-                                        m={2}
-                                        hidden={!(vaultInfo.ilkInfo.token0?.symbol === 'WETH' || vaultInfo.ilkInfo.token1?.symbol === 'WETH')}
-                                        >
-                                        <FormControlLabel
-                                            control={
-                                            <Switch
-                                                size="medium"
-                                                checked={form.cleanedValues.useETH}
-                                                onChange={(e) => {
-                                                    form.setTextValues({...form.textValues, useETH: e.target.checked })
-                                                    form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
-                                                }}
-                                                name="useETH"
-                                                color="secondary"
-                                            />
-                                            }
-                                            label="Use ETH"
-                                            labelPlacement="end"
+                                <Box
+                                    m={2}
+                                    hidden={!(vaultInfo.ilkInfo.token0?.symbol === 'WETH' || vaultInfo.ilkInfo.token1?.symbol === 'WETH')}
+                                    >
+                                    <FormControlLabel
+                                        control={
+                                        <Switch
+                                            size="medium"
+                                            checked={form.cleanedValues.useETH}
+                                            onChange={(e) => {
+                                                form.setTextValues({...form.textValues, useETH: e.target.checked })
+                                                form.setCleanedValues({...form.cleanedValues, useETH: e.target.checked })
+                                            }}
+                                            name="useETH"
+                                            color="secondary"
                                         />
-                                    </Box>
+                                        }
+                                        label="Use ETH"
+                                        labelPlacement="end"
+                                    />
+                                </Box>
+
+                                <span hidden={dai?.address==vaultInfo.ilkInfo.token0?.contract.address || dai?.address==vaultInfo.ilkInfo.token1?.contract.address}>
                                     <TokenFromUserInput 
                                         useETH={false}
                                         amount={form.textValues.daiFromSigner}
