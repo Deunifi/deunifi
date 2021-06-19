@@ -473,8 +473,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             const [actionForToken0, actionForToken1] = params.daiFromTokenA.gt(params.daiFromTokenB) ? 
                 ['decrease', 'increase']
                 : ['increase', 'decrease']
-            errors.invalidCombinationOfDaiAmountCoveredWithToken0 = `The combination of DAI amounts is not valid. Try to ${actionForToken0} the DAI covered with ${vaultInfo.ilkInfo.token0?.symbol}.`
-            errors.invalidCombinationOfDaiAmountCoveredWithToken1 = `The combination of DAI amounts is not valid. Try to ${actionForToken1} the DAI covered with ${vaultInfo.ilkInfo.token1?.symbol}.`
+            errors.invalidCombinationOfDaiAmountCoveredWithToken0 = `The combination of DAI amounts is not valid. Try to ${actionForToken0} the DAI covered with ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)}.`
+            errors.invalidCombinationOfDaiAmountCoveredWithToken1 = `The combination of DAI amounts is not valid. Try to ${actionForToken1} the DAI covered with ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}.`
         }
 
         if (params.collateralToFree.lt(params.collateralToUseToPayFlashLoan))
@@ -797,7 +797,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     margin="normal"
                                     variant="outlined"
                                     required
-                                    label={`Debt+fees covered with ${vaultInfo.ilkInfo.token0?.symbol}`}
+                                    label={`Debt+fees covered with ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)}`}
                                     // type="number"
                                     value={form.daiFromTokenA} name="daiFromTokenA" onChange={(e) => daiFromTokenAChange(e)}
                                     error={errors.notEnoughDaiToCoverFlashLoanAndFees || errors.invalidCombinationOfDaiAmountCoveredWithToken0 || errors.toMuchDaiToCoverFlashLoanAndFees ? true : false}
@@ -805,7 +805,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         errors.notEnoughDaiToCoverFlashLoanAndFees 
                                         || errors.invalidCombinationOfDaiAmountCoveredWithToken0
                                         || errors.toMuchDaiToCoverFlashLoanAndFees
-                                        || `Amount of ${vaultInfo.ilkInfo.token0?.symbol} to use to cover debt + fees in DAI.`
+                                        || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} to use to cover debt + fees in DAI.`
                                     }
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
@@ -819,7 +819,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     margin="normal"
                                     variant="outlined"
                                     required
-                                    label={`Debt+fees covered with ${vaultInfo.ilkInfo.token1?.symbol}`}
+                                    label={`Debt+fees covered with ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}`}
                                     // type="number"
                                     value={form.daiFromTokenB} name="daiFromTokenB" onChange={(e) => daiFromTokenBChange(e)}
                                     error={errors.notEnoughDaiToCoverFlashLoanAndFees || errors.invalidCombinationOfDaiAmountCoveredWithToken1 || errors.toMuchDaiToCoverFlashLoanAndFees ? true : false}
@@ -827,7 +827,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         errors.notEnoughDaiToCoverFlashLoanAndFees
                                         || errors.invalidCombinationOfDaiAmountCoveredWithToken1
                                         || errors.toMuchDaiToCoverFlashLoanAndFees
-                                        || `Amount of ${vaultInfo.ilkInfo.token1?.symbol} to use to cover debt + fees in DAI.`
+                                        || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)} to use to cover debt + fees in DAI.`
                                     }
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
@@ -906,7 +906,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     helperText={
                                         errors.notEnoughCollateralToCoverDai
                                         || errors.tooMuchCollateralToSwap
-                                        || `Amount of ${vaultInfo.ilkInfo.symbol} to swap to ${vaultInfo.ilkInfo.token0?.symbol} and ${vaultInfo.ilkInfo.token1?.symbol}`
+                                        || `Amount of ${vaultInfo.ilkInfo.symbol} to swap to ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} and ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}`
                                     }
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">{vaultInfo.ilkInfo.symbol}</InputAdornment>,
@@ -980,7 +980,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                                 setForm({ ...form, reciveETH: e.target.checked })
                                                 setParams({ ...params, reciveETH: e.target.checked })
                                             }}
-                                            name="useETH"
+                                            name="reciveETH"
                                             color="secondary"
                                         />
                                         }
@@ -1084,17 +1084,17 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         <Box m={1}>
                             <Card variant="outlined">
                                 <SummaryValue
-                                    label={`Amount of ${vaultInfo.ilkInfo.token0?.symbol} to recieve`}
+                                    label={`Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} to recieve`}
                                     value={formatUnits(token0ToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)}
-                                    units={vaultInfo.ilkInfo.token0?.symbol}
-                                    comments={[`Min: ${formatUnits(token0MinAmountToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)} ${vaultInfo.ilkInfo.token0?.symbol}`]}
+                                    units={getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)}
+                                    comments={[`Min: ${formatUnits(token0MinAmountToRecieve, vaultInfo.ilkInfo.token0?.decimals || 18)} ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)}`]}
                                     />
 
                                 <SummaryValue
-                                    label={`Amount of ${vaultInfo.ilkInfo.token1?.symbol} to recieve`}
+                                    label={`Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)} to recieve`}
                                     value={formatUnits(token1ToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)}
-                                    units={vaultInfo.ilkInfo.token1?.symbol}
-                                    comments={[`Min: ${formatUnits(token1MinAmountToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)} ${vaultInfo.ilkInfo.token1?.symbol}`]}
+                                    units={getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}
+                                    comments={[`Min: ${formatUnits(token1MinAmountToRecieve, vaultInfo.ilkInfo.token1?.decimals || 18)} ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}`]}
                                     />
 
                                 <SummaryValue
