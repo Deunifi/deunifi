@@ -374,8 +374,22 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             const pairTotalSupply: BigNumber = ((yield pairTotalSupplyPromise) as BigNumber)
             let pairToken0Balance: BigNumber = (yield pairToken0BalancePromise) as BigNumber
             let pairToken1Balance: BigNumber = (yield pairToken1BalancePromise) as BigNumber
-            const swapFromTokenAToDaiResult = (yield swapFromTokenAToDaiResultPromise) as IGetAmountsInResult
-            const swapFromTokenBToDaiResult = (yield swapFromTokenBToDaiResultPromise) as IGetAmountsInResult
+
+            let swapFromTokenAToDaiResult = initialGetAmountsInResult
+            try {
+                swapFromTokenAToDaiResult = (yield swapFromTokenAToDaiResultPromise) as IGetAmountsInResult
+            } catch (error) {
+                if (!error.noSwapPathFound)
+                    throw error
+            }
+
+            let swapFromTokenBToDaiResult = initialGetAmountsInResult
+            try {
+                swapFromTokenBToDaiResult = (yield swapFromTokenBToDaiResultPromise) as IGetAmountsInResult
+            } catch (error) {
+                if (!error.noSwapPathFound)
+                    throw error
+            }
 
             const token0AmountForDai: BigNumber = swapFromTokenAToDaiResult.amountFrom
             params.pathFromTokenAToDai = swapFromTokenAToDaiResult.path

@@ -6,6 +6,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useVaultExpectedStatusContext } from "./VaultExpectedStatusContext";
 import { useVaultInfoContext } from "./VaultInfoContext";
+import { useVaultContext } from "./VaultSelectionContext";
 
 interface IApy{
     calculationDaysQuantity: number,

@@ -207,7 +207,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                             units='%'/>
                             <Grid container spacing={1} alignItems="center" direction="row" justify="center">
                                 <Grid item xs={10}>
-                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics`} value={apyToPercentage(apy.ilkApy)} 
+                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics. ${vaultInfo.ilkInfo.symbol} APY`} value={apyToPercentage(apy.ilkApy)} 
                                         units='%'/>
                                 </Grid>
                                 <Grid item xs={2}>

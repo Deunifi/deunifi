@@ -139,8 +139,10 @@ const getAmountsIn = async (
             best = result
     }
 
-    if (!best)
-        throw Error(`No path found to swap from ${tokenFrom} to ${tokenTo}.`)
+    if (!best){
+        console.error(`No path found to swap from ${tokenFrom} to ${tokenTo}.`);
+        throw { noSwapPathFound: true }
+    }
 
     return best
 }

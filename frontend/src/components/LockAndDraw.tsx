@@ -4,7 +4,7 @@ import { Backdrop, Box, Button, Card, Chip, CircularProgress, CircularProgressPr
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
-import { useSwapService, IGetAmountsInResult } from "../hooks/useSwapService";
+import { useSwapService, IGetAmountsInResult, initialGetAmountsInResult } from "../hooks/useSwapService";
 import { encodeParamsForLockGemAndDraw } from "../utils/format";
 import { useForm, defaultSideEffect, IChangeBigNumberEvent, IForm } from "../utils/forms";
 import { useContract } from "./Deployments";
@@ -60,6 +60,9 @@ interface IFormErrors {
     toleranceMustBeHigherThanZero: string,
     deadlineMustBeHigherThanZero: string,
     tooMuchDaiFromAccount: string,
+
+    swapPathNotFoundForToken0: string,
+    swapPathNotFoundForToken1: string,
 }
 
 const emptyFormErrors: IFormErrors = {
@@ -81,6 +84,9 @@ const emptyFormErrors: IFormErrors = {
     deadlineMustBeHigherThanZero: '',
 
     tooMuchDaiFromAccount: '',
+
+    swapPathNotFoundForToken0: '',
+    swapPathNotFoundForToken1: '',
 }
 
 interface IClenedForm extends IFormFields {
@@ -319,11 +325,20 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
             expectedResult.tokenAToBuyWithDai = form.cleanedValues.tokenAToLock.sub(form.cleanedValues.tokenAFromSigner)
         }
 
-        const tokenAFromResult = (yield swapService.getAmountsIn(
-            dai.address, token0.address, expectedResult.tokenAToBuyWithDai)) as IGetAmountsInResult
+        let tokenAFromResult = initialGetAmountsInResult
+        try{
+            tokenAFromResult = (yield swapService.getAmountsIn(
+                dai.address, token0.address, expectedResult.tokenAToBuyWithDai)) as IGetAmountsInResult
+        } catch (e){
+            if (e.noSwapPathFound)
+                errors.swapPathNotFoundForToken0 = `Not possible to swap from DAI to ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} for this amount`
+            else
+                throw e
+        }
         expectedResult.daiForTokenA = tokenAFromResult.amountFrom
         expectedResult.pathFromDaiToTokenA = tokenAFromResult.path
-        expectedResult.usePsmForTokenA = tokenAFromResult.psm.buyGem
+        expectedResult.usePsmForTokenA = tokenAFromResult.psm.buyGem    
+
 
         if (form.cleanedValues.tokenBFromSigner.gt(form.cleanedValues.tokenBToLock)){
             errors.tokenBFromSigner = `${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} from your account could not be higher than ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} to lock.`
@@ -332,8 +347,16 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
             expectedResult.tokenBToBuyWithDai = form.cleanedValues.tokenBToLock.sub(form.cleanedValues.tokenBFromSigner)
         }
 
-        const tokenBFromResult = (yield swapService.getAmountsIn(
-            dai.address, token1.address, expectedResult.tokenBToBuyWithDai)) as IGetAmountsInResult
+        let tokenBFromResult = initialGetAmountsInResult
+        try{
+            tokenBFromResult = (yield swapService.getAmountsIn(
+                dai.address, token1.address, expectedResult.tokenBToBuyWithDai)) as IGetAmountsInResult
+        } catch (e){
+            if (e.noSwapPathFound)
+                errors.swapPathNotFoundForToken1 = `Not possible to swap from DAI to ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} for this amount`
+            else
+                throw e
+        }
         expectedResult.daiForTokenB = tokenBFromResult.amountFrom
         expectedResult.pathFromDaiToTokenB = tokenBFromResult.path
         expectedResult.usePsmForTokenB = tokenBFromResult.psm.buyGem
@@ -680,8 +703,11 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         variant="outlined"
                                         label={`${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, form.cleanedValues.useETH)} To Lock`}
                                         value={form.textValues.tokenAToLock} name="tokenAToLock" onChange={(e) => tokenAToLockChange(e)}
-                                        error={form.errors?.tokenAToLock? true : false }
-                                        helperText={form.errors?.tokenAToLock? <span>{form.errors?.tokenAToLock}</span> : `The ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, form.cleanedValues.useETH)} amount to lock in your vault.` }
+                                        error={form.errors?.tokenAToLock || form.errors?.swapPathNotFoundForToken0 ? true : false }
+                                        helperText={
+                                            form.errors?.tokenAToLock
+                                            || form.errors?.swapPathNotFoundForToken0
+                                            || `The ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, form.cleanedValues.useETH)} amount to lock in your vault.` }
                                         InputProps={{
                                             endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, form.cleanedValues.useETH)}</InputAdornment>,
                                         }}
@@ -721,8 +747,11 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                         label={`${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, form.cleanedValues.useETH)} To Lock`}  
                                         value={form.textValues.tokenBToLock}
                                         name="tokenBToLock" onChange={(e) => tokenBToLockChange(e)}
-                                        error={form.errors?.tokenBToLock ? true : false }
-                                        helperText={form.errors?.tokenBToLock ? <span>{form.errors?.tokenBToLock}</span> : `The ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, form.cleanedValues.useETH)} amount to lock in your vault.` }
+                                        error={form.errors?.tokenBToLock || form.errors?.swapPathNotFoundForToken1 ? true : false }
+                                        helperText={
+                                            form.errors?.tokenBToLock 
+                                            || form.errors?.swapPathNotFoundForToken1
+                                            || `The ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, form.cleanedValues.useETH)} amount to lock in your vault.` }
                                         InputProps={{
                                             endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, form.cleanedValues.useETH)}</InputAdornment>,
                                         }}
