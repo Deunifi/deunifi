@@ -13,13 +13,14 @@ import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
-import BusyBackdrop, { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors } from '../components/LockAndDraw'
+import BusyBackdrop, { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors, apyToPercentage } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
 import { Box, Button, ButtonBaseClassKey, Card, FormControlLabel, Grid, InputAdornment, Slider, Switch, TextField, TextFieldClassKey, Typography } from '@material-ui/core';
-import { SimpleCard } from './VaultInfo';
+import { formatBigNumber, SimpleCard } from './VaultInfo';
 import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useBusyBackdrop } from '../hooks/useBusyBackdrop';
+import { useApyContext } from '../contexts/APYContext';
 
 interface Props { }
 
@@ -636,6 +637,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     }
 
     const { vaultExpectedStatus, vaultExpectedStatusErrors } = useVaultExpectedStatusContext()
+    const { apy } = useApyContext()
     
     const { backdrop: secondaryOperationInProgressBackdrop, setInProgress: setSecondaryOperationInProgress } = useBusyBackdrop({ color: "secondary"})
 
@@ -769,7 +771,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
                             <Box p={2}>
                                 <Typography color="textSecondary" gutterBottom>
-                                    Distribution to cover Debt + Fees
+                                    Distribution to cover debt+fees
                                 </Typography>
 
                                 <Grid container>
@@ -1038,30 +1040,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         <Box m={1}>
                             <Card variant="outlined">
                                 <SummaryValue
-                                    label='Remaining debt'
-                                    value={formatEther(vaultExpectedStatus.dart)}
-                                    units='DAI'
-                                    errors={[ErrorMessage(vaultExpectedStatusErrors.debtFloor), ]}
-                                    />
-
-                                <SummaryValue
-                                    label='Remaining collateral'
-                                    value={formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec)}
-                                    units={vaultInfo.ilkInfo.symbol}
-                                    />
-
-                                <SummaryValue
-                                    label='New collateralization ratio'
-                                    value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
-                                    units='%'
-                                    errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
-                                    />
-                            </Card>
-                        </Box>
-                        
-                        <Box m={1}>
-                            <Card variant="outlined">
-                                <SummaryValue
                                     label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
                                     value={formatEther(expectedResult.daiLoanFees)}
                                     units='DAI'
@@ -1078,6 +1056,50 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     value={formatEther(daiLoanPlusFees)}
                                     units='DAI'
                                     /> */}
+                            </Card>
+                        </Box>
+
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label='Remaining collateral'
+                                    value={formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec)}
+                                    units={vaultInfo.ilkInfo.symbol}
+                                    />
+
+                                <SummaryValue
+                                    label='Remaining debt'
+                                    value={formatEther(vaultExpectedStatus.dart)}
+                                    units='DAI'
+                                    errors={[ErrorMessage(vaultExpectedStatusErrors.debtFloor), ]}
+                                    />
+
+                            </Card>
+                        </Box>
+
+                        <Box m={1}>
+                            <Card variant="outlined">
+
+                                <SummaryValue
+                                    label='New collateralization ratio'
+                                    value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
+                                    units='%'
+                                    errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
+                                    />
+
+                                <SummaryValue 
+                                    label="New Liquidation Price"
+                                    value={formatBigNumber(vaultExpectedStatus.liquidationPrice, 27)}
+                                    units="USD"
+                                    />
+
+                                <SummaryValue 
+                                    label="Expected Vault's APY"
+                                    value={apyToPercentage(apy.vaultExpectedApy)}
+                                    units="%"
+                                    // comments={[`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`,]}
+                                    />
+
                             </Card>
                         </Box>
 

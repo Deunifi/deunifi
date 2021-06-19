@@ -184,6 +184,9 @@ interface IExpectedResult {
     needsDebtTokenApproval: boolean,
 
     collateralToLockInUSD: BigNumber,
+
+    daiLoanFees: BigNumber,
+    daiServiceFee: BigNumber,
 }
 
 const emptyExpectedResult: IExpectedResult = {
@@ -213,6 +216,9 @@ const emptyExpectedResult: IExpectedResult = {
     needsDebtTokenApproval: false,
 
     collateralToLockInUSD: ethers.constants.Zero,
+
+    daiLoanFees: ethers.constants.Zero,
+    daiServiceFee: ethers.constants.Zero,
 }
 
 export const pairDelta = (token: string, [token0, token1]: string[], inSwapResult: IGetAmountsInResult): BigNumber => {
@@ -257,7 +263,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
     const router02 = useContract('UniswapV2Router02')
     const swapService = useSwapService()
 
-    const { getGrossAmountFromNetAmount } = useServiceFee()
+    const { getGrossAmountFromNetAmount, serviceFeeRatio: feeRatio } = useServiceFee()
 
 
     const lendingPool = useLendingPool()
@@ -365,11 +371,13 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
             .add(expectedResult.daiForTokenB)
             .sub(form.cleanedValues.daiFromSigner)
 
+        expectedResult.daiLoanFees = lendingPool.getLoanFee(expectedResult.daiFromFlashLoan)
         const daiToDrawWithoutServiceFee = expectedResult.daiFromFlashLoan
-            .add(lendingPool.getLoanFee(expectedResult.daiFromFlashLoan))
+            .add(expectedResult.daiLoanFees)
 
         // Flash loan plus fees.
         expectedResult.daiToDraw = (yield getGrossAmountFromNetAmount(daiToDrawWithoutServiceFee)) as BigNumber
+        expectedResult.daiServiceFee = expectedResult.daiToDraw.sub(daiToDrawWithoutServiceFee)
 
         const { univ2Pair } = vaultInfo.ilkInfo
 
@@ -892,46 +900,80 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                             Transaction Summary
                         </Typography>
 
-                        {/* <SummaryValue 
-                            label='DAI From Flash Loan'
-                            value={formatEther(expectedResult.daiFromFlashLoan)}
-                            /> */}
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiLoanFees)}
+                                    units='DAI'
+                                    />
 
-                        <SummaryValue 
-                            label='Collateral to lock'
-                            value={formatEther(expectedResult.collateralToLock)}
-                            units={vaultInfo.ilkInfo.symbol}
-                            comments={[`~ ${formatEther(expectedResult.collateralToLockInUSD)} USD`, `Min.: ${formatEther(expectedResult.minCollateralToLock)} ${vaultInfo.ilkInfo.symbol}`]}
-                            />
+                                <SummaryValue
+                                    label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiServiceFee)}
+                                    units='DAI'
+                                    />
 
-                        <SummaryValue 
-                            label='Dai to Draw'
-                            value={formatEther(expectedResult.daiToDraw)}
-                            units="DAI"
-                            errors={[ErrorMessage(vaultExpectedStatusErrors.debtCeiling), ErrorMessage(vaultExpectedStatusErrors.debtFloor)]}
-                            />
+                                {/* <SummaryValue
+                                    label='Total Dai to get from collateral'
+                                    value={formatEther(daiLoanPlusFees)}
+                                    units='DAI'
+                                    /> */}
+                            </Card>
+                        </Box>
 
-                        <SummaryValue 
-                            label='Expected Collateralization Ratio'
-                            value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
-                            units="%"
-                            comments={vaultExpectedStatus.minCollateralizationRatio? [`Min.: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)} %`] : []}
-                            errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
-                            />
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                    
+                                {/* <SummaryValue 
+                                    label='DAI From Flash Loan'
+                                    value={formatEther(expectedResult.daiFromFlashLoan)}
+                                    /> */}
 
-                        <SummaryValue 
-                            label='Expected Liquidation Price'
-                            units="USD"
-                            value={formatBigNumber(vaultExpectedStatus.liquidationPrice, 27)}
-                            comments={ vaultExpectedStatus.maxLiquidationPrice? [`max.: ${formatBigNumber(vaultExpectedStatus.maxLiquidationPrice, 27)} USD`, ] : [] }
-                            />
+                                <SummaryValue 
+                                    label='Collateral to lock'
+                                    value={formatEther(expectedResult.collateralToLock)}
+                                    units={vaultInfo.ilkInfo.symbol}
+                                    comments={[
+                                        // `~ ${formatEther(expectedResult.collateralToLockInUSD)} USD`, 
+                                        `Min.: ${formatEther(expectedResult.minCollateralToLock)} ${vaultInfo.ilkInfo.symbol}`
+                                    ]}
+                                    />
 
-                        <SummaryValue 
-                            label="Expected Vault's APY"
-                            value={apyToPercentage(apy.vaultExpectedApy)}
-                            units="%"
-                            comments={[`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`,]}
-                            />
+                                <SummaryValue 
+                                    label='Dai to Draw'
+                                    value={formatEther(expectedResult.daiToDraw)}
+                                    units="DAI"
+                                    errors={[ErrorMessage(vaultExpectedStatusErrors.debtCeiling), ErrorMessage(vaultExpectedStatusErrors.debtFloor)]}
+                                    />
+                            </Card>
+                        </Box>
+
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue 
+                                    label='Expected Collateralization Ratio'
+                                    value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
+                                    units="%"
+                                    comments={vaultExpectedStatus.minCollateralizationRatio? [`Min.: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)} %`] : []}
+                                    errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
+                                    />
+
+                                <SummaryValue 
+                                    label='Expected Liquidation Price'
+                                    units="USD"
+                                    value={formatBigNumber(vaultExpectedStatus.liquidationPrice, 27)}
+                                    comments={ vaultExpectedStatus.maxLiquidationPrice? [`max.: ${formatBigNumber(vaultExpectedStatus.maxLiquidationPrice, 27)} USD`, ] : [] }
+                                    />
+
+                                <SummaryValue 
+                                    label="Expected Vault's APY"
+                                    value={apyToPercentage(apy.vaultExpectedApy)}
+                                    units="%"
+                                    // comments={[`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`,]}
+                                    />
+                            </Card>
+                        </Box>
 
                         <Button 
                             disabled={

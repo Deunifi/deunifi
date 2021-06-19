@@ -194,6 +194,8 @@ export const APYProvider: React.FC<Props> = ({ children }) => {
 
         if (expectedCollateralizationRatio>1)
             apy.vaultExpectedApy = apy.ilkApy + (apy.ilkApy-stabilityFee) / (expectedCollateralizationRatio - 1)
+        else if (vaultExpectedStatus.ink.gt(0) && vaultExpectedStatus.dart.eq(0))
+            apy.vaultExpectedApy = apy.ilkApy
 
         setApy(apy)
 

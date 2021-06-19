@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { Contract } from '@ethersproject/contracts';
-import { formatBytes32String } from '@ethersproject/strings';
+import { formatBytes32String, parseBytes32String } from '@ethersproject/strings';
 import { parseEther, parseUnits } from '@ethersproject/units';
 import { ethers } from 'ethers';
 import React, { createContext, useContext, useState } from 'react';
@@ -283,7 +283,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
             ilkInfo: {
                 ilk: vault.ilk,
                 name,
-                symbol,
+                symbol, //: vault.ilk.replace('UNIV2','').replace('-A',''),
                 dec,
                 gem: gem.attach(gemAddress),
                 gemJoin: gemJoin.attach(joinAddress),
