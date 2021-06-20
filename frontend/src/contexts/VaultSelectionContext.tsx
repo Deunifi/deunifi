@@ -5,6 +5,7 @@ import { useBlockContext } from "../contexts/BlockContext";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useContract } from "../components/Deployments";
 import { useDsProxyContext } from "./DsProxyContext";
+import { useWeb3React } from "@web3-react/core";
 
 function useIlkList(){
 
@@ -148,6 +149,7 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
     const userVaults = useUserVaults()
     const [vault, _setVault] = useState<IVaultSelectionItem>()
     const [ilkChanged, setIlkChanged] = useState<boolean>(true)
+    const web3React = useWeb3React()
 
     const setVault = (_vault: IVaultSelectionItem|undefined) => {
         setIlkChanged(vault?.ilk != _vault?.ilk)
@@ -155,10 +157,12 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
     }
 
     useEffect(() => {
-        // This cenario happens when proxy is created.
-        if (vault && !(vault?.cdp) && userVaults.length == 0)
+        if (!web3React.active)
+            setVault(undefined)
+        else if (vault && !(vault?.cdp) && userVaults.length == 0)
+            // This cenario happens when proxy is created.
             return
-        if (userVaults.length != 0) {
+        else if (userVaults.length != 0) {
             setVault(userVaults[userVaults.length-1])
         }
         // FIXME
@@ -167,7 +171,7 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
         } else {
             setVault(undefined)
         }
-    }, [userVaults, protocolVaults])
+    }, [userVaults, protocolVaults, web3React])
 
     return (
         <Provider value={{vault, setVault, userVaults, protocolVaults, ilkChanged}}>
