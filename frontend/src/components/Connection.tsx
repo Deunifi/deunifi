@@ -62,14 +62,16 @@ function ConnectButton() {
                   </Typography>
               </Box>
 
-              <Button
-                size="small"
-                variant="contained"
-                color={web3React.active ? 'default' : 'secondary'}
-                onClick={() => toogleConnection()}
-              >
-                {web3React.active ? 'Disconnect' : 'Connect'}
-              </Button>
+              <Tooltip title={web3React.active ? "" : "Only Metamask is supported for now"}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color={web3React.active ? 'default' : 'secondary'}
+                  onClick={() => toogleConnection()}
+                >
+                  {web3React.active ? 'Disconnect' : 'Connect'}
+                </Button>
+              </Tooltip>
 
             </Toolbar>
           </AppBar>
