@@ -55,7 +55,7 @@ function ConnectButton() {
               <Box className={classes.title}>
                 
                   <Typography variant="h6" >
-                    DEUNIFI
+                    Deunifi
                   </Typography>
                   <Typography variant="caption" >
                     Decentralized and Unified Finance
