@@ -7,6 +7,7 @@ import { useConnectionContext } from '../contexts/ConnectionContext';
 import { SimpleCard } from './VaultInfo';
 import { VaultSelection } from './VaultSelection';
 import { OpenVaultButton } from './OpenVaultButton';
+import { useWeb3Modal } from './Web3ModalTest';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -44,6 +45,8 @@ function ConnectButton() {
 
   const { dsProxy } = useDsProxyContext()
 
+  const web3Modal = useWeb3Modal()
+
   return (
 
       <Grid container spacing={2}>
@@ -53,7 +56,6 @@ function ConnectButton() {
             <Toolbar>
               
               <Box className={classes.title}>
-                
                   <Typography variant="h6" >
                     DEUNIFI
                   </Typography>
@@ -66,7 +68,10 @@ function ConnectButton() {
                 size="small"
                 variant="contained"
                 color={web3React.active ? 'default' : 'secondary'}
-                onClick={() => toogleConnection()}
+                // onClick={() => toogleConnection()}
+                onClick={async () => {
+                  const provider = await web3Modal.connect()
+                }}
               >
                 {web3React.active ? 'Disconnect' : 'Connect'}
               </Button>
