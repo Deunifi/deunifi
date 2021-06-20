@@ -775,7 +775,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                 </Typography>
 
                                 <Grid container>
-                                    {[10, 50, 90].map( token0Percentage => (
+                                    {[0, 50, 100].map( token0Percentage => (
                                         <Grid item xs={4}>
                                             <Button
                                                 fullWidth
