@@ -61,9 +61,13 @@ export const ConnectionProvider: React.FC<Props> = ({ children }) => {
           provider, 
           signer,  
           address,
-          toogleConnection: () => {
+          toogleConnection: async () => {
             if (!web3React.active)
-              web3React.activate(injectedConnector)
+              try {
+                await web3React.activate(injectedConnector, undefined, true) 
+              } catch (error) {
+                alert(`Connection not successful. Maybe you don't have Metamask installed. If this is the case please install Metamask extension.`)
+              }
             else
               web3React.deactivate()
           },
