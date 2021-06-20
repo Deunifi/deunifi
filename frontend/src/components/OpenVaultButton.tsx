@@ -30,6 +30,7 @@ export const OpenVaultButton: React.FC<Props> = ({ children }) => {
                 <Button
                     variant="outlined"
                     color="secondary" 
+                    disabled={dsProxy ? false : true}
                     onClick={async (e) => {
                         e.preventDefault()
                         if (!dssProxyActions || !manager || !dsProxy || !signer || !vault)

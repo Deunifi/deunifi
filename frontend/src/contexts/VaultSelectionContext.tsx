@@ -107,21 +107,19 @@ export interface IVaultSelectionItem {
     ilk: string,
 }
 
-function useVaults() {
+function useProtocolVaults() {
 
     const ilkList = useIlkList()
 
     const [protocolVaults, setProtocolVaults] = useState<IVaultSelectionItem[]>([])
-    const userVaults = useUserVaults()
 
     useEffect(() => {
         setProtocolVaults(ilkList.map( ilk => ({ ilk: parseBytes32String(ilk) }) ))
     }, [ilkList])
 
-    return { userVaults, protocolVaults }
+    return protocolVaults
 
 }
-
 
 interface Props { }
 
@@ -146,7 +144,8 @@ export const useVaultContext = () => useContext(VaultSelectionContext)
 
 export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
 
-    const { userVaults, protocolVaults } = useVaults()
+    const protocolVaults = useProtocolVaults()
+    const userVaults = useUserVaults()
     const [vault, _setVault] = useState<IVaultSelectionItem>()
     const [ilkChanged, setIlkChanged] = useState<boolean>(true)
 
@@ -156,6 +155,9 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
     }
 
     useEffect(() => {
+        // This cenario happens when proxy is created.
+        if (vault && !(vault?.cdp) && userVaults.length == 0)
+            return
         if (userVaults.length != 0) {
             setVault(userVaults[userVaults.length-1])
         }

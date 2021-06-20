@@ -1,6 +1,6 @@
 import { useWeb3React } from '@web3-react/core';
 import { ethers } from 'ethers'
-import { AppBar, Box, Button, Card, CardContent, createStyles, Grid, makeStyles, Theme, Toolbar, Typography } from '@material-ui/core';
+import { AppBar, Box, Button, Card, CardContent, createStyles, Grid, makeStyles, Theme, Toolbar, Tooltip, Typography } from '@material-ui/core';
 import { CreateProxyButton } from './CreateProxyButton';
 import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useConnectionContext } from '../contexts/ConnectionContext';
@@ -52,9 +52,15 @@ function ConnectButton() {
           <AppBar position="static">
             <Toolbar>
               
-              <Typography variant="h6" className={classes.title}>
-                DEUNIFI
-              </Typography>
+              <Box className={classes.title}>
+                
+                  <Typography variant="h6" >
+                    DEUNIFI
+                  </Typography>
+                  <Typography variant="caption" >
+                    Decentralized and Unified Finance
+                  </Typography>
+              </Box>
 
               <Button
                 size="small"
@@ -74,21 +80,18 @@ function ConnectButton() {
           
             { web3React.active ?
               <SimpleCard>
-              {
-                          dsProxy ?
-                              <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
-                                  <Grid item xs={8}>
-                                      <VaultSelection>
-                                      </VaultSelection>
-                                  </Grid>
-                                  <Grid item xs={4}>
-                                      <Box mt={2}>
-                                          <OpenVaultButton></OpenVaultButton>
-                                      </Box>
-                                  </Grid>
-                              </Grid>
-                            : <CreateProxyButton></CreateProxyButton>
-                          }
+              { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
+                  <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
+                      <Grid item xs={8}>
+                          <VaultSelection>
+                          </VaultSelection>
+                      </Grid>
+                      <Grid item xs={4}>
+                          <Box mt={2}>
+                              <OpenVaultButton></OpenVaultButton>
+                          </Box>
+                      </Grid>
+                  </Grid>
                 </SimpleCard>
                 : undefined
                         }

@@ -239,11 +239,13 @@ export const pairDelta = (token: string, [token0, token1]: string[], inSwapResul
     return ethers.constants.Zero
 }
 
-export const needsApproval = async (token: Contract, owner: string, spender: string, amount: BigNumber, weth: string, useEth: boolean): Promise<boolean> => {
+export const needsApproval = async (token: Contract, owner: string, spender: string|undefined, amount: BigNumber, weth: string, useEth: boolean): Promise<boolean> => {
     if (amount.isZero())
         return false
     if (token.address == weth && useEth)
         return false
+    if (!spender)
+        return true
     const allowance: BigNumber = await token.allowance(owner, spender)
     return allowance.lt(amount);
 }
@@ -284,8 +286,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
             return
 
         if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
-            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !dsProxy
-            || !lendingPool.contract) {
+            || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !lendingPool.contract) {
             form.setErrors(undefined)
             return
         }
@@ -425,10 +426,10 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
             expectedResult.needsDebtTokenApproval
 
         ] = (yield Promise.all([
-            needsApproval(vaultInfo.ilkInfo.gem, signerAddress, dsProxy.address, form.cleanedValues.collateralFromUser, weth.address, form.cleanedValues.useETH),
-            needsApproval(vaultInfo.ilkInfo.token0.contract, signerAddress, dsProxy.address, form.cleanedValues.tokenAFromSigner, weth.address, form.cleanedValues.useETH),
-            needsApproval(vaultInfo.ilkInfo.token1.contract, signerAddress, dsProxy.address, form.cleanedValues.tokenBFromSigner, weth.address, form.cleanedValues.useETH),
-            needsApproval(dai, signerAddress, dsProxy.address, form.cleanedValues.daiFromSigner, weth.address, form.cleanedValues.useETH),
+            needsApproval(vaultInfo.ilkInfo.gem, signerAddress, dsProxy?.address, form.cleanedValues.collateralFromUser, weth.address, form.cleanedValues.useETH),
+            needsApproval(vaultInfo.ilkInfo.token0.contract, signerAddress, dsProxy?.address, form.cleanedValues.tokenAFromSigner, weth.address, form.cleanedValues.useETH),
+            needsApproval(vaultInfo.ilkInfo.token1.contract, signerAddress, dsProxy?.address, form.cleanedValues.tokenBFromSigner, weth.address, form.cleanedValues.useETH),
+            needsApproval(dai, signerAddress, dsProxy?.address, form.cleanedValues.daiFromSigner, weth.address, form.cleanedValues.useETH),
         ])) as boolean[]
 
         expectedResult.collateralToLockInUSD = expectedResult.collateralToLock.mul(vaultInfo.price).div(ONE_RAY)
@@ -977,7 +978,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                         <Button 
                             disabled={
-                                hasErrors(form.errors) 
+                                !dsProxy
+                                || hasErrors(form.errors) 
                                 || hasErrors(vaultExpectedStatusErrors)
                                 || expectedResult.needsDebtTokenApproval
                                 || expectedResult.needsGemApproval
@@ -991,7 +993,18 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                             variant="contained" 
                             color="primary"
                             onClick={(e) => doOperation(e)}>
-                            Lock And Draw
+                            {!dsProxy ? 
+                                'Create Your Proxy' : 
+                                !vaultInfo.cdp || vaultInfo.cdp.isZero() ?
+                                    'Create Your Vault' :
+                                        expectedResult.needsDebtTokenApproval
+                                        || expectedResult.needsGemApproval
+                                        || expectedResult.needsToken0Approval
+                                        || expectedResult.needsToken1Approval ?
+                                            'Approve Required Tokens' :
+                                            hasErrors(form.errors) || hasErrors(vaultExpectedStatusErrors) ?
+                                                'Verify Errors' :
+                                                'Lock And Draw'}
                         </Button>
                     </SimpleCard>
                 </Grid>
@@ -1064,6 +1077,7 @@ export const ApprovalButton: React.FC<{
         <Tooltip title={`To use ${token?.symbol}, your proxy needs your approval.`}>
             <Box pb={2}>
                 <Button
+                    disabled={dsProxy ? false : true}
                     fullWidth
                     color="secondary" 
                     variant="outlined" 

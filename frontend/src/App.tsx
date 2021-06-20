@@ -1,6 +1,4 @@
-import logo from './logo.svg';
 import './App.css';
-import ConnectButton from './components/Connection';
 import { Unifi } from './components/Unifi';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import React from 'react';

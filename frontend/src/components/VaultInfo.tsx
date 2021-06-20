@@ -1,12 +1,10 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
-import { Box, Button, Card, CardActions, CardContent, createStyles, Dialog, DialogContent, DialogTitle, Grid, IconButton, makeStyles, Slider, Theme, Typography } from '@material-ui/core';
+import { Box, Card, CardContent, Dialog, DialogContent, DialogTitle, Grid, IconButton, Slider, Typography } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useApyContext, MAX_APY_DAYS, DEFAULT_APY_DAYS } from '../contexts/APYContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
-import { OpenVaultButton } from './OpenVaultButton';
-import { VaultSelection } from './VaultSelection';
 import { Settings } from '@material-ui/icons';
 import { apyToPercentage } from './LockAndDraw';
 

@@ -40,8 +40,6 @@ export const Unifi: React.FC<Props> = () => {
                                         <VaultExpectedStatusProvider>
                                             <APYProvider>
                                                 <ConnectButton></ConnectButton>
-                                                {
-                                                dsProxy?
                                                 <div>
 
                                                 <Grid container spacing={2}>
@@ -54,8 +52,6 @@ export const Unifi: React.FC<Props> = () => {
                                                 </Grid>
                                                 {/* <PriceHistory></PriceHistory> */}
                                                 </div>
-                                                : undefined
-            }
         
 
                                             </APYProvider>

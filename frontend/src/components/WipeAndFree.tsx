@@ -279,14 +279,14 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         if (operationInProgress)
             return
 
-        if (!lendingPool.contract || !dsProxy || !dai || !weth){
+        if (!lendingPool.contract || !dai || !weth){
             setExpectedResult({...initialExpectedResult})
             return
         }
 
         const daiBalanceOfAccountPromise = dai.balanceOf(address)
 
-        const debTokenNeedsApprovalPromise = needsApproval(dai, address, dsProxy.address, params.daiFromSigner, weth.address, false)
+        const debTokenNeedsApprovalPromise = needsApproval(dai, address, dsProxy?.address, params.daiFromSigner, weth.address, false)
 
         const daiFromFlashLoan = params.daiToPayback.gt(params.daiFromSigner) ?
             params.daiToPayback.sub(params.daiFromSigner)
