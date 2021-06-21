@@ -1073,8 +1073,9 @@ export const ApprovalButton: React.FC<{
     token?: {symbol: string, contract: Contract|undefined},
     signer?: ethers.providers.JsonRpcSigner,
     dsProxy?: Contract,
-    setApprovalInProgress?: (inProgress: boolean) => void
-    }> = ({ needsApproval, token, signer, dsProxy, setApprovalInProgress=()=>{} }) => {
+    setApprovalInProgress?: (inProgress: boolean) => void,
+    error: boolean
+    }> = ({ needsApproval, token, signer, dsProxy, setApprovalInProgress=()=>{}, error }) => {
 
     const snackbar = useSnackbarContext()
 
@@ -1085,7 +1086,7 @@ export const ApprovalButton: React.FC<{
         <Tooltip title={`To use ${token?.symbol}, your proxy needs your approval.`}>
             <Box pb={2}>
                 <Button
-                    disabled={dsProxy ? false : true}
+                    disabled={dsProxy && !error ? false : true}
                     fullWidth
                     color="secondary" 
                     variant="outlined" 
@@ -1194,6 +1195,7 @@ export const TokenFromUserInput: React.FC<{
                 signer={signer}
                 token={token}
                 setApprovalInProgress={setApprovalInProgress}
+                error={errorMessage ? true : false}
                 />
         </Box>
     )

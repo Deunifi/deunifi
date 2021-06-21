@@ -734,6 +734,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                             signer={signer}
                             token={{ symbol: 'DAI', contract: dai }}
                             setApprovalInProgress={setSecondaryOperationInProgress}
+                            error={errors.tooMuchDai || errors.notEnoughDaiInAccount ? true : false}
                             >
                         </ApprovalButton>
                         {secondaryOperationInProgressBackdrop}
