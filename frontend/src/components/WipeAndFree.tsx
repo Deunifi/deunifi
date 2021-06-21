@@ -804,7 +804,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     margin="normal"
                                     variant="outlined"
                                     required
-                                    label={`Debt+fees covered with ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)}`}
+                                    label={`${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} to use (in DAI)`}
                                     // type="number"
                                     value={form.daiFromTokenA} name="daiFromTokenA" onChange={(e) => daiFromTokenAChange(e)}
                                     error={errors.notEnoughDaiToCoverFlashLoanAndFees || errors.invalidCombinationOfDaiAmountCoveredWithToken0 || errors.toMuchDaiToCoverFlashLoanAndFees ? true : false}
@@ -812,7 +812,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         errors.notEnoughDaiToCoverFlashLoanAndFees 
                                         || errors.invalidCombinationOfDaiAmountCoveredWithToken0
                                         || errors.toMuchDaiToCoverFlashLoanAndFees
-                                        || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} to use to cover debt + fees in DAI.`
+                                        || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} to use to cover debt + fees (in DAI).`
                                     }
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
@@ -826,7 +826,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     margin="normal"
                                     variant="outlined"
                                     required
-                                    label={`Debt+fees covered with ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}`}
+                                    label={`${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)} to use (in DAI)`}
                                     // type="number"
                                     value={form.daiFromTokenB} name="daiFromTokenB" onChange={(e) => daiFromTokenBChange(e)}
                                     error={errors.notEnoughDaiToCoverFlashLoanAndFees || errors.invalidCombinationOfDaiAmountCoveredWithToken1 || errors.toMuchDaiToCoverFlashLoanAndFees ? true : false}
@@ -834,7 +834,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         errors.notEnoughDaiToCoverFlashLoanAndFees
                                         || errors.invalidCombinationOfDaiAmountCoveredWithToken1
                                         || errors.toMuchDaiToCoverFlashLoanAndFees
-                                        || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)} to use to cover debt + fees in DAI.`
+                                        || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)} to use to cover debt + fees (in DAI).`
                                     }
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
@@ -1070,6 +1070,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     label='Remaining collateral'
                                     value={formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec)}
                                     units={vaultInfo.ilkInfo.symbol}
+                                    comments={[
+                                        `~ ${formatBigNumber(vaultExpectedStatus.ink.mul(vaultInfo.price), 45)} USD`, 
+                                    ]}
                                     />
 
                                 <SummaryValue

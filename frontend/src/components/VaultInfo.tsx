@@ -61,6 +61,26 @@ const VaultParameter: React.FC<{ label: string, value: string|number, units?:str
     )
 }
 
+export const VaultValueEstimation: React.FC<{ value: string|number, units?:string }> = ({ value, units }) => {
+    return (
+        <span>
+                <Typography variant="caption" component="span" color="textSecondary">
+                    (~ {value} {units})
+                </Typography>
+        </span>
+    )
+}
+
+export const VaultExpectedValueEstimation: React.FC<{ actualValue: string|number, expectedValue: string|number, units?:string }> = ({ actualValue, expectedValue, units }) => {
+    return (
+        <span hidden={actualValue == expectedValue}>
+                <Typography variant="caption" component="span" color="textSecondary">
+                    (~ <Typography variant="caption" component="span" color="primary" style={{display: 'inline-block'}}>{expectedValue}</Typography> {units})
+                </Typography>
+        </span>
+    )
+}
+
 
 
 export const APYConfig: React.FC = () => {
@@ -76,7 +96,7 @@ export const APYConfig: React.FC = () => {
                 aria-labelledby="discrete-slider"
                 valueLabelDisplay="auto"
                 step={1}
-                marks
+                // marks
                 min={1}
                 max={MAX_APY_DAYS}
                 onChangeCommitted={(e, newValue) => {
@@ -165,7 +185,13 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                     <Box m={1}>
                         <Box mb={2} mt={2}>
                                     <VaultActualValue label='Collateral Locked' value={formatEther(vaultInfo.ink)} units={vaultInfo.ilkInfo.symbol}/>
+                                    <VaultValueEstimation value={formatBigNumber(vaultInfo.price.mul(vaultInfo.ink), 45)} units='USD' />
                                     <VaultExpectedValue operationInProgress actualValue={vaultInfo.ink} value={vaultExpectedStatus.ink} units={vaultInfo.ilkInfo.symbol}/>
+                                    <VaultExpectedValueEstimation 
+                                        actualValue={formatBigNumber(vaultInfo.price.mul(vaultInfo.ink), 45)} 
+                                        expectedValue={formatBigNumber(vaultInfo.price.mul(vaultExpectedStatus.ink), 45)} 
+                                        units='USD'
+                                    ></VaultExpectedValueEstimation>
                         </Box>
 
                         <Box mb={2} mt={2}>
@@ -205,7 +231,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                             units='%'/>
                             <Grid container spacing={1} alignItems="center" direction="row" justify="center">
                                 <Grid item xs={10}>
-                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics. ${vaultInfo.ilkInfo.symbol} APY`} value={apyToPercentage(apy.ilkApy)} 
+                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics. ${vaultInfo.ilkInfo.ilk.replace('-A','')} liquidity pool APY`} value={apyToPercentage(apy.ilkApy)} 
                                         units='%'/>
                                 </Grid>
                                 <Grid item xs={2}>

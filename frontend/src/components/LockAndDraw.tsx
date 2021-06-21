@@ -940,7 +940,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                                     value={formatEther(expectedResult.collateralToLock)}
                                     units={vaultInfo.ilkInfo.symbol}
                                     comments={[
-                                        // `~ ${formatEther(expectedResult.collateralToLockInUSD)} USD`, 
+                                        `~ ${formatEther(expectedResult.collateralToLockInUSD)} USD`, 
                                         `Min.: ${formatEther(expectedResult.minCollateralToLock)} ${vaultInfo.ilkInfo.symbol}`
                                     ]}
                                     />
@@ -1150,7 +1150,7 @@ export const TokenFromUserInput: React.FC<{
                         size="small"
                         margin="normal"
                         variant="outlined"
-                        label={`${getTokenSymbolForLabel(token?.symbol, useETH)} From Account`}  
+                        label={`${getTokenSymbolForLabel(token?.symbol, useETH)} to use`}  
                         value={amount}
                         name={name}
                         onChange={onChange}
