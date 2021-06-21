@@ -6,6 +6,7 @@ import { useDsProxyContext } from "../contexts/DsProxyContext";
 import { useVaultContext } from "../contexts/VaultSelectionContext";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useBusyBackdrop } from "../hooks/useBusyBackdrop";
+import { useSnackbarContext } from "../contexts/SnackbarContext";
 
 interface Props { }
 
@@ -21,6 +22,8 @@ export const OpenVaultButton: React.FC<Props> = ({ children }) => {
     const { vault } = useVaultContext()
 
     const { backdrop, setInProgress } = useBusyBackdrop({ color: "secondary"})
+
+    const snackbar = useSnackbarContext()
 
     return (
         <div>
@@ -45,7 +48,9 @@ export const OpenVaultButton: React.FC<Props> = ({ children }) => {
                                     dsProxy.address
                                 ]
                             )
+                            snackbar.transactionInProgress(transactionResponse)
                             await transactionResponse.wait(1)
+                            snackbar.transactionConfirmed(transactionResponse)
                         } catch (error) {
                             console.error(error)                            
                         } finally {

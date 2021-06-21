@@ -21,6 +21,7 @@ import { useLendingPool } from "../hooks/useLendingPool";
 import { useConnectionContext } from "../contexts/ConnectionContext";
 import { OpenVaultButton } from "./OpenVaultButton";
 import { useVaultContext } from "../contexts/VaultSelectionContext";
+import { useSnackbarContext } from "../contexts/SnackbarContext";
 
 interface Props { }
 
@@ -561,6 +562,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
     const weth = useContract('WETH')
     const dssPsm = useContract('DssPsm')
 
+    const snackbar = useSnackbarContext()
 
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
 
@@ -656,7 +658,9 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                 ],
                 ethToUse.isZero() ? { gasLimit: 1500000 } : {value: ethToUse, gasLimit: 1500000 }
             )
+            snackbar.transactionInProgress(transactionResponse)
             await transactionResponse.wait(1)
+            snackbar.transactionConfirmed(transactionResponse)
             form.clear()
         } catch (error) {
             // TODO Handle error
@@ -1071,8 +1075,12 @@ export const ApprovalButton: React.FC<{
     dsProxy?: Contract,
     setApprovalInProgress?: (inProgress: boolean) => void
     }> = ({ needsApproval, token, signer, dsProxy, setApprovalInProgress=()=>{} }) => {
+
+    const snackbar = useSnackbarContext()
+
     if (!needsApproval || !token || !(token.contract))
         return (<span></span>)
+
     return (
         <Tooltip title={`To use ${token?.symbol}, your proxy needs your approval.`}>
             <Box pb={2}>
@@ -1091,7 +1099,9 @@ export const ApprovalButton: React.FC<{
                             const transactionResponse = await (token.contract as Contract)
                                 .connect(signer)
                                 .approve(dsProxy.address, ethers.constants.MaxUint256)
+                            snackbar.transactionInProgress(transactionResponse)
                             await transactionResponse.wait(1)
+                            snackbar.transactionConfirmed(transactionResponse)
                         } catch (error) {
                             console.error(error)
                         } finally {

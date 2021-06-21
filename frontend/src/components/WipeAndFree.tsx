@@ -21,6 +21,7 @@ import { formatBigNumber, SimpleCard } from './VaultInfo';
 import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useBusyBackdrop } from '../hooks/useBusyBackdrop';
 import { useApyContext } from '../contexts/APYContext';
+import { useSnackbarContext } from '../contexts/SnackbarContext';
 
 interface Props { }
 
@@ -555,6 +556,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     const [operationInProgress, setOperationInProgress] = useState(false)
 
+    const snackbar = useSnackbarContext()
+
     const doOperation = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
 
         e.preventDefault()
@@ -625,7 +628,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 ethers.constants.AddressZero
             ]
             )
+            snackbar.transactionInProgress(transactionResponse)
             await transactionResponse.wait(1)
+            snackbar.transactionConfirmed(transactionResponse)
             clear()
         } catch (error) {
             // TODO Handle error

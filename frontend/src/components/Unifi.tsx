@@ -12,6 +12,7 @@ import { ApolloClient, ApolloProvider, gql, InMemoryCache } from '@apollo/client
 import { APYProvider } from '../contexts/APYContext';
 import { Grid } from '@material-ui/core';
 import ConnectButton from './Connection';
+import { SnackbarProvider } from '../contexts/SnackbarContext';
 // import { TestPriceHistory } from './TestPriceHistory';
 
 
@@ -39,20 +40,24 @@ export const Unifi: React.FC<Props> = () => {
                                     <VaultExpectedOperationProvider>
                                         <VaultExpectedStatusProvider>
                                             <APYProvider>
-                                                <ConnectButton></ConnectButton>
-                                                <div>
 
-                                                <Grid container spacing={2}>
-                                                    <Grid item xs={4}>
-                                                        <VaultInfo></VaultInfo>
+                                                <SnackbarProvider>
+
+                                                    <ConnectButton></ConnectButton>
+                                                    <div>
+
+                                                    <Grid container spacing={2}>
+                                                        <Grid item xs={4}>
+                                                            <VaultInfo></VaultInfo>
+                                                        </Grid>
+                                                        <Grid item xs={8}>
+                                                            <VaultOperations></VaultOperations>
+                                                        </Grid>
                                                     </Grid>
-                                                    <Grid item xs={8}>
-                                                        <VaultOperations></VaultOperations>
-                                                    </Grid>
-                                                </Grid>
-                                                {/* <PriceHistory></PriceHistory> */}
-                                                </div>
-        
+                                                    {/* <PriceHistory></PriceHistory> */}
+                                                    </div>
+
+                                                </SnackbarProvider>
 
                                             </APYProvider>
                                         </VaultExpectedStatusProvider>
