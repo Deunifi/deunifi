@@ -47,10 +47,10 @@ export const Unifi: React.FC<Props> = () => {
                                                     <div>
 
                                                     <Grid container spacing={2}>
-                                                        <Grid item xs={4}>
+                                                        <Grid item md={4} sm={12} xs={12}>
                                                             <VaultInfo></VaultInfo>
                                                         </Grid>
-                                                        <Grid item xs={8}>
+                                                        <Grid item md={8} sm={12} xs={12}>
                                                             <VaultOperations></VaultOperations>
                                                         </Grid>
                                                     </Grid>

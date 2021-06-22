@@ -46,7 +46,7 @@ function ConnectButton() {
 
   return (
 
-      <Grid container spacing={2}>
+      <Grid container spacing={2} direction="row-reverse">
         <Grid item xs={12} >
           <div className={classes.root}>
           <AppBar position="static">
@@ -78,63 +78,62 @@ function ConnectButton() {
           </div >
         </Grid>
         
-        <Grid item xs={4}>
-          
-            { web3React.active ?
-              <SimpleCard>
-              { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
-                  <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
-                      <Grid item xs={8}>
-                          <VaultSelection>
-                          </VaultSelection>
+          <Grid item xs={12} md={8}>
+            {
+              web3React.active ?
+                <Card>
+                  <CardContent>
+                    {/* <Typography color="textSecondary" gutterBottom>
+                      Connection
+                    </Typography> */}
+
+                    <Grid container spacing={2} alignItems="center" direction="row" justify="space-around">
+
+                    <Grid item xs={12} sm={4} md={5} lg={6}>
+                        <ConnectionProperty 
+                          label='Chain ID'
+                          value={web3React.chainId || ''}
+                          />
                       </Grid>
-                      <Grid item xs={4}>
-                          <Box mt={2}>
-                              <OpenVaultButton></OpenVaultButton>
-                          </Box>
+                    <Grid item xs={12} sm={8} md={7} lg={6}>
+                        <ConnectionProperty 
+                          label='Address'
+                          value={address || ''}
+                          />
                       </Grid>
-                  </Grid>
-                </SimpleCard>
+
+                    </Grid>
+
+                  </CardContent>
+
+                </Card>
                 : undefined
-                        }
-                       
+            }
+          </Grid>
 
-        </Grid>
-        
-        <Grid item xs={8}>
-
-          {
-            web3React.active ?
-              <Card>
-                <CardContent>
-                  {/* <Typography color="textSecondary" gutterBottom>
-                    Connection
-                  </Typography> */}
-
-                  <Grid container spacing={2} alignItems="center" direction="row" justify="space-around">
-
-                  <Grid item xs={6}>
-                      <ConnectionProperty 
-                        label='Address'
-                        value={address || ''}
-                        />
+          <Grid item xs={12} md={4}>
+            
+              { web3React.active ?
+                <SimpleCard>
+                { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
+                    <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
+                        <Grid item xs={8}>
+                            <VaultSelection>
+                            </VaultSelection>
+                        </Grid>
+                        <Grid item xs={4}>
+                            <Box mt={2}>
+                                <OpenVaultButton></OpenVaultButton>
+                            </Box>
+                        </Grid>
                     </Grid>
+                  </SimpleCard>
+                  : undefined
+                          }
+                        
 
-                    <Grid item xs={6}>
-                      <ConnectionProperty 
-                        label='Chain ID'
-                        value={web3React.chainId || ''}
-                        />
-                    </Grid>
+          </Grid>
 
-                  </Grid>
-
-                </CardContent>
-
-              </Card>
-              : undefined
-          }
-        </Grid>
       </Grid>
   );
 }

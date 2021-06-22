@@ -183,64 +183,72 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                     </Typography>
 
                     <Box m={1}>
-                        <Box mb={2} mt={2}>
-                                    <VaultActualValue label='Collateral Locked' value={formatEther(vaultInfo.ink)} units={vaultInfo.ilkInfo.symbol}/>
-                                    <VaultValueEstimation value={formatBigNumber(vaultInfo.price.mul(vaultInfo.ink), 45)} units='USD' />
-                                    <VaultExpectedValue operationInProgress actualValue={vaultInfo.ink} value={vaultExpectedStatus.ink} units={vaultInfo.ilkInfo.symbol}/>
-                                    <VaultExpectedValueEstimation 
-                                        actualValue={formatBigNumber(vaultInfo.price.mul(vaultInfo.ink), 45)} 
-                                        expectedValue={formatBigNumber(vaultInfo.price.mul(vaultExpectedStatus.ink), 45)} 
+                        <Grid container>
+
+                            <Grid item md={12} sm={6} xs={12}>
+                                <Box mb={2} mt={2}>
+                                            <VaultActualValue label='Collateral Locked' value={formatEther(vaultInfo.ink)} units={vaultInfo.ilkInfo.symbol}/>
+                                            <VaultValueEstimation value={formatBigNumber(vaultInfo.price.mul(vaultInfo.ink), 45)} units='USD' />
+                                            <VaultExpectedValue operationInProgress actualValue={vaultInfo.ink} value={vaultExpectedStatus.ink} units={vaultInfo.ilkInfo.symbol}/>
+                                            <VaultExpectedValueEstimation 
+                                                actualValue={formatBigNumber(vaultInfo.price.mul(vaultInfo.ink), 45)} 
+                                                expectedValue={formatBigNumber(vaultInfo.price.mul(vaultExpectedStatus.ink), 45)} 
+                                                units='USD'
+                                            ></VaultExpectedValueEstimation>
+                                </Box>
+
+                                <Box mb={2} mt={2}>
+                                            <VaultActualValue label='Debt' value={vaultInfo?.dart ? formatEther(vaultInfo.dart) : '0'} units='DAI'/>
+                                            <VaultExpectedValue operationInProgress actualValue={vaultInfo.dart} value={vaultExpectedStatus.dart}
+                                                error={vaultExpectedStatusErrors.debtCeiling || vaultExpectedStatusErrors.debtFloor ? true : false} 
+                                                units='DAI'/>
+                                </Box>
+                            </Grid>
+
+                            <Grid item md={12} sm={6} xs={12}>
+                                <Box mb={2} mt={2}>
+                                    <VaultActualValue label='Collateralization Ratio' value={formatEther(vaultInfo.collateralizationRatio.mul(100))} units='%'/>
+                                    <VaultExpectedValue
+                                        operationInProgress
+                                        actualValue={vaultInfo.collateralizationRatio.mul(100)}
+                                        value={vaultExpectedStatus.collateralizationRatio.mul(100)}
+                                        units='%'
+                                        error={vaultExpectedStatusErrors.collateralizationRatio ? true : false}
+                                    />
+                                    <VaultParameter label='Liquidation Ratio' value={formatBigNumber(vaultInfo.mat.mul(100), 27)} units='%' />
+                                </Box>
+
+                                <Box mb={2} mt={2}>
+                                    <VaultActualValue label='Liquidation Price' value={formatBigNumber(vaultInfo.liquidationPrice, 27)} units='USD'/>
+                                    <VaultExpectedValue
+                                        operationInProgress
+                                        actualValue={vaultInfo.liquidationPrice}
+                                        value={vaultExpectedStatus.liquidationPrice}
                                         units='USD'
-                                    ></VaultExpectedValueEstimation>
-                        </Box>
+                                        decimals={27}
+                                    />
+                                    <VaultParameter label='Current Price' value={formatBigNumber(vaultInfo.price, 27)} units='USD'/>
+                                </Box>
 
-                        <Box mb={2} mt={2}>
-                                    <VaultActualValue label='Debt' value={vaultInfo?.dart ? formatEther(vaultInfo.dart) : '0'} units='DAI'/>
-                                    <VaultExpectedValue operationInProgress actualValue={vaultInfo.dart} value={vaultExpectedStatus.dart}
-                                        error={vaultExpectedStatusErrors.debtCeiling || vaultExpectedStatusErrors.debtFloor ? true : false} 
-                                        units='DAI'/>
-                        </Box>
+                                <Box mb={2} mt={2}>
+                                    <VaultActualValue label="Vault's APY" value={apyToPercentage(apy.vaultApy)} units='%'/>
+                                    <VaultExpectedValue operationInProgress actualValue={parseEther(apyToPercentage(apy.vaultApy).toString())} value={parseEther(apyToPercentage(apy.vaultExpectedApy).toString())} 
+                                    units='%'/>
+                                    <Grid container spacing={1} alignItems="center" direction="row" justify="center">
+                                        <Grid item xs={10}>
+                                            <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics. ${vaultInfo.ilkInfo.ilk.replace('-A','')} liquidity pool APY`} value={apyToPercentage(apy.ilkApy)} 
+                                                units='%'/>
+                                        </Grid>
+                                        <Grid item xs={2}>
+                                            <Box m={1}>
+                                                <APYConFigButton></APYConFigButton>
+                                            </Box>
+                                        </Grid>
+                                    </Grid>                            
+                                </Box>
+                            </Grid>
 
-                        <Box mb={2} mt={2}>
-                            <VaultActualValue label='Collateralization Ratio' value={formatEther(vaultInfo.collateralizationRatio.mul(100))} units='%'/>
-                            <VaultExpectedValue
-                                operationInProgress
-                                actualValue={vaultInfo.collateralizationRatio.mul(100)}
-                                value={vaultExpectedStatus.collateralizationRatio.mul(100)}
-                                units='%'
-                                error={vaultExpectedStatusErrors.collateralizationRatio ? true : false}
-                            />
-                            <VaultParameter label='Liquidation Ratio' value={formatBigNumber(vaultInfo.mat.mul(100), 27)} units='%' />
-                        </Box>
-
-                        <Box mb={2} mt={2}>
-                            <VaultActualValue label='Liquidation Price' value={formatBigNumber(vaultInfo.liquidationPrice, 27)} units='USD'/>
-                            <VaultExpectedValue
-                                operationInProgress
-                                actualValue={vaultInfo.liquidationPrice}
-                                value={vaultExpectedStatus.liquidationPrice}
-                                units='USD'
-                                decimals={27}
-                            />
-                            <VaultParameter label='Current Price' value={formatBigNumber(vaultInfo.price, 27)} units='USD'/>
-                        </Box>
-
-                        <Box mb={2} mt={2}>
-                            <VaultActualValue label="Vault's APY" value={apyToPercentage(apy.vaultApy)} units='%'/>
-                            <VaultExpectedValue operationInProgress actualValue={parseEther(apyToPercentage(apy.vaultApy).toString())} value={parseEther(apyToPercentage(apy.vaultExpectedApy).toString())} 
-                            units='%'/>
-                            <Grid container spacing={1} alignItems="center" direction="row" justify="center">
-                                <Grid item xs={10}>
-                                    <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics. ${vaultInfo.ilkInfo.ilk.replace('-A','')} liquidity pool APY`} value={apyToPercentage(apy.ilkApy)} 
-                                        units='%'/>
-                                </Grid>
-                                <Grid item xs={2}>
-                                    <Box m={1}>
-                                        <APYConFigButton></APYConFigButton>
-                                    </Box>
-                                </Grid>
-                            </Grid>                            
-                        </Box>
+                        </Grid>
                     </Box>
 
                 </SimpleCard>

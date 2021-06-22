@@ -13,10 +13,10 @@ import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
-import BusyBackdrop, { ErrorMessage, TokenFromUserInput, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors, apyToPercentage } from '../components/LockAndDraw'
+import BusyBackdrop, { ErrorMessage, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors, apyToPercentage, TransactionGridContainer } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
-import { Box, Button, ButtonBaseClassKey, Card, FormControlLabel, Grid, InputAdornment, Slider, Switch, TextField, TextFieldClassKey, Typography } from '@material-ui/core';
+import { Box, Button, Card, FormControlLabel, Grid, InputAdornment, Switch, TextField, Typography } from '@material-ui/core';
 import { formatBigNumber, SimpleCard } from './VaultInfo';
 import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useBusyBackdrop } from '../hooks/useBusyBackdrop';
@@ -155,6 +155,7 @@ interface IExpectedResult {
     debTokenNeedsApproval: boolean,
     minCollateralToRemove: BigNumber,
     collateralAmountToRecive: BigNumber,
+    collateralAmountToReciveInUSD: BigNumber,
 }
 
 const initialExpectedResult: IExpectedResult = {
@@ -169,6 +170,7 @@ const initialExpectedResult: IExpectedResult = {
     debTokenNeedsApproval: false,
     minCollateralToRemove: ethers.constants.Zero,
     collateralAmountToRecive: ethers.constants.Zero,
+    collateralAmountToReciveInUSD: ethers.constants.Zero,
 }
 
 export const WipeAndFree: React.FC<Props> = ({ children }) => {
@@ -507,6 +509,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
         const debTokenNeedsApproval = (yield debTokenNeedsApprovalPromise) as boolean
 
         const collateralAmountToRecive = params.collateralToFree.sub(params.collateralToUseToPayFlashLoan)
+        const collateralAmountToReciveInUSD = 
+            collateralAmountToRecive.isNegative() ?
+                ethers.constants.Zero 
+                : collateralAmountToRecive.mul(vaultInfo.price)
 
         setExpectedResult({
             daiLoanPlusFees,
@@ -519,7 +525,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             daiFromFlashLoan: daiFromFlashLoan,
             debTokenNeedsApproval: debTokenNeedsApproval,
             minCollateralToRemove,
-            collateralAmountToRecive
+            collateralAmountToRecive,
+            collateralAmountToReciveInUSD
         })
 
         setVaultExpectedOperation({
@@ -647,8 +654,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const { backdrop: secondaryOperationInProgressBackdrop, setInProgress: setSecondaryOperationInProgress } = useBusyBackdrop({ color: "secondary"})
 
     return (
-        <Grid container spacing={2} alignItems="flex-start" direction="row" justify="space-evenly">
-            <Grid item xs={6}>
+
+        <TransactionGridContainer>
+            <Grid item sm={6} xs={12}>
                 <SimpleCard>
 
                     <Typography color="textSecondary" gutterBottom>
@@ -1036,7 +1044,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
                 </SimpleCard>
             </Grid>
-                <Grid item xs={6}>
+                <Grid item sm={6} xs={12}>
                     <SimpleCard>
 
                         <Typography color="textSecondary" gutterBottom>
@@ -1135,6 +1143,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                             ethers.constants.Zero : expectedResult.collateralAmountToRecive,
                                         vaultInfo.ilkInfo.dec)}
                                     units={vaultInfo.ilkInfo.symbol}
+                                    comments={[
+                                        `~ ${formatBigNumber(expectedResult.collateralAmountToReciveInUSD, 45)} USD`
+                                    ]}
                                     />
                             </Card>
                         </Box>
@@ -1157,7 +1168,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                     </SimpleCard>
                 </Grid>
                 <BusyBackdrop open={operationInProgress}></BusyBackdrop>
-            </Grid>
+            </TransactionGridContainer>
 
 
     )

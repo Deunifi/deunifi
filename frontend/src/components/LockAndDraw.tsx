@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { Backdrop, Box, Button, Card, Chip, CircularProgress, CircularProgressProps, createStyles, Divider, FormControlLabel, FormGroup, Grid, InputAdornment, makeStyles, Switch, TextField, Theme, Tooltip, Typography } from "@material-ui/core";
+import { Backdrop, Box, Button, Card, CircularProgress, CircularProgressProps, createStyles, FormControlLabel, Grid, InputAdornment, makeStyles, Switch, TextField, Theme, Tooltip, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -12,16 +12,17 @@ import { decreaseWithTolerance, proxyExecute, deadline, TextFieldWithOneButton }
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useBlockContext } from "../contexts/BlockContext";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
-import { IVaultInfo, useVaultInfoContext, ITokenInfo, ONE_RAY } from "../contexts/VaultInfoContext";
+import { useVaultInfoContext, ONE_RAY } from "../contexts/VaultInfoContext";
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from "../contexts/VaultExpectedOperationContext";
-import { useVaultExpectedStatusContext, IVaultExpectedStatus } from "../contexts/VaultExpectedStatusContext";
+import { useVaultExpectedStatusContext } from "../contexts/VaultExpectedStatusContext";
 import { formatBigNumber, SimpleCard } from "./VaultInfo";
 import { useApyContext } from "../contexts/APYContext";
 import { useLendingPool } from "../hooks/useLendingPool";
 import { useConnectionContext } from "../contexts/ConnectionContext";
-import { OpenVaultButton } from "./OpenVaultButton";
 import { useVaultContext } from "../contexts/VaultSelectionContext";
 import { useSnackbarContext } from "../contexts/SnackbarContext";
+import withWidth, { WithWidth } from '@material-ui/core/withWidth';
+
 
 interface Props { }
 
@@ -251,8 +252,7 @@ export const needsApproval = async (token: Contract, owner: string, spender: str
     return allowance.lt(amount);
 }
 
-
-export const LockAndDraw: React.FC<Props> = ({}) => {
+export const LockAndDraw = () => {
 
     const { vault, ilkChanged } = useVaultContext()
 
@@ -680,15 +680,16 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
     return (
         <div>
-            <Grid container spacing={2} alignItems="flex-start" direction="row" justify="space-evenly">
-                <Grid item xs={6}>
+            {/* <Grid container spacing={1} alignItems="stretch" direction={width == 'xs' || width == 'sm'? 'column' : 'row' } justify="center"> */}
+            <TransactionGridContainer>
+                <Grid item sm={6} xs={12}>
                     <SimpleCard>
 
-                        <Typography color="textSecondary" gutterBottom>
+                        <Typography color="textSecondary" gutterBottom >
                             Transaction Parameters
                         </Typography>
 
-                        <Box m={1}>
+                        <Box m={1} >
 
                             <TokenFromUserInput 
                                 useETH={false}
@@ -898,7 +899,7 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
 
                     </SimpleCard>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item sm={6} xs={12}>
                     <SimpleCard>
                         
                         <Typography color="textSecondary" gutterBottom>
@@ -1012,7 +1013,8 @@ export const LockAndDraw: React.FC<Props> = ({}) => {
                         </Button>
                     </SimpleCard>
                 </Grid>
-            </Grid>
+
+            </TransactionGridContainer>
             <BusyBackdrop open={operationInProgress}></BusyBackdrop>
             <BusyBackdrop open={secondaryOperationInProgress} color="secondary"></BusyBackdrop>
         </div>
@@ -1045,10 +1047,12 @@ export const SummaryValue: React.FC<{
                     </Typography>
                 </Typography>
             </Box>
-            {comments.map( comment => 
-                <Typography hidden={comment==undefined} variant="caption" component="p" color="textSecondary">
-                    ({comment})
-                </Typography>
+            {comments
+                // .filter(x => (x ? true : false))
+                .map( comment => 
+                    <Typography hidden={comment==undefined} variant="caption" component="p" color="textSecondary">
+                        ({comment})
+                    </Typography>
                 )}
             
             {errors}
@@ -1223,3 +1227,10 @@ export default function BusyBackdrop({open, color="primary"}: {open:boolean, col
 export const apyToPercentage = (apy: number): number => {
     return apy ? (apy-1)*100 : 0
 }
+
+export const TransactionGridContainer = withWidth()( (props: WithWidth)  => {
+    const { width } = props;
+    return (
+        <Grid {...props} container spacing={1} alignItems="stretch" direction={width == 'xs'? 'column' : 'row' } justify="center" />
+    )
+})
