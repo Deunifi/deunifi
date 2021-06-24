@@ -961,7 +961,7 @@ export const LockAndDraw = () => {
                                     label='Expected Collateralization Ratio'
                                     value={formatEther(vaultExpectedStatus.collateralizationRatio.mul(100))}
                                     units="%"
-                                    comments={vaultExpectedStatus.minCollateralizationRatio? [`Min.: ${formatEther(vaultExpectedStatus.minCollateralizationRatio)} %`] : []}
+                                    comments={vaultExpectedStatus.minCollateralizationRatio? [`Min.: ${formatEther(vaultExpectedStatus.minCollateralizationRatio.mul(100))} %`] : []}
                                     errors={[ErrorMessage(vaultExpectedStatusErrors.collateralizationRatio), ]}
                                     />
 
