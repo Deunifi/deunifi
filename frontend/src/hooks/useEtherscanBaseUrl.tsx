@@ -6,17 +6,16 @@ export function useEtherscanBaseUrl() {
 
     const [baseUrl, setBaseUrl] = useState<string>()
 
-    const {web3React} = useConnectionContext()
+    const {chainId} = useConnectionContext()
 
     useEffectAutoCancel(function* (){
-        if (!web3React || !web3React.chainId)
-            setBaseUrl(undefined)
-        else
-            setBaseUrl({
-                42: 'https://kovan.etherscan.io',
-                1: 'https://etherscan.io',
-            }[web3React.chainId])
-    }, [web3React])
+
+        setBaseUrl({
+            42: 'https://kovan.etherscan.io',
+            1: 'https://etherscan.io',
+        }[chainId])
+
+    }, [chainId])
 
     return baseUrl
 }

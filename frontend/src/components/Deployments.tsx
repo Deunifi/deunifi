@@ -23,23 +23,18 @@ function folderByQueryParam(){
 
 export function useDeploymentsFolder() {
 
-    const {web3React} = useConnectionContext()
+    const {chainId} = useConnectionContext()
 
     const [deploymentsFolder, setDeploymentsFolder] = useState<string>()
 
     useEffectAutoCancel(function* (){
 
-            if (!web3React || !web3React.chainId){
-                setDeploymentsFolder(undefined)
-                return
-            }
+        const folder = folderByQueryParam() || folderByChainId[chainId]
+        folder ? 
+            setDeploymentsFolder(folder) :
+            setDeploymentsFolder(undefined)
 
-            const folder = folderByQueryParam() || folderByChainId[web3React.chainId]
-            folder ? 
-                setDeploymentsFolder(folder) :
-                setDeploymentsFolder(undefined)
-
-    }, [web3React])
+    }, [chainId])
 
     return deploymentsFolder
 }

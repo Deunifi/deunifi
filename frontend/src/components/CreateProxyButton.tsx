@@ -4,6 +4,7 @@ import { Button, Tooltip } from "@material-ui/core";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
 import { useBusyBackdrop } from "../hooks/useBusyBackdrop";
 import { useSnackbarContext } from "../contexts/SnackbarContext";
+import { useConnectionContext } from "../contexts/ConnectionContext";
 
 interface IIlkSelection {
     ilk: string,
@@ -21,10 +22,13 @@ export const CreateProxyButton: React.FC<Props> = ({ children }) => {
 
     const snackbar = useSnackbarContext()
 
+    const { web3React } = useConnectionContext()
+
     return (
         <div>
             <Tooltip title="Please create your proxy to continue">
                 <Button
+                    disabled={web3React ? !web3React?.active : true}
                     fullWidth
                     // size="small"
                     variant="outlined"

@@ -18,14 +18,16 @@ const injectedConnector = new InjectedConnector({
 })
 
 interface IConnectionContextData{
+  chainId: number,
   web3React?: Web3ReactContextInterface<ethers.providers.Web3Provider>,
-  provider?: ethers.providers.Web3Provider,
+  provider?: ethers.providers.Web3Provider | ethers.providers.BaseProvider,
   signer?: ethers.providers.JsonRpcSigner,
   address: string,
   toogleConnection: () => void,
 }
 
 const ConnectionContext = createContext<IConnectionContextData>({
+  chainId: 1,
   address: ethers.constants.AddressZero,
   toogleConnection: () => {},
 })
@@ -39,24 +41,46 @@ export const ConnectionProvider: React.FC<Props> = ({ children }) => {
 
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
   
-  const [provider, setProvider] = useState<ethers.providers.Web3Provider>()
+  const [chainId, setChainId] = useState<number>(1)
+  const [provider, setProvider] = useState<ethers.providers.Web3Provider | ethers.providers.BaseProvider>()
   const [signer, setSigner] = useState<ethers.providers.JsonRpcSigner>()
   const [address, setAddress] = useState<string>(ethers.constants.AddressZero)
 
 
   useEffectAutoCancel(function* (){
-    setProvider(web3React.library)
-    const signer = web3React.library?.getSigner()
-    setSigner(signer)
-    if (!signer)
-        setAddress(ethers.constants.AddressZero)
-    else
-        setAddress((yield signer.getAddress()) as string)
+
+    if (web3React.active){
+      setChainId(web3React.chainId as number)
+      const provider = web3React.library as ethers.providers.Web3Provider
+      setProvider(provider)
+      const signer = provider?.getSigner()
+      setSigner(signer)
+      if (!signer)
+          setAddress(ethers.constants.AddressZero)
+      else
+          setAddress((yield signer.getAddress()) as string)  
+
+    } else {
+
+      setChainId(1)
+
+      const provider = ethers.getDefaultProvider('homestead', {
+        etherscan: 'IPYM7XTJR56VGZUKC6KX69G83MKQ4IT64U',
+        infura: '7e3cd13954dc42e1bc364ae293ab5255',
+        alchemy: 'Je_8wL-ItalOWTA-qWlP5Sl2R9pG2uTa',
+      })
+
+      setProvider(provider)
+      setSigner(undefined)
+      setAddress(ethers.constants.AddressZero)
+
+    }
 
   }, [web3React])
 
     return (
         <Provider value={{ 
+          chainId,
           web3React,
           provider, 
           signer,  

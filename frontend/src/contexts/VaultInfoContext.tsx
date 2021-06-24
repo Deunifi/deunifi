@@ -190,7 +190,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
             // TODO Decide if PIP is going to be used or calculation using spot and mat.
 
             const getPrice = function* (
-                provider: ethers.providers.Web3Provider, pipAddress: string, 
+                provider: ethers.providers.BaseProvider, pipAddress: string, 
                 storageAddress: string) {
 
                 const storageData = (yield provider.getStorageAt(pipAddress, storageAddress)) as string

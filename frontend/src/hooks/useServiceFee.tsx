@@ -39,12 +39,12 @@ export const useServiceFee = () => {
     const feeManager = useContract('FeeManager') // feeManager ABI should be available, no matters if it is deployed.
     const deunifi = useContract('Deunifi')
 
-    const { signer, provider } = useConnectionContext()
+    const { address, provider } = useConnectionContext()
     const [serviceFee, setServiceFee] = useState<ServiceFee>(zeroServiceFee)
 
     useEffectAutoCancel(function* (){
         
-        if (!feeManager || !deunifi || !signer || !provider){
+        if (!feeManager || !deunifi || !provider){
             setServiceFee(zeroServiceFee)
             return
         }
@@ -57,10 +57,9 @@ export const useServiceFee = () => {
         }
         
         const feeManagerAttachedPromise = feeManager.attach(feeManagerAddress)
-        const signerAddressPromise = signer.getAddress()
 
         const feeManagerAttached = (yield feeManagerAttachedPromise) as Contract
-        const signerAddress = (yield signerAddressPromise) as string
+        const signerAddress = address
 
         const storageData = (yield provider.getStorageAt(feeManagerAddress, '0x1')) as string
         const offset = 34

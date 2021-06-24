@@ -149,7 +149,6 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
     const userVaults = useUserVaults()
     const [vault, _setVault] = useState<IVaultSelectionItem>()
     const [ilkChanged, setIlkChanged] = useState<boolean>(true)
-    const web3React = useWeb3React()
 
     const setVault = (_vault: IVaultSelectionItem|undefined) => {
         setIlkChanged(vault?.ilk != _vault?.ilk)
@@ -157,9 +156,7 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
     }
 
     useEffect(() => {
-        if (!web3React.active)
-            setVault(undefined)
-        else if (vault && !(vault?.cdp) && userVaults.length == 0)
+        if (vault && !(vault?.cdp) && userVaults.length == 0)
             // This cenario happens when proxy is created.
             return
         else if (userVaults.length != 0) {
@@ -171,7 +168,7 @@ export const VaultSelectionProvider: React.FC<Props> = ({ children }) => {
         } else {
             setVault(undefined)
         }
-    }, [userVaults, protocolVaults, web3React])
+    }, [userVaults, protocolVaults])
 
     return (
         <Provider value={{vault, setVault, userVaults, protocolVaults, ilkChanged}}>

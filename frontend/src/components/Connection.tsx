@@ -38,7 +38,7 @@ const ConnectionProperty: React.FC<{ label: string, value: string|number }> = ({
 function ConnectButton() {
 
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
-  const { signer, address, toogleConnection } = useConnectionContext()
+  const { signer, address, toogleConnection, chainId } = useConnectionContext()
 
   const classes = useStyles();
 
@@ -79,8 +79,6 @@ function ConnectButton() {
         </Grid>
         
           <Grid item xs={12} md={8}>
-            {
-              web3React.active ?
                 <Card>
                   <CardContent>
                     {/* <Typography color="textSecondary" gutterBottom>
@@ -92,7 +90,7 @@ function ConnectButton() {
                     <Grid item xs={12} sm={4} md={5} lg={6}>
                         <ConnectionProperty 
                           label='Chain ID'
-                          value={web3React.chainId || ''}
+                          value={chainId || 1}
                           />
                       </Grid>
                     <Grid item xs={12} sm={8} md={7} lg={6}>
@@ -107,13 +105,10 @@ function ConnectButton() {
                   </CardContent>
 
                 </Card>
-                : undefined
-            }
           </Grid>
 
           <Grid item xs={12} md={4}>
             
-              { web3React.active ?
                 <SimpleCard>
                 { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
                     <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
@@ -128,9 +123,6 @@ function ConnectButton() {
                         </Grid>
                     </Grid>
                   </SimpleCard>
-                  : undefined
-                          }
-                        
 
           </Grid>
 

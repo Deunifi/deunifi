@@ -286,7 +286,7 @@ export const LockAndDraw = () => {
         if (operationInProgress)
             return
 
-        if (!signer || !dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
+        if (!dai || !vaultInfo.ilkInfo.token0 || !vaultInfo.ilkInfo.token1 || !router02
             || !vaultInfo.ilkInfo.univ2Pair || !weth || !vaultInfo.ilkInfo.gem || !lendingPool.contract) {
             form.setErrors(undefined)
             return
@@ -307,20 +307,25 @@ export const LockAndDraw = () => {
         if (daiBalanceOfSigner.lt(form.cleanedValues.daiFromSigner))
             errors.daiFromSigner = "You do not have enough DAI in your balance."
 
-        const token0BalanceOfSigner = (
-            (token0.address == weth.address && form.cleanedValues.useETH) ?
-            yield signer.getBalance()
-            : yield token0.balanceOf(signerAddress)
-        ) as BigNumber
+        const token0BalanceOfSigner = signer ?
+            (
+                (token0.address == weth.address && form.cleanedValues.useETH) ?
+                yield signer.getBalance()
+                : yield token0.balanceOf(signerAddress)
+            ) as BigNumber
+            : ethers.constants.Zero
 
         if (token0BalanceOfSigner.lt(form.cleanedValues.tokenAFromSigner))
             errors.tokenAFromSigner = `You do not have enough ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0.symbol, form.cleanedValues.useETH)} in your balance.`
 
-        const token1BalanceOfSigner = (
-            (token1.address == weth.address && form.cleanedValues.useETH) ?
-            yield signer.getBalance()
-            : yield token1.balanceOf(signerAddress)
-        ) as BigNumber
+        const token1BalanceOfSigner =  signer ?
+            (
+                (token1.address == weth.address && form.cleanedValues.useETH) ?
+                yield signer.getBalance()
+                : yield token1.balanceOf(signerAddress)
+            ) as BigNumber
+            : ethers.constants.Zero
+
         if (token1BalanceOfSigner.lt(form.cleanedValues.tokenBFromSigner))
             errors.tokenBFromSigner = `You do not have enough ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1.symbol, form.cleanedValues.useETH)} in your balance.`
 
