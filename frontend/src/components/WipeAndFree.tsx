@@ -16,7 +16,7 @@ import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusCo
 import BusyBackdrop, { ErrorMessage, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors, apyToPercentage, TransactionGridContainer } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
-import { Box, Button, Card, FormControlLabel, Grid, InputAdornment, Switch, TextField, Typography } from '@material-ui/core';
+import { Box, Button, Card, FormControlLabel, Grid, InputAdornment, LinearProgress, Switch, TextField, Typography } from '@material-ui/core';
 import { formatBigNumber, SimpleCard } from './VaultInfo';
 import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useBusyBackdrop } from '../hooks/useBusyBackdrop';
@@ -287,6 +287,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             return
         }
 
+        setUpdateInProgress(true)
+
         const daiBalanceOfAccountPromise = dai.balanceOf(address)
 
         const debTokenNeedsApprovalPromise = needsApproval(dai, address, dsProxy?.address, params.daiFromSigner, weth.address, false)
@@ -534,7 +536,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
             daiToDraw: ethers.constants.Zero.sub(params.daiToPayback),
         })
 
+        setUpdateInProgress(false)
+
     }, [params, blocknumber, vaultInfo])
+
+    const [updateInProgress, setUpdateInProgress] = useState(false)
 
     const { setVaultExpectedOperation } = useVaultExpectedOperationContext()
 
@@ -655,6 +661,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     return (
 
+        <div>
+            <LinearProgress value={updateInProgress ? undefined : 100} variant={updateInProgress ? 'indeterminate' : 'determinate'}/>
         <TransactionGridContainer>
             <Grid item sm={6} xs={12}>
                 <SimpleCard>
@@ -1169,6 +1177,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 </Grid>
                 <BusyBackdrop open={operationInProgress}></BusyBackdrop>
             </TransactionGridContainer>
+            </div>
 
 
     )

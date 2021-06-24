@@ -1,6 +1,6 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { formatEther, formatUnits, parseUnits } from "@ethersproject/units";
-import { Backdrop, Box, Button, Card, CircularProgress, CircularProgressProps, createStyles, FormControlLabel, Grid, InputAdornment, makeStyles, Switch, TextField, Theme, Tooltip, Typography } from "@material-ui/core";
+import { Backdrop, Box, Button, Card, CircularProgress, CircularProgressProps, createStyles, FormControlLabel, Grid, InputAdornment, LinearProgress, makeStyles, Switch, TextField, Theme, Tooltip, Typography } from "@material-ui/core";
 import { Contract, ethers } from "ethers";
 import React, { ChangeEvent, useEffect, useState } from "react";
 import { useServiceFee } from "../hooks/useServiceFee";
@@ -292,6 +292,8 @@ export const LockAndDraw = () => {
             return
         }
 
+        setUpdateInProgress(true)
+
         const token0 = vaultInfo.ilkInfo.token0.contract
         const token1 = vaultInfo.ilkInfo.token1.contract
 
@@ -456,6 +458,8 @@ export const LockAndDraw = () => {
         setVaultExpectedOperation(expectedResult)
         form.setErrors(errors)
 
+        setUpdateInProgress(false)
+
     }, [form.cleanedValues, signer, dai, vaultInfo, router02, blocknumber])
 
     const { setVaultExpectedOperation } = useVaultExpectedOperationContext()
@@ -487,6 +491,8 @@ export const LockAndDraw = () => {
             if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token1)
                 return defaultSideEffect(fieldname, textValue, cleanedValue)
 
+            setUpdateInProgress(true)
+            
             const tokenAToLock = cleanedValue
 
             setTokenAToLockModifiedByUser(true)
@@ -496,6 +502,8 @@ export const LockAndDraw = () => {
             const [reserve0, reserve1]: BigNumber[] = reserves
             const tokenBToLock = tokenAToLock
                 .mul(reserve1).div(reserve0)
+
+            setUpdateInProgress(false)
 
             return {
                 cleanedValues: {
@@ -522,6 +530,8 @@ export const LockAndDraw = () => {
             if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token0)
                 return defaultSideEffect(fieldname, textValue, cleanedValue)
 
+            setUpdateInProgress(true)
+
             const tokenBToLock = cleanedValue
 
             setTokenAToLockModifiedByUser(false)
@@ -531,6 +541,8 @@ export const LockAndDraw = () => {
             const [reserve0, reserve1]: BigNumber[] = reserves
             const tokenAToLock = tokenBToLock
                 .mul(reserve0).div(reserve1)
+
+            setUpdateInProgress(false)
 
             return {
                 cleanedValues: {
@@ -681,11 +693,13 @@ export const LockAndDraw = () => {
     const { apy } = useApyContext()
 
     const [operationInProgress, setOperationInProgress] = useState(false)
+    const [updateInProgress, setUpdateInProgress] = useState(false)
     const [secondaryOperationInProgress, setSecondaryOperationInProgress] = useState(false)
 
     return (
         <div>
             {/* <Grid container spacing={1} alignItems="stretch" direction={width == 'xs' || width == 'sm'? 'column' : 'row' } justify="center"> */}
+            <LinearProgress value={updateInProgress ? undefined : 100} variant={updateInProgress ? 'indeterminate' : 'determinate'}/>
             <TransactionGridContainer>
                 <Grid item sm={6} xs={12}>
                     <SimpleCard>
