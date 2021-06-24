@@ -258,7 +258,7 @@ export const LockAndDraw = () => {
 
     const { vaultInfo } = useVaultInfoContext()
     const dai = useContract('Dai')
-    const { signer, address } = useConnectionContext()
+    const { signer, address, chainId } = useConnectionContext()
 
     const form = useForm<ITextForm, IClenedForm, IFormErrors>(emptyTextForm, emptyClenedForm)
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(emptyExpectedResult)
@@ -492,7 +492,7 @@ export const LockAndDraw = () => {
                 return defaultSideEffect(fieldname, textValue, cleanedValue)
 
             setUpdateInProgress(true)
-            
+
             const tokenAToLock = cleanedValue
 
             setTokenAToLockModifiedByUser(true)
@@ -657,6 +657,13 @@ export const LockAndDraw = () => {
             ownerTokensAmounts.push(amount)
         }
 
+        const getGasLimit = (chainId: number): number|undefined => {
+            // In kovan happens an out of gas exception because the amount of gas estimated by metamask is wrong.
+            return chainId == 42 ? 1500000 : undefined
+        }
+
+        const gasLimit = getGasLimit(chainId)
+
         try {
             setOperationInProgress(true)
             const transactionResponse = await proxyExecute(
@@ -673,7 +680,7 @@ export const LockAndDraw = () => {
                     dataForExecuteOperationCallback, // Data to be used on executeOperation
                     weth.address
                 ],
-                ethToUse.isZero() ? { gasLimit: 1500000 } : {value: ethToUse, gasLimit: 1500000 }
+                ethToUse.isZero() ? { gasLimit } : {value: ethToUse, gasLimit }
             )
             snackbar.transactionInProgress(transactionResponse)
             await transactionResponse.wait(1)
