@@ -1062,28 +1062,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         <Box m={1}>
                             <Card variant="outlined">
                                 <SummaryValue
-                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
-                                    value={formatEther(expectedResult.daiLoanFees)}
-                                    units='DAI'
-                                    />
-
-                                <SummaryValue
-                                    label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
-                                    value={formatEther(expectedResult.daiServiceFee)}
-                                    units='DAI'
-                                    />
-
-                                {/* <SummaryValue
-                                    label='Total Dai to get from collateral'
-                                    value={formatEther(daiLoanPlusFees)}
-                                    units='DAI'
-                                    /> */}
-                            </Card>
-                        </Box>
-
-                        <Box m={1}>
-                            <Card variant="outlined">
-                                <SummaryValue
                                     label='Remaining collateral'
                                     value={formatUnits(vaultExpectedStatus.ink, vaultInfo.ilkInfo.dec)}
                                     units={vaultInfo.ilkInfo.symbol}
@@ -1158,6 +1136,27 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                             </Card>
                         </Box>
                         
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiLoanFees)}
+                                    units='DAI'
+                                    />
+
+                                <SummaryValue
+                                    label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiServiceFee)}
+                                    units='DAI'
+                                    />
+
+                                {/* <SummaryValue
+                                    label='Total Dai to get from collateral'
+                                    value={formatEther(daiLoanPlusFees)}
+                                    units='DAI'
+                                    /> */}
+                            </Card>
+                        </Box>
 
                         <Button 
                             disabled={

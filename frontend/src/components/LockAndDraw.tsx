@@ -949,28 +949,6 @@ export const LockAndDraw = () => {
 
                         <Box m={1}>
                             <Card variant="outlined">
-                                <SummaryValue
-                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
-                                    value={formatEther(expectedResult.daiLoanFees)}
-                                    units='DAI'
-                                    />
-
-                                <SummaryValue
-                                    label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
-                                    value={formatEther(expectedResult.daiServiceFee)}
-                                    units='DAI'
-                                    />
-
-                                {/* <SummaryValue
-                                    label='Total Dai to get from collateral'
-                                    value={formatEther(daiLoanPlusFees)}
-                                    units='DAI'
-                                    /> */}
-                            </Card>
-                        </Box>
-
-                        <Box m={1}>
-                            <Card variant="outlined">
                                     
                                 {/* <SummaryValue 
                                     label='DAI From Flash Loan'
@@ -1019,6 +997,28 @@ export const LockAndDraw = () => {
                                     units="%"
                                     // comments={[`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`,]}
                                     />
+                            </Card>
+                        </Box>
+
+                        <Box m={1}>
+                            <Card variant="outlined">
+                                <SummaryValue
+                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiLoanFees)}
+                                    units='DAI'
+                                    />
+
+                                <SummaryValue
+                                    label={`Deunifi Service Fee (${formatUnits(feeRatio, 2)}%)`}
+                                    value={formatEther(expectedResult.daiServiceFee)}
+                                    units='DAI'
+                                    />
+
+                                {/* <SummaryValue
+                                    label='Total Dai to get from collateral'
+                                    value={formatEther(daiLoanPlusFees)}
+                                    units='DAI'
+                                    /> */}
                             </Card>
                         </Box>
 

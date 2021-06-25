@@ -64,7 +64,10 @@ function DeunifiHeader() {
                   </Typography>
               </Box>
 
-              <Tooltip title={web3React.active ? "" : "Only Metamask is supported for now"}>
+              <Tooltip title={web3React.active ? "" : <Typography variant="body1" component="span" style={{display: 'inline-block'}}>
+                  Connect your wallet to be able to do transactions.
+                </Typography>
+              }>
                 <Button
                   size="small"
                   variant="contained"

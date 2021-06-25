@@ -283,3 +283,5 @@ export const SimpleCard: React.FC = ({ children }) => {
     )
 
 }
+
+export const ilkToTokenSymbol = (ilk: string) => ilk.replace('-A','')
