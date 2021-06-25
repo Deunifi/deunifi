@@ -1,6 +1,6 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { formatEther, formatUnits, parseEther, parseUnits } from '@ethersproject/units';
-import { Box, Card, CardContent, Dialog, DialogContent, DialogTitle, Grid, IconButton, Slider, Typography } from '@material-ui/core';
+import { Box, Card, CardContent, Dialog, DialogContent, DialogTitle, Grid, IconButton, Link, Slider, Typography } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useApyContext, MAX_APY_DAYS, DEFAULT_APY_DAYS } from '../contexts/APYContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
@@ -237,8 +237,19 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                                     units='%'/>
                                     <Grid container spacing={1} alignItems="center" direction="row" justify="center">
                                         <Grid item xs={10}>
-                                            <VaultParameter label={`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics. ${vaultInfo.ilkInfo.ilk.replace('-A','')} liquidity pool APY`} value={apyToPercentage(apy.ilkApy)} 
-                                                units='%'/>
+                                            <span>
+                                                <Typography variant="caption" component="span" color="textSecondary">
+                                                    ({`Estimation based on information of last ${apy.calculationDaysQuantity} day(s) obtained from Uniswap's Analytics.`} <Link
+                                                        href={`https://v2.info.uniswap.org/pair/${vaultInfo.ilkInfo.univ2Pair?.address}`}
+                                                        target="_blank"
+                                                        >
+                                                        {vaultInfo.ilkInfo.ilk.replace('-A','')}
+                                                        </Link> liquidity pool APY: <Typography variant="caption" component="span" color="textSecondary">
+                                                        {apyToPercentage(apy.ilkApy)} %
+                                                    </Typography>)
+                                                </Typography>
+                                            </span>
+
                                         </Grid>
                                         <Grid item xs={2}>
                                             <Box m={1}>
