@@ -25,37 +25,39 @@ export const CreateProxyButton: React.FC<Props> = ({ children }) => {
     const { web3React } = useConnectionContext()
 
     return (
-        <div>
+        <span>
             <Tooltip title="Please create your proxy to continue">
-                <Button
-                    disabled={web3React ? !web3React?.active : true}
-                    fullWidth
-                    // size="small"
-                    variant="outlined"
-                    color='secondary'
-                    onClick={async (e) => {
-                        e.preventDefault()
-                        if (dsProxy || !proxyRegistry)
-                            return;
-                        try {
-                            setInProgress(true)
-                            const transactionResponse: TransactionResponse = await proxyRegistry['build()']()
-                            snackbar.transactionInProgress(transactionResponse)
-                            await transactionResponse.wait(1)
-                            snackbar.transactionConfirmed(transactionResponse)
-                        } catch (error) {
-                            console.error(error)
-                        } finally{
-                            setInProgress(false)
-                        }
-                    }}
-                >
-                Create Proxy
-                </Button>
+                <span>
+                    <Button
+                        disabled={web3React ? !web3React?.active : true}
+                        fullWidth
+                        // size="small"
+                        variant="outlined"
+                        color='secondary'
+                        onClick={async (e) => {
+                            e.preventDefault()
+                            if (dsProxy || !proxyRegistry)
+                                return;
+                            try {
+                                setInProgress(true)
+                                const transactionResponse: TransactionResponse = await proxyRegistry['build()']()
+                                snackbar.transactionInProgress(transactionResponse)
+                                await transactionResponse.wait(1)
+                                snackbar.transactionConfirmed(transactionResponse)
+                            } catch (error) {
+                                console.error(error)
+                            } finally{
+                                setInProgress(false)
+                            }
+                        }}
+                    >
+                    Create Proxy
+                    </Button>
+                </span>
             </Tooltip>
             
             {backdrop}
 
-        </div>
+        </span>
     )
 }

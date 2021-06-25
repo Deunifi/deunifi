@@ -13,7 +13,7 @@ function App() {
     <React.Fragment>
       <CssBaseline />
       <Container maxWidth="lg">
-        <div>
+        <span>
           <ConnectionProvider>
             <Block>
                 <DsProxyProvider>
@@ -21,7 +21,7 @@ function App() {
                 </DsProxyProvider>
             </Block>
           </ConnectionProvider>
-        </div>
+        </span>
       </Container>
     </React.Fragment>
 

@@ -29,7 +29,7 @@ export const Deunifi: React.FC<Props> = () => {
 
     return (
 
-        <div>
+        <span>
             {/* <PsmTest>
             </PsmTest>
             <OneInchTest>
@@ -44,7 +44,7 @@ export const Deunifi: React.FC<Props> = () => {
                                                 <SnackbarProvider>
 
                                                     <DeunifiHeader></DeunifiHeader>
-                                                    <div>
+                                                    <span>
 
                                                     <Grid container spacing={2}>
                                                         <Grid item md={4} sm={12} xs={12}>
@@ -62,7 +62,7 @@ export const Deunifi: React.FC<Props> = () => {
                                                         </Grid>
                                                     </Grid>
                                                     {/* <PriceHistory></PriceHistory> */}
-                                                    </div>
+                                                    </span>
 
                                                 </SnackbarProvider>
 
@@ -72,6 +72,6 @@ export const Deunifi: React.FC<Props> = () => {
                                 </VaultInfoProvider>
                             </VaultSelectionProvider>
                         </ApolloProvider>
-                        </div>
+                        </span>
     )
 }

@@ -23,7 +23,7 @@ const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInPro
         <span>{
             operationInProgress && !actualValue.eq(value) ?
                 <Typography variant="body2" color={error ? 'error' : 'primary'}>
-                    {formatBigNumber(value, decimals)} <Typography variant="body2" component="body" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
+                    {formatBigNumber(value, decimals)} <Typography variant="body2" component="span" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
                         {units} 
                     </Typography>
                 </Typography>
@@ -35,12 +35,12 @@ const VaultExpectedValue: React.FC<IVaultExpectedValueProps> = ({ operationInPro
 export const VaultActualValue: React.FC<{ label: string, units?: string, value: string|number }> = ({ label, value, units }) => {
     return (
         <span>
-            <Typography variant="caption" component="p" color="textSecondary">
+            <Typography variant="caption" component="span" color="textSecondary">
                 {label}:
             </Typography>
             <Box>
-                <Typography variant="body1" component="body" color="textPrimary" style={{display: 'inline-block'}}>
-                    {value} <Typography variant="body2" component="body" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
+                <Typography variant="body1" component="span" color="textPrimary" style={{display: 'inline-block'}}>
+                    {value} <Typography variant="body2" component="span" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
                         {units} 
                     </Typography>
                 </Typography>
@@ -86,8 +86,8 @@ export const VaultExpectedValueEstimation: React.FC<{ actualValue: string|number
 export const APYConfig: React.FC = () => {
     const { apy } = useApyContext()
     return (
-        <div>
-            <Typography id="discrete-slider" gutterBottom variant="body2" component="p" color="textSecondary">
+        <span>
+            <Typography id="discrete-slider" gutterBottom variant="body2" component="span" color="textSecondary">
                 Past days to consider in APY's calculation
             </Typography>
             <Slider
@@ -103,7 +103,7 @@ export const APYConfig: React.FC = () => {
                     apy.setCalculationDays(newValue as number)
                 }}
             />
-        </div>
+        </span>
     )
 }
 
@@ -141,12 +141,12 @@ export default function APYConFigButton() {
     };
 
     return (
-        <div>
+        <span>
             <IconButton aria-label="config-apy" size="small" onClick={handleClickOpen}>
                 <Settings />
             </IconButton>
             <APYConFigDialog open={open} onClose={handleClose} />
-        </div>
+        </span>
     );
 }
 
@@ -173,7 +173,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
     }, [vaultInfo])
 
     return (
-        <div>
+        <span>
             <Box hidden={vaultInfo.ilkInfo.ilk? false : true} mt={1}>
 
                 <SimpleCard>
@@ -267,7 +267,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
             </Box>
             
 
-        </div>
+        </span>
 
     )
 }

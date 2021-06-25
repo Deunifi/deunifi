@@ -21,7 +21,7 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
 
     return (
         // <div hidden={vaults.length == 0}>
-        <div>
+        <span>
             {/* <Card>
                 <CardContent>
                     <Typography color="textSecondary" gutterBottom>
@@ -62,6 +62,6 @@ export const VaultSelection: React.FC<Props> = ({ children }) => {
 
                 {/* </CardContent>
             </Card> */}
-        </div>
+        </span>
     )
 }

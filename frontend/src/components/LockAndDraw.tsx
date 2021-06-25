@@ -719,7 +719,7 @@ export const LockAndDraw = () => {
     const [secondaryOperationInProgress, setSecondaryOperationInProgress] = useState(false)
 
     return (
-        <div>
+        <span>
             {/* <Grid container spacing={1} alignItems="stretch" direction={width == 'xs' || width == 'sm'? 'column' : 'row' } justify="center"> */}
             <LinearProgress value={updateInProgress ? undefined : 100} variant={updateInProgress ? 'indeterminate' : 'determinate'}/>
             <TransactionGridContainer>
@@ -1067,7 +1067,7 @@ export const LockAndDraw = () => {
             </TransactionGridContainer>
             <BusyBackdrop open={operationInProgress}></BusyBackdrop>
             <BusyBackdrop open={secondaryOperationInProgress}></BusyBackdrop>
-        </div>
+        </span>
     )
 
 }
@@ -1087,12 +1087,12 @@ export const SummaryValue: React.FC<{
     }> = ({ label, value, comments=[], errors=[], units }) => {
     return (
         <Box m={2}>
-            <Typography variant="caption" component="p" color="textSecondary">
+            <Typography variant="caption" component="span" color="textSecondary">
                 {label}:
             </Typography>
             <Box>
-                <Typography variant="body1" component="body" color="textPrimary" style={{display: 'inline-block'}}>
-                    {value} <Typography variant="body2" component="body" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
+                <Typography variant="body1" component="span" color="textPrimary" style={{display: 'inline-block'}}>
+                    {value} <Typography variant="body2" component="span" color="textSecondary" hidden={units? false: true} style={{display: 'inline-block'}}>
                         {units} 
                     </Typography>
                 </Typography>
@@ -1100,7 +1100,7 @@ export const SummaryValue: React.FC<{
             {comments
                 // .filter(x => (x ? true : false))
                 .map( comment => 
-                    <Typography hidden={comment==undefined} variant="caption" component="p" color="textSecondary">
+                    <Typography hidden={comment==undefined} variant="caption" component="span" color="textSecondary" key={comment}>
                         ({comment})
                     </Typography>
                 )}
@@ -1114,7 +1114,7 @@ export const ErrorMessage = function(message:string|undefined){
     if (!message)
         return (<span></span>)
     return (
-        <span>
+        <span key={message}>
             <Typography variant="body2" color='error'>
                 {message}
             </Typography>
@@ -1138,7 +1138,7 @@ export const ApprovalButton: React.FC<{
 
     return (
         <Tooltip title={`To use ${token?.symbol}, your proxy needs your approval.`}>
-            <Box pb={2}>
+            <span><Box pb={2}>
                 <Button
                     disabled={dsProxy && !error ? false : true}
                     fullWidth
@@ -1165,7 +1165,7 @@ export const ApprovalButton: React.FC<{
                     }}>
                     Approve {token?.symbol}
                 </Button>
-            </Box>
+            </Box></span>
         </Tooltip>
     )
 }

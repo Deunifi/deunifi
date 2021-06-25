@@ -175,7 +175,6 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
         const spotterIlksPromise = spotter.ilks(bytes32Ilk)
         const jugIlksInfoPromise = jug.ilks(bytes32Ilk)
 
-
         const { spot, rate, Art, line, dust }: { spot: BigNumber, rate: BigNumber, Art: BigNumber, line: BigNumber, dust: BigNumber } = 
             (yield vatIlksInfoPromise) as { spot: BigNumber, rate: BigNumber, Art: BigNumber, line: BigNumber, dust: BigNumber }
 

@@ -1,7 +1,7 @@
 import { formatBytes32String, parseBytes32String } from "@ethersproject/strings";
 import { useContract } from "./Deployments";
 import { proxyExecute } from "./WipeAndFree";
-import { Box, Button } from "@material-ui/core";
+import { Box, Button, Link } from "@material-ui/core";
 import { useDsProxyContext } from "../contexts/DsProxyContext";
 import { useVaultContext } from "../contexts/VaultSelectionContext";
 import { useConnectionContext } from "../contexts/ConnectionContext";
@@ -12,7 +12,7 @@ interface Props { }
 
 export const OpenVaultButton: React.FC<Props> = ({ children }) => {
 
-    const { signer } = useConnectionContext()
+    const { signer, chainId } = useConnectionContext()
 
     const { dsProxy } = useDsProxyContext()
 
@@ -26,7 +26,7 @@ export const OpenVaultButton: React.FC<Props> = ({ children }) => {
     const snackbar = useSnackbarContext()
 
     return (
-        <div>
+        <span>
             { (vault && !vault.cdp) ?
             <Box>
                 {backdrop}
@@ -62,7 +62,7 @@ export const OpenVaultButton: React.FC<Props> = ({ children }) => {
                     Create Vault
                 </Button>
             </Box>
-            : ''}
-        </div>
+            : <Link href={`https://oasis.app/borrow/${vault?.cdp?.toString()}${chainId === 42 ? '?network=kovan' : ''}`} target="_blank">Open in Oasis</Link>}
+        </span>
     )
 }

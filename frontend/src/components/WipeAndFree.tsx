@@ -661,7 +661,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
     return (
 
-        <div>
+        <span>
             <LinearProgress value={updateInProgress ? undefined : 100} variant={updateInProgress ? 'indeterminate' : 'determinate'}/>
         <TransactionGridContainer>
             <Grid item sm={6} xs={12}>
@@ -1177,7 +1177,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 </Grid>
                 <BusyBackdrop open={operationInProgress}></BusyBackdrop>
             </TransactionGridContainer>
-            </div>
+            </span>
 
 
     )
@@ -1188,10 +1188,10 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 export const TextFieldWithOneButton: React.FC<{ textField: any, button: any}> = ({ textField, button }) => {
     return (
         <Grid container>
-            <Grid xs={9}>
+            <Grid item xs={9}>
                 {textField}
             </Grid>
-            <Grid xs={3}>
+            <Grid item xs={3}>
                 <Box p={2}>
                     {button}
                 </Box>

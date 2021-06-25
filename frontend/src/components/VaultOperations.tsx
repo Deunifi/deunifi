@@ -113,14 +113,14 @@ export const VaultOperations: React.FC<Props> = ({ children }) => {
     const { vaultInfo } = useVaultInfoContext()
 
     return (
-        <div>
+        <span>
             {vaultInfo.ilkInfo.ilk?
-                <div>
+                <span>
                     <VaultTabsOperations />
-                </div>
+                </span>
                 : ''
             }
-        </div>
+        </span>
 
     )
 }

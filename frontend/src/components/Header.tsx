@@ -26,10 +26,10 @@ const useStyles = makeStyles((theme: Theme) =>
 const ConnectionProperty: React.FC<{ label: string, value: string|number }> = ({ label, value }) => {
   return (
       <span>
-          <Typography variant="caption" component="p" color="textSecondary">
+          <Typography variant="caption" component="span" color="textSecondary">
               {label}:
           </Typography>
-          <Typography variant="body2" component="p" color="textPrimary">
+          <Typography variant="body2" component="span" color="textPrimary">
               {value}
           </Typography>
       </span>

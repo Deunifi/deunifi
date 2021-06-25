@@ -67,8 +67,8 @@ export default function Menu() {
   }, [open]);
 
   return (
-    <div className={classes.root}>
-      <div>
+    <span className={classes.root}>
+      <span>
 
         <IconButton
           ref={anchorRef}
@@ -97,7 +97,7 @@ export default function Menu() {
             </Grow>
           )}
         </Popper>
-      </div>
-    </div>
+      </span>
+    </span>
   );
 }
