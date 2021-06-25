@@ -1,5 +1,5 @@
 import './App.css';
-import { Unifi } from './components/Unifi';
+import { Deunifi } from './components/Deunifi';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import React from 'react';
 import { Container } from '@material-ui/core';
@@ -17,7 +17,7 @@ function App() {
           <ConnectionProvider>
             <Block>
                 <DsProxyProvider>
-                  <Unifi></Unifi>
+                  <Deunifi></Deunifi>
                 </DsProxyProvider>
             </Block>
           </ConnectionProvider>

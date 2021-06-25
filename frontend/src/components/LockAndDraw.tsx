@@ -1066,7 +1066,7 @@ export const LockAndDraw = () => {
 
             </TransactionGridContainer>
             <BusyBackdrop open={operationInProgress}></BusyBackdrop>
-            <BusyBackdrop open={secondaryOperationInProgress} color="secondary"></BusyBackdrop>
+            <BusyBackdrop open={secondaryOperationInProgress}></BusyBackdrop>
         </div>
     )
 

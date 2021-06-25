@@ -11,7 +11,7 @@ import { VaultExpectedStatusProvider } from '../contexts/VaultExpectedStatusCont
 import { ApolloClient, ApolloProvider, gql, InMemoryCache } from '@apollo/client';
 import { APYProvider } from '../contexts/APYContext';
 import { Grid } from '@material-ui/core';
-import DeunifiHeader, { ProxyAndVaultSelection } from './DeunifiContainer';
+import DeunifiHeader, { ProxyAndVaultSelection } from './Header';
 import { SnackbarProvider } from '../contexts/SnackbarContext';
 // import { TestPriceHistory } from './TestPriceHistory';
 
@@ -23,7 +23,7 @@ const client = new ApolloClient({
     cache: new InMemoryCache()
 });
 
-export const Unifi: React.FC<Props> = () => {
+export const Deunifi: React.FC<Props> = () => {
 
     const { dsProxy } = useDsProxyContext()
 
