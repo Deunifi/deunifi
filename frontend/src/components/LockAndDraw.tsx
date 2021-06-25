@@ -258,7 +258,7 @@ export const LockAndDraw = () => {
 
     const { vaultInfo } = useVaultInfoContext()
     const dai = useContract('Dai')
-    const { signer, address, chainId } = useConnectionContext()
+    const { signer, address, chainId, toogleConnection } = useConnectionContext()
 
     const form = useForm<ITextForm, IClenedForm, IFormErrors>(emptyTextForm, emptyClenedForm)
     const [expectedResult, setExpectedResult] = useState<IExpectedResult>(emptyExpectedResult)
@@ -484,11 +484,26 @@ export const LockAndDraw = () => {
         form.onChangeBigNumber(e)
     }
 
+    const [univ2PairReserves, setUniv2PairReserves] = useState<BigNumber[]>()
+
+    useEffectAutoCancel(function *(){
+
+        if (!vaultInfo.ilkInfo.univ2Pair){
+            setUniv2PairReserves(undefined)
+            return
+        }
+
+        const reserves = (yield vaultInfo.ilkInfo.univ2Pair.getReserves()) as BigNumber[]
+
+        setUniv2PairReserves(reserves)
+
+    }, [vaultInfo, blocknumber])
+
     const tokenAToLockChange = (e: IChangeBigNumberEvent) => {
 
         const sideEffect = async (fieldname: string, textValue: string, cleanedValue: BigNumber) => {
 
-            if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token1)
+            if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token1 || !univ2PairReserves)
                 return defaultSideEffect(fieldname, textValue, cleanedValue)
 
             setUpdateInProgress(true)
@@ -498,7 +513,7 @@ export const LockAndDraw = () => {
             setTokenAToLockModifiedByUser(true)
             setTokenBToLockModifiedByUser(false)
 
-            const reserves = await vaultInfo.ilkInfo.univ2Pair.getReserves()
+            const reserves = univ2PairReserves
             const [reserve0, reserve1]: BigNumber[] = reserves
             const tokenBToLock = tokenAToLock
                 .mul(reserve1).div(reserve0)
@@ -527,7 +542,7 @@ export const LockAndDraw = () => {
 
         const sideEffect = async (fieldname: string, textValue: string, cleanedValue: BigNumber) => {
 
-            if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token0)
+            if (!vaultInfo.ilkInfo.univ2Pair || !vaultInfo.ilkInfo.token0 || !univ2PairReserves)
                 return defaultSideEffect(fieldname, textValue, cleanedValue)
 
             setUpdateInProgress(true)
@@ -537,7 +552,7 @@ export const LockAndDraw = () => {
             setTokenAToLockModifiedByUser(false)
             setTokenBToLockModifiedByUser(true)
 
-            const reserves = await vaultInfo.ilkInfo.univ2Pair.getReserves()
+            const reserves = univ2PairReserves
             const [reserve0, reserve1]: BigNumber[] = reserves
             const tokenAToLock = tokenBToLock
                 .mul(reserve0).div(reserve1)
@@ -1009,33 +1024,42 @@ export const LockAndDraw = () => {
 
                         <Button 
                             disabled={
-                                !dsProxy
-                                || hasErrors(form.errors) 
-                                || hasErrors(vaultExpectedStatusErrors)
-                                || expectedResult.needsDebtTokenApproval
-                                || expectedResult.needsGemApproval
-                                || expectedResult.needsToken0Approval
-                                || expectedResult.needsToken1Approval
-                                || expectedResult.collateralToLock.lte(0)
-                                || !vaultInfo.cdp
-                                || vaultInfo.cdp.isZero()
+                                signer?
+                                    !dsProxy
+                                    || hasErrors(form.errors) 
+                                    || hasErrors(vaultExpectedStatusErrors)
+                                    || expectedResult.needsDebtTokenApproval
+                                    || expectedResult.needsGemApproval
+                                    || expectedResult.needsToken0Approval
+                                    || expectedResult.needsToken1Approval
+                                    || expectedResult.collateralToLock.lte(0)
+                                    || !vaultInfo.cdp
+                                    || vaultInfo.cdp.isZero()
+                                    : false
                             }
                             fullWidth
                             variant="contained" 
                             color="primary"
-                            onClick={(e) => doOperation(e)}>
-                            {!dsProxy ? 
-                                'Create Your Proxy' : 
-                                !vaultInfo.cdp || vaultInfo.cdp.isZero() ?
-                                    'Create Your Vault' :
-                                        expectedResult.needsDebtTokenApproval
-                                        || expectedResult.needsGemApproval
-                                        || expectedResult.needsToken0Approval
-                                        || expectedResult.needsToken1Approval ?
-                                            'Approve Required Tokens' :
-                                            hasErrors(form.errors) || hasErrors(vaultExpectedStatusErrors) ?
-                                                'Verify Errors' :
-                                                'Lock And Draw'}
+                            onClick={(e) => {
+                                if (!signer)
+                                    toogleConnection()
+                                else
+                                    doOperation(e)
+                                }}>
+                            {address === ethers.constants.AddressZero ?
+                                'Connect Your Wallet' :
+                                !dsProxy ? 
+                                    'Create Your Proxy' : 
+                                    !vaultInfo.cdp || vaultInfo.cdp.isZero() ?
+                                        'Create Your Vault' :
+                                            expectedResult.needsDebtTokenApproval
+                                            || expectedResult.needsGemApproval
+                                            || expectedResult.needsToken0Approval
+                                            || expectedResult.needsToken1Approval ?
+                                                'Approve Required Tokens' :
+                                                hasErrors(form.errors) || hasErrors(vaultExpectedStatusErrors) ?
+                                                    'Verify Errors' :
+                                                    'Lock And Draw'}
                         </Button>
                     </SimpleCard>
                 </Grid>
