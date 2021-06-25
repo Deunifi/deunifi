@@ -735,6 +735,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         e.preventDefault()
                                         if (!dai)
                                             return
+                                        if (address===ethers.constants.AddressZero)
+                                            return
                                         const balance: BigNumber = await dai.balanceOf(address)
                                         const max = params.daiToPayback.gt(balance) ? balance : params.daiToPayback
                                         setForm({ ...form, daiFromSigner: formatEther(max) })

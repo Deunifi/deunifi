@@ -1225,7 +1225,8 @@ export const TokenFromUserInput: React.FC<{
                             e.preventDefault()
                             if (!token || !(token.contract))
                                 return
-                            
+                            if (owner===ethers.constants.AddressZero)
+                                return
                             let balance: BigNumber = ethers.constants.Zero
                             if (getTokenSymbolForLabel(token?.symbol, useETH) === 'ETH'){
                                 if (provider)
