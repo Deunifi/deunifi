@@ -35,7 +35,7 @@ const ConnectionProperty: React.FC<{ label: string, value: string|number }> = ({
   )
 }
 
-const getMinAddress = (address: string) => `${address.substring(0,5)}..${address.substring(address.length-3)}`
+const getMinAddress = (address: string) => `${address.substring(0,6)}...${address.substring(address.length-4)}`
 
 function DeunifiHeader() {
 
