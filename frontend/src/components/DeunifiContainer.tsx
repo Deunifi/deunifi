@@ -35,14 +35,15 @@ const ConnectionProperty: React.FC<{ label: string, value: string|number }> = ({
   )
 }
 
-function ConnectButton() {
+const getMinAddress = (address: string) => `${address.substring(0,5)}..${address.substring(address.length-3)}`
+
+function DeunifiHeader() {
 
   const web3React = useWeb3React<ethers.providers.Web3Provider>()
   const { signer, address, toogleConnection, chainId } = useConnectionContext()
 
   const classes = useStyles();
 
-  const { dsProxy } = useDsProxyContext()
 
   return (
 
@@ -69,7 +70,7 @@ function ConnectButton() {
                   color={web3React.active ? 'default' : 'secondary'}
                   onClick={() => toogleConnection()}
                 >
-                  {web3React.active ? 'Disconnect' : 'Connect'}
+                  {web3React.active ? `${getMinAddress(address)}` : 'Connect'}
                 </Button>
               </Tooltip>
 
@@ -77,57 +78,31 @@ function ConnectButton() {
           </AppBar>
           </div >
         </Grid>
-        
-          <Grid item xs={12} md={8}>
-                <Card>
-                  <CardContent>
-                    {/* <Typography color="textSecondary" gutterBottom>
-                      Connection
-                    </Typography> */}
-
-                    <Grid container spacing={2} alignItems="center" direction="row" justify="space-around">
-
-                    <Grid item xs={12} sm={4} md={5} lg={6}>
-                        <ConnectionProperty 
-                          label='Chain ID'
-                          value={chainId || 1}
-                          />
-                      </Grid>
-                    <Grid item xs={12} sm={8} md={7} lg={6}>
-                        <ConnectionProperty 
-                          label='Address'
-                          value={address || ''}
-                          />
-                      </Grid>
-
-                    </Grid>
-
-                  </CardContent>
-
-                </Card>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            
-                <SimpleCard>
-                { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
-                    <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
-                        <Grid item xs={8}>
-                            <VaultSelection>
-                            </VaultSelection>
-                        </Grid>
-                        <Grid item xs={4}>
-                            <Box mt={2}>
-                                <OpenVaultButton></OpenVaultButton>
-                            </Box>
-                        </Grid>
-                    </Grid>
-                  </SimpleCard>
-
-          </Grid>
 
       </Grid>
   );
 }
 
-export default ConnectButton;
+export function ProxyAndVaultSelection(){
+
+    const { dsProxy } = useDsProxyContext()
+
+    return (
+        <SimpleCard>
+        { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
+            <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
+                <Grid item xs={8}>
+                    <VaultSelection>
+                    </VaultSelection>
+                </Grid>
+                <Grid item xs={4}>
+                    <Box mt={2}>
+                        <OpenVaultButton></OpenVaultButton>
+                    </Box>
+                </Grid>
+            </Grid>
+          </SimpleCard>
+    )
+}
+
+export default DeunifiHeader;

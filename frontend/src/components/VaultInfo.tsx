@@ -197,16 +197,14 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                                             ></VaultExpectedValueEstimation>
                                 </Box>
 
-                                <Box mb={2} mt={2}>
+                                <Box mb={2}>
                                             <VaultActualValue label='Debt' value={vaultInfo?.dart ? formatEther(vaultInfo.dart) : '0'} units='DAI'/>
                                             <VaultExpectedValue operationInProgress actualValue={vaultInfo.dart} value={vaultExpectedStatus.dart}
                                                 error={vaultExpectedStatusErrors.debtCeiling || vaultExpectedStatusErrors.debtFloor ? true : false} 
                                                 units='DAI'/>
                                 </Box>
-                            </Grid>
 
-                            <Grid item md={12} sm={6} xs={12}>
-                                <Box mb={2} mt={2}>
+                                <Box mb={2}>
                                     <VaultActualValue label='Collateralization Ratio' value={formatEther(vaultInfo.collateralizationRatio.mul(100))} units='%'/>
                                     <VaultExpectedValue
                                         operationInProgress
@@ -218,7 +216,10 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                                     <VaultParameter label='Liquidation Ratio' value={formatBigNumber(vaultInfo.mat.mul(100), 27)} units='%' />
                                 </Box>
 
-                                <Box mb={2} mt={2}>
+                            </Grid>
+
+                            <Grid item md={12} sm={6} xs={12}>
+                                <Box mb={2} >
                                     <VaultActualValue label='Liquidation Price' value={formatBigNumber(vaultInfo.liquidationPrice, 27)} units='USD'/>
                                     <VaultExpectedValue
                                         operationInProgress
@@ -230,7 +231,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                                     <VaultParameter label='Current Price' value={formatBigNumber(vaultInfo.price, 27)} units='USD'/>
                                 </Box>
 
-                                <Box mb={2} mt={2}>
+                                <Box mb={2}>
                                     <VaultActualValue label="Vault's APY" value={apyToPercentage(apy.vaultApy)} units='%'/>
                                     <VaultExpectedValue operationInProgress actualValue={parseEther(apyToPercentage(apy.vaultApy).toString())} value={parseEther(apyToPercentage(apy.vaultExpectedApy).toString())} 
                                     units='%'/>

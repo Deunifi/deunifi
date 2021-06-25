@@ -11,7 +11,7 @@ import { VaultExpectedStatusProvider } from '../contexts/VaultExpectedStatusCont
 import { ApolloClient, ApolloProvider, gql, InMemoryCache } from '@apollo/client';
 import { APYProvider } from '../contexts/APYContext';
 import { Grid } from '@material-ui/core';
-import ConnectButton from './Connection';
+import DeunifiHeader, { ProxyAndVaultSelection } from './DeunifiContainer';
 import { SnackbarProvider } from '../contexts/SnackbarContext';
 // import { TestPriceHistory } from './TestPriceHistory';
 
@@ -43,12 +43,19 @@ export const Unifi: React.FC<Props> = () => {
 
                                                 <SnackbarProvider>
 
-                                                    <ConnectButton></ConnectButton>
+                                                    <DeunifiHeader></DeunifiHeader>
                                                     <div>
 
                                                     <Grid container spacing={2}>
                                                         <Grid item md={4} sm={12} xs={12}>
-                                                            <VaultInfo></VaultInfo>
+                                                            <Grid container spacing={2}>
+                                                                <Grid item xs={12}>
+                                                                    <ProxyAndVaultSelection></ProxyAndVaultSelection>
+                                                                </Grid>
+                                                                <Grid item xs={12}>
+                                                                    <VaultInfo></VaultInfo>
+                                                                </Grid>
+                                                            </Grid>
                                                         </Grid>
                                                         <Grid item md={8} sm={12} xs={12}>
                                                             <VaultOperations></VaultOperations>
