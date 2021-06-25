@@ -7,6 +7,7 @@ import { useConnectionContext } from '../contexts/ConnectionContext';
 import { SimpleCard } from './VaultInfo';
 import { VaultSelection } from './VaultSelection';
 import { OpenVaultButton } from './OpenVaultButton';
+import Menu from './Menu';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -74,8 +75,11 @@ function DeunifiHeader() {
                 </Button>
               </Tooltip>
 
+              <Menu></Menu>
             </Toolbar>
+
           </AppBar>
+
           </div >
         </Grid>
 
