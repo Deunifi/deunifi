@@ -1266,7 +1266,7 @@ const useStyles = makeStyles((theme: Theme) =>
   }),
 );
 
-export default function BusyBackdrop({open, color="primary"}: {open:boolean, color?: CircularProgressProps['color']}) {
+export function BusyBackdrop({open, color="primary"}: {open:boolean, color?: CircularProgressProps['color']}) {
     const classes = useStyles();
     return (
         <Backdrop className={classes.backdrop} open={open} >

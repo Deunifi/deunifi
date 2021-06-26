@@ -1,6 +1,6 @@
 import { useWeb3React } from '@web3-react/core';
 import { ethers } from 'ethers'
-import { AppBar, Box, Button, Card, CardContent, createStyles, Grid, makeStyles, Theme, Toolbar, Tooltip, Typography } from '@material-ui/core';
+import { AppBar, Box, Button, createStyles, Grid, makeStyles, Theme, Toolbar, Tooltip, Typography } from '@material-ui/core';
 import { CreateProxyButton } from './CreateProxyButton';
 import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useConnectionContext } from '../contexts/ConnectionContext';
@@ -8,6 +8,9 @@ import { SimpleCard } from './VaultInfo';
 import { VaultSelection } from './VaultSelection';
 import { OpenVaultButton } from './OpenVaultButton';
 import Menu from './Menu';
+import { useVaultInfoContext } from '../contexts/VaultInfoContext';
+import { BusyBackdrop } from '../components/LockAndDraw'
+
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -93,22 +96,30 @@ function DeunifiHeader() {
 export function ProxyAndVaultSelection(){
 
     const { dsProxy } = useDsProxyContext()
+    const { vaultInfo } = useVaultInfoContext()
 
     return (
-        <SimpleCard>
-        { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
-            <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
-                <Grid item xs={8}>
-                    <VaultSelection>
-                    </VaultSelection>
-                </Grid>
-                <Grid item xs={4}>
-                    <Box mt={2}>
-                        <OpenVaultButton></OpenVaultButton>
-                    </Box>
-                </Grid>
-            </Grid>
-          </SimpleCard>
+        <span>
+          <BusyBackdrop open={vaultInfo.ilkInfo.ilk? false : true}></BusyBackdrop>
+        
+          <span hidden={vaultInfo.ilkInfo.ilk? false : true}>
+          <SimpleCard>
+          { dsProxy ? undefined : <Box mb={1}> <CreateProxyButton /> </Box> }
+              <Grid container spacing={2} alignItems="center" direction="row" justify="space-evenly">
+                  <Grid item xs={8}>
+                      <VaultSelection>
+                      </VaultSelection>
+                  </Grid>
+                  <Grid item xs={4}>
+                      <Box mt={2}>
+                          <OpenVaultButton></OpenVaultButton>
+                      </Box>
+                  </Grid>
+              </Grid>
+            </SimpleCard>
+            
+            </span>
+          </span>
     )
 }
 
