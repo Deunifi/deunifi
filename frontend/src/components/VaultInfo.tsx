@@ -243,7 +243,7 @@ export const VaultInfo: React.FC<Props> = ({ children }) => {
                                                         href={`https://v2.info.uniswap.org/pair/${vaultInfo.ilkInfo.univ2Pair?.address}`}
                                                         target="_blank"
                                                         >
-                                                        {vaultInfo.ilkInfo.ilk.replace('-A','')}
+                                                        {ilkToTokenSymbol(vaultInfo.ilkInfo.ilk)}
                                                         </Link> liquidity pool APY: <Typography variant="caption" component="span" color="textSecondary">
                                                         {apyToPercentage(apy.ilkApy)} %
                                                     </Typography>)

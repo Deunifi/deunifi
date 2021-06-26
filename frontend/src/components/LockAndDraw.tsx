@@ -15,7 +15,7 @@ import { useDsProxyContext } from "../contexts/DsProxyContext";
 import { useVaultInfoContext, ONE_RAY } from "../contexts/VaultInfoContext";
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from "../contexts/VaultExpectedOperationContext";
 import { useVaultExpectedStatusContext } from "../contexts/VaultExpectedStatusContext";
-import { formatBigNumber, SimpleCard } from "./VaultInfo";
+import { formatBigNumber, SimpleCard, ilkToTokenSymbol } from "./VaultInfo";
 import { useApyContext } from "../contexts/APYContext";
 import { useLendingPool } from "../hooks/useLendingPool";
 import { useConnectionContext } from "../contexts/ConnectionContext";
@@ -747,6 +747,7 @@ export const LockAndDraw = () => {
                                 owner={address}
                                 form={form as IForm}
                                 setApprovalInProgress={setSecondaryOperationInProgress}
+                                fullTokenSymbol={ilkToTokenSymbol(vaultInfo.ilkInfo.ilk)}
                                 />
                             
                             <Card variant="outlined"><Box m={1} p={1} >
@@ -1183,13 +1184,15 @@ export const TokenFromUserInput: React.FC<{
     dsProxy?: Contract,
     signer?: ethers.providers.JsonRpcSigner,
     token?: {symbol: string, contract: Contract|undefined, decimals: number},
+    fullTokenSymbol?: string
 
     owner: string,
     form: IForm,
     setApprovalInProgress?: (inProgress: boolean) => void
     }> = ({ 
         useETH, name, amount, onChange, errorMessage,
-        needsApproval, token, signer, dsProxy, owner, form, setApprovalInProgress }) => {
+        needsApproval, token, signer, dsProxy, owner, form, setApprovalInProgress,
+        fullTokenSymbol }) => {
 
     const { provider } = useConnectionContext()
 
@@ -1210,7 +1213,7 @@ export const TokenFromUserInput: React.FC<{
                         name={name}
                         onChange={onChange}
                         error={errorMessage ? true : false }
-                        helperText={errorMessage ? errorMessage : `The ${getTokenSymbolForLabel(token?.symbol, useETH)} amount to use from your account.` }
+                        helperText={errorMessage ? errorMessage : `The ${fullTokenSymbol || getTokenSymbolForLabel(token?.symbol, useETH)} amount to use from your account.` }
                         InputProps={{
                             endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(token?.symbol, useETH)}</InputAdornment>,
                         }}
