@@ -5,7 +5,7 @@ import { useBlockContext } from "../contexts/BlockContext";
 import { useEffectAutoCancel } from "../hooks/useEffectAutoCancel";
 import { useContract } from "../components/Deployments";
 import { useDsProxyContext } from "./DsProxyContext";
-import { useWeb3React } from "@web3-react/core";
+import { icons } from "../components/Icons"
 
 function useIlkList(){
 
@@ -33,7 +33,31 @@ function useIlkList(){
 interface IUserVaultSelectionItem {
     cdp: BigNumber,
     ilk: string,
+    iconToken0: JSX.Element,
+    iconToken1: JSX.Element
 }
+
+const iconsForIlk = (ilk: string): JSX.Element[] => {
+    let indexFound: number|undefined
+    let iconFound: JSX.Element|undefined
+    const tokensPart = ilk.substring(5)
+    for (const icon of icons){
+        const index = tokensPart.indexOf(icon.symbol)
+        if (index < 0)
+            continue
+        if (indexFound === undefined) {
+            indexFound = index
+            iconFound = icon.icon
+        } else {
+            return indexFound < index ?
+                [iconFound as JSX.Element, icon.icon]
+                : [icon.icon, iconFound as JSX.Element]
+        }
+    }
+    console.error(`No icons found for ilk ${ilk}`)
+    return []
+}
+
 
 function useUserVaults() {
 
@@ -63,10 +87,13 @@ function useUserVaults() {
             toResolve.push(
                 (async (cdp: BigNumber) => {
                     const ilk: string = parseBytes32String(await manager.ilks(cdp))
+                    const [iconToken0, iconToken1] = iconsForIlk(ilk)
                     if (/UNIV2/.test(ilk)){
                         _vaults.push({
                             cdp,
                             ilk,
+                            iconToken0,
+                            iconToken1
                         })    
                     }
                 })(cdp)
@@ -106,6 +133,8 @@ function useUserVaults() {
 export interface IVaultSelectionItem {
     cdp?: BigNumber,
     ilk: string,
+    iconToken0: JSX.Element,
+    iconToken1: JSX.Element
 }
 
 function useProtocolVaults() {
@@ -115,7 +144,15 @@ function useProtocolVaults() {
     const [protocolVaults, setProtocolVaults] = useState<IVaultSelectionItem[]>([])
 
     useEffect(() => {
-        setProtocolVaults(ilkList.map( ilk => ({ ilk: parseBytes32String(ilk) }) ))
+        setProtocolVaults(ilkList.map( ilk => {
+            const ilkStr = parseBytes32String(ilk)
+            const [iconToken0, iconToken1] = iconsForIlk(ilkStr)
+            return ({ 
+                ilk: ilkStr,
+                iconToken0,
+                iconToken1
+            })
+        } ))
     }, [ilkList])
 
     return protocolVaults
