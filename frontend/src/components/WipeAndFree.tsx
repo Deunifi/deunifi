@@ -799,7 +799,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                 </Typography>
 
                                 <Grid container>
-                                    {[0, 50, 100].map( token0Percentage => (
+                                    {[
+                                        [0,`100% ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)}`],
+                                        [50, '50%/50%'],
+                                        [100, `100% ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}`],
+                                        ].map( ([token0Percentage, buttonText]: (number|string)[]) => (
                                         <Grid item xs={4}>
                                             <Button
                                                 fullWidth
@@ -812,7 +816,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                                         }
                                                     } as ChangeEvent<HTMLInputElement>)
                                                 }}
-                                            >{token0Percentage}%/{100-token0Percentage}%</Button>
+                                            >{buttonText}</Button>
                                         </Grid>
                                     ))}
                                 </Grid>

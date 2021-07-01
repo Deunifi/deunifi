@@ -732,24 +732,6 @@ export const LockAndDraw = () => {
 
                         <Box m={1} >
 
-                            <TokenFromUserInput 
-                                useETH={false}
-                                amount={form.textValues.collateralFromUser}
-                                name="collateralFromUser"
-                                onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
-                                errorMessage={form.errors?.collateralFromUser}
-
-                                needsApproval={expectedResult.needsGemApproval}
-                                dsProxy={dsProxy}
-                                signer={signer}
-                                token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem, decimals: vaultInfo.ilkInfo.dec.toNumber()}} 
-
-                                owner={address}
-                                form={form as IForm}
-                                setApprovalInProgress={setSecondaryOperationInProgress}
-                                fullTokenSymbol={ilkToTokenSymbol(vaultInfo.ilkInfo.ilk)}
-                                />
-                            
                             <Card variant="outlined"><Box m={1} p={1} >
                                 
                                     <TextField 
@@ -883,6 +865,24 @@ export const LockAndDraw = () => {
                                         labelPlacement="end"
                                     />
                                 </Box>
+
+                                <TokenFromUserInput 
+                                    useETH={false}
+                                    amount={form.textValues.collateralFromUser}
+                                    name="collateralFromUser"
+                                    onChange={(e) => form.onChangeBigNumber(e as ChangeEvent<HTMLInputElement>)}
+                                    errorMessage={form.errors?.collateralFromUser}
+
+                                    needsApproval={expectedResult.needsGemApproval}
+                                    dsProxy={dsProxy}
+                                    signer={signer}
+                                    token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem, decimals: vaultInfo.ilkInfo.dec.toNumber()}} 
+
+                                    owner={address}
+                                    form={form as IForm}
+                                    setApprovalInProgress={setSecondaryOperationInProgress}
+                                    fullTokenSymbol={ilkToTokenSymbol(vaultInfo.ilkInfo.ilk)}
+                                    />
 
                                 <span hidden={dai?.address==vaultInfo.ilkInfo.token0?.contract.address || dai?.address==vaultInfo.ilkInfo.token1?.contract.address}>
                                     <TokenFromUserInput 
@@ -1101,9 +1101,11 @@ export const SummaryValue: React.FC<{
             {comments
                 // .filter(x => (x ? true : false))
                 .map( comment => 
-                    <Typography hidden={comment==undefined} variant="caption" component="span" color="textSecondary" key={comment}>
-                        ({comment})
-                    </Typography>
+                    <Box>
+                        <Typography hidden={comment==undefined} variant="caption" component="span" color="textSecondary" key={comment}>
+                            ({comment})
+                        </Typography>
+                    </Box>
                 )}
             
             {errors}
