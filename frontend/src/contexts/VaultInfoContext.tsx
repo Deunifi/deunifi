@@ -79,6 +79,8 @@ export interface IVaultInfo {
         univ2Pair?: Contract,
         token0?: ITokenInfo,
         token1?: ITokenInfo,
+        iconToken0: JSX.Element,
+        iconToken1: JSX.Element,    
     },
 }
 
@@ -102,6 +104,8 @@ export const emptyVaultInfo: IVaultInfo = {
         name: '',
         symbol: '',
         dec: BigNumber.from(0),
+        iconToken0: (<span></span>),
+        iconToken1: (<span></span>),
     },
 }
 
@@ -280,7 +284,7 @@ export const VaultInfoProvider: React.FC<Props> = ({ children }) => {
             collateralizationRatio,
             liquidationPrice,
             ilkInfo: {
-                ilk: vault.ilk,
+                ...vault,
                 name,
                 symbol, //: vault.ilk.replace('UNIV2','').replace('-A',''),
                 dec,

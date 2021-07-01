@@ -22,6 +22,7 @@ import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useVaultContext } from "../contexts/VaultSelectionContext";
 import { useSnackbarContext } from "../contexts/SnackbarContext";
 import withWidth, { WithWidth } from '@material-ui/core/withWidth';
+import { DaiIcon } from "./Icons";
 
 
 interface Props { }
@@ -747,7 +748,7 @@ export const LockAndDraw = () => {
                                             || form.errors?.swapPathNotFoundForToken0
                                             || `The ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, form.cleanedValues.useETH)} amount to lock in your vault.` }
                                         InputProps={{
-                                            endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, form.cleanedValues.useETH)}</InputAdornment>,
+                                            endAdornment: <InputAdornment position="end">{vaultInfo.ilkInfo.iconToken0}</InputAdornment>,
                                         }}
                                         />
 
@@ -762,6 +763,7 @@ export const LockAndDraw = () => {
                                         dsProxy={dsProxy}
                                         signer={signer}
                                         token={vaultInfo.ilkInfo.token0}
+                                        icon={vaultInfo.ilkInfo.iconToken0}
 
                                         owner={address}
                                         form={form as IForm}
@@ -791,7 +793,7 @@ export const LockAndDraw = () => {
                                             || form.errors?.swapPathNotFoundForToken1
                                             || `The ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, form.cleanedValues.useETH)} amount to lock in your vault.` }
                                         InputProps={{
-                                            endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, form.cleanedValues.useETH)}</InputAdornment>,
+                                            endAdornment: <InputAdornment position="end">{vaultInfo.ilkInfo.iconToken1}</InputAdornment>,
                                         }}
                                         />
 
@@ -805,7 +807,8 @@ export const LockAndDraw = () => {
                                         needsApproval={expectedResult.needsToken1Approval}
                                         dsProxy={dsProxy}
                                         signer={signer}
-                                        token={vaultInfo.ilkInfo.token1} 
+                                        token={vaultInfo.ilkInfo.token1}
+                                        icon={vaultInfo.ilkInfo.iconToken1}
 
                                         owner={address}
                                         form={form as IForm}
@@ -877,6 +880,7 @@ export const LockAndDraw = () => {
                                     dsProxy={dsProxy}
                                     signer={signer}
                                     token={{symbol: vaultInfo.ilkInfo.symbol, contract: vaultInfo.ilkInfo.gem, decimals: vaultInfo.ilkInfo.dec.toNumber()}} 
+                                    icon={<span>{vaultInfo.ilkInfo.iconToken0}{vaultInfo.ilkInfo.iconToken1}</span>}
 
                                     owner={address}
                                     form={form as IForm}
@@ -895,7 +899,8 @@ export const LockAndDraw = () => {
                                         needsApproval={expectedResult.needsDebtTokenApproval}
                                         dsProxy={dsProxy}
                                         signer={signer}
-                                        token={{symbol: 'DAI', contract: dai, decimals: 18}} 
+                                        token={{symbol: 'DAI', contract: dai, decimals: 18}}
+                                        icon={<DaiIcon fontSize="small"></DaiIcon>}
 
                                         owner={address}
                                         form={form as IForm}
@@ -1186,7 +1191,8 @@ export const TokenFromUserInput: React.FC<{
     dsProxy?: Contract,
     signer?: ethers.providers.JsonRpcSigner,
     token?: {symbol: string, contract: Contract|undefined, decimals: number},
-    fullTokenSymbol?: string
+    fullTokenSymbol?: string,
+    icon: JSX.Element,
 
     owner: string,
     form: IForm,
@@ -1194,7 +1200,7 @@ export const TokenFromUserInput: React.FC<{
     }> = ({ 
         useETH, name, amount, onChange, errorMessage,
         needsApproval, token, signer, dsProxy, owner, form, setApprovalInProgress,
-        fullTokenSymbol }) => {
+        fullTokenSymbol, icon }) => {
 
     const { provider } = useConnectionContext()
 
@@ -1217,7 +1223,7 @@ export const TokenFromUserInput: React.FC<{
                         error={errorMessage ? true : false }
                         helperText={errorMessage ? errorMessage : `The ${fullTokenSymbol || getTokenSymbolForLabel(token?.symbol, useETH)} amount to use from your account.` }
                         InputProps={{
-                            endAdornment: <InputAdornment position="end">{getTokenSymbolForLabel(token?.symbol, useETH)}</InputAdornment>,
+                            endAdornment: <InputAdornment position="end">{icon}</InputAdornment>,
                         }}
                     />
                 }

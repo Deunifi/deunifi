@@ -22,6 +22,7 @@ import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useBusyBackdrop } from '../hooks/useBusyBackdrop';
 import { useApyContext } from '../contexts/APYContext';
 import { useSnackbarContext } from '../contexts/SnackbarContext';
+import { DaiIcon } from './Icons';
 
 interface Props { }
 
@@ -690,7 +691,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     error={errors.tooMuchDebtToPayback ? true : false}
                                     helperText={ errors.tooMuchDebtToPayback || 'Amount of DAI debt to payback' }
                                     InputProps={{
-                                        endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
+                                        endAdornment: <InputAdornment position="end">
+                                            <DaiIcon fontSize="small"></DaiIcon>
+                                        </InputAdornment>,
                                     }}
                                 />
                             }
@@ -722,7 +725,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     error={errors.tooMuchDai || errors.notEnoughDaiInAccount ? true : false}
                                     helperText={errors.tooMuchDai || errors.notEnoughDaiInAccount || 'Amount of DAI to use from your account'}
                                     InputProps={{
-                                        endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
+                                        endAdornment: <InputAdornment position="end">
+                                            <DaiIcon fontSize="small"></DaiIcon>
+                                        </InputAdornment>,
                                     }}
                                 />
                             }
@@ -800,22 +805,23 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
                                 <Grid container>
                                     {[
-                                        [0,`100% ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)}`],
+                                        [100,`100%`, vaultInfo.ilkInfo.iconToken0],
                                         [50, '50%/50%'],
-                                        [100, `100% ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}`],
-                                        ].map( ([token0Percentage, buttonText]: (number|string)[]) => (
+                                        [0, `100%`, vaultInfo.ilkInfo.iconToken1],
+                                        ].map( ([token0Percentage, buttonText, icon]: (number|string|JSX.Element)[]) => (
                                         <Grid item xs={4}>
                                             <Button
                                                 fullWidth
                                                 color="secondary"
                                                 onClick={() => {
-                                                    const daiToCoverWithToken0 = expectedResult.daiLoanPlusFees.mul(token0Percentage).div(100)
+                                                    const daiToCoverWithToken0 = expectedResult.daiLoanPlusFees.mul(token0Percentage as number).div(100)
                                                     daiFromTokenAChange({
                                                         target: {
                                                             value: formatEther(daiToCoverWithToken0)
                                                         }
                                                     } as ChangeEvent<HTMLInputElement>)
                                                 }}
+                                                endIcon={icon}
                                             >{buttonText}</Button>
                                         </Grid>
                                     ))}
@@ -838,7 +844,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} to use to cover debt + fees (in DAI).`
                                     }
                                     InputProps={{
-                                        endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
+                                        endAdornment: <InputAdornment position="end"><DaiIcon fontSize="small"></DaiIcon></InputAdornment>,
                                     }}
                                 />
                                 {/* [{params.pathFromTokenAToDai.join(', ')}] */}
@@ -860,7 +866,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)} to use to cover debt + fees (in DAI).`
                                     }
                                     InputProps={{
-                                        endAdornment: <InputAdornment position="end">DAI</InputAdornment>,
+                                        endAdornment: <InputAdornment position="end"><DaiIcon fontSize="small"></DaiIcon></InputAdornment>,
                                     }}
                                 />
                                 {/* [{params.pathFromTokenBToDai.join(', ')}] */}
@@ -888,7 +894,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                             || `Amount of ${vaultInfo.ilkInfo.symbol} to use from your vault`
                                         }
                                         InputProps={{
-                                            endAdornment: <InputAdornment position="end">{vaultInfo.ilkInfo.symbol}</InputAdornment>,
+                                            endAdornment: <InputAdornment position="end">{<span>{vaultInfo.ilkInfo.iconToken0}{vaultInfo.ilkInfo.iconToken1}</span>}</InputAdornment>,
                                         }}
                                     />
                                 }
@@ -939,7 +945,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         || `Amount of ${vaultInfo.ilkInfo.symbol} to swap to ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} and ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)}`
                                     }
                                     InputProps={{
-                                        endAdornment: <InputAdornment position="end">{vaultInfo.ilkInfo.symbol}</InputAdornment>,
+                                        endAdornment: <InputAdornment position="end">{<span>{vaultInfo.ilkInfo.iconToken0}{vaultInfo.ilkInfo.iconToken1}</span>}</InputAdornment>,
                                     }}
                                 />
                             }
