@@ -22,7 +22,7 @@ import { useConnectionContext } from "../contexts/ConnectionContext";
 import { useVaultContext } from "../contexts/VaultSelectionContext";
 import { useSnackbarContext } from "../contexts/SnackbarContext";
 import withWidth, { WithWidth } from '@material-ui/core/withWidth';
-import { DaiIcon } from "./Icons";
+import { tokenIconFontSizeDefault, DaiIcon } from "./Icons";
 
 
 interface Props { }
@@ -900,7 +900,7 @@ export const LockAndDraw = () => {
                                         dsProxy={dsProxy}
                                         signer={signer}
                                         token={{symbol: 'DAI', contract: dai, decimals: 18}}
-                                        icon={<DaiIcon fontSize="small"></DaiIcon>}
+                                        icon={<DaiIcon fontSize={tokenIconFontSizeDefault}></DaiIcon>}
 
                                         owner={address}
                                         form={form as IForm}

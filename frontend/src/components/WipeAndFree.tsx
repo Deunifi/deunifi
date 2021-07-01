@@ -22,7 +22,7 @@ import { useVaultContext } from '../contexts/VaultSelectionContext';
 import { useBusyBackdrop } from '../hooks/useBusyBackdrop';
 import { useApyContext } from '../contexts/APYContext';
 import { useSnackbarContext } from '../contexts/SnackbarContext';
-import { DaiIcon } from './Icons';
+import { tokenIconFontSizeDefault, DaiIcon } from './Icons';
 
 interface Props { }
 
@@ -692,7 +692,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     helperText={ errors.tooMuchDebtToPayback || 'Amount of DAI debt to payback' }
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">
-                                            <DaiIcon fontSize="small"></DaiIcon>
+                                            <DaiIcon fontSize={tokenIconFontSizeDefault}></DaiIcon>
                                         </InputAdornment>,
                                     }}
                                 />
@@ -726,7 +726,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                     helperText={errors.tooMuchDai || errors.notEnoughDaiInAccount || 'Amount of DAI to use from your account'}
                                     InputProps={{
                                         endAdornment: <InputAdornment position="end">
-                                            <DaiIcon fontSize="small"></DaiIcon>
+                                            <DaiIcon fontSize={tokenIconFontSizeDefault}></DaiIcon>
                                         </InputAdornment>,
                                     }}
                                 />
@@ -844,7 +844,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token0?.symbol, params.reciveETH)} to use to cover debt + fees (in DAI).`
                                     }
                                     InputProps={{
-                                        endAdornment: <InputAdornment position="end"><DaiIcon fontSize="small"></DaiIcon></InputAdornment>,
+                                        endAdornment: <InputAdornment position="end"><DaiIcon fontSize={tokenIconFontSizeDefault}></DaiIcon></InputAdornment>,
                                     }}
                                 />
                                 {/* [{params.pathFromTokenAToDai.join(', ')}] */}
@@ -866,7 +866,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                                         || `Amount of ${getTokenSymbolForLabel(vaultInfo.ilkInfo.token1?.symbol, params.reciveETH)} to use to cover debt + fees (in DAI).`
                                     }
                                     InputProps={{
-                                        endAdornment: <InputAdornment position="end"><DaiIcon fontSize="small"></DaiIcon></InputAdornment>,
+                                        endAdornment: <InputAdornment position="end"><DaiIcon fontSize={tokenIconFontSizeDefault}></DaiIcon></InputAdornment>,
                                     }}
                                 />
                                 {/* [{params.pathFromTokenBToDai.join(', ')}] */}

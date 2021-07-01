@@ -73,13 +73,15 @@ export function AaveIcon(props: any) {
     );
 }
 
+export const tokenIconFontSizeDefault='default'
+
 export const icons = [
-    { symbol: 'DAI', icon: (<DaiIcon fontSize="small" />), },
-    { symbol: 'ETH', icon: (<EthIcon fontSize="small" />), },
-    { symbol: 'WBTC', icon: (<WbtcIcon fontSize="small" />), },
-    { symbol: 'USDC', icon: (<UsdcIcon fontSize="small" />), },
-    { symbol: 'USDT', icon: (<UsdtIcon fontSize="small" />), },
-    { symbol: 'LINK', icon: (<LinkIcon fontSize="small" />), },
-    { symbol: 'UNI', icon: (<UniIcon fontSize="small" />), },
-    { symbol: 'AAVE', icon: (<AaveIcon fontSize="small" />), },
+    { symbol: 'DAI', icon: (<DaiIcon fontSize={tokenIconFontSizeDefault} />), },
+    { symbol: 'ETH', icon: (<EthIcon fontSize={tokenIconFontSizeDefault} />), },
+    { symbol: 'WBTC', icon: (<WbtcIcon fontSize={tokenIconFontSizeDefault} />), },
+    { symbol: 'USDC', icon: (<UsdcIcon fontSize={tokenIconFontSizeDefault} />), },
+    { symbol: 'USDT', icon: (<UsdtIcon fontSize={tokenIconFontSizeDefault} />), },
+    { symbol: 'LINK', icon: (<LinkIcon fontSize={tokenIconFontSizeDefault} />), },
+    { symbol: 'UNI', icon: (<UniIcon fontSize={tokenIconFontSizeDefault} />), },
+    { symbol: 'AAVE', icon: (<AaveIcon fontSize={tokenIconFontSizeDefault} />), },
 ]
