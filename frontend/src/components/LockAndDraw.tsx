@@ -755,6 +755,7 @@ export const LockAndDraw = () => {
                                     <TokenFromUserInput 
                                         useETH={form.textValues.useETH}
                                         amount={form.textValues.tokenAFromSigner}
+                                        maxAmmount={form.cleanedValues.tokenAToLock}
                                         name="tokenAFromSigner"
                                         onChange={(e) => tokenAFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
                                         errorMessage={form.errors?.tokenAFromSigner}
@@ -800,6 +801,7 @@ export const LockAndDraw = () => {
                                     <TokenFromUserInput 
                                         useETH={form.textValues.useETH}
                                         amount={form.textValues.tokenBFromSigner}
+                                        maxAmmount={form.cleanedValues.tokenBToLock}
                                         name="tokenBFromSigner"
                                         onChange={(e) => tokenBFromSignerChange(e as ChangeEvent<HTMLInputElement>)}
                                         errorMessage={form.errors?.tokenBFromSigner}
@@ -1184,6 +1186,7 @@ export const TokenFromUserInput: React.FC<{
     useETH: boolean,
     name: string,
     amount: string,
+    maxAmmount?: BigNumber,
     onChange: (e: ChangeEvent<HTMLInputElement>) => void,
     errorMessage: string|undefined,
 
@@ -1198,7 +1201,7 @@ export const TokenFromUserInput: React.FC<{
     form: IForm,
     setApprovalInProgress?: (inProgress: boolean) => void
     }> = ({ 
-        useETH, name, amount, onChange, errorMessage,
+        useETH, name, amount, maxAmmount, onChange, errorMessage,
         needsApproval, token, signer, dsProxy, owner, form, setApprovalInProgress,
         fullTokenSymbol, icon }) => {
 
@@ -1247,7 +1250,8 @@ export const TokenFromUserInput: React.FC<{
                                 if (token && token.contract)
                                     balance = await token.contract.balanceOf(owner)
                             }
-                                
+                            if (maxAmmount && maxAmmount.lt(balance))
+                                balance = maxAmmount
                             form.setTextValues({ ...(form.textValues as object), [name]: formatUnits(balance, token.decimals) })
                             form.setCleanedValues({ ...(form.cleanedValues as object), [name]: balance })
                         }}>
