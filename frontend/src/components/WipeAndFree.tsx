@@ -277,6 +277,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     const [token1ToRecieve, setToken1ToRecieve] = useState(BigNumber.from(0))
 
     const { getFeeFromGrossAmount, serviceFeeRatio: feeRatio } = useServiceFee()
+    const { signer, address } = useConnectionContext()
 
     useEffectAutoCancel(function* () {
 
@@ -539,7 +540,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         setUpdateInProgress(false)
 
-    }, [params, blocknumber, vaultInfo])
+    }, [params, blocknumber, vaultInfo, address])
 
     const [updateInProgress, setUpdateInProgress] = useState(false)
 
@@ -560,7 +561,6 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
     }
 
     const deunifi = useContract('Deunifi')
-    const { signer, address } = useConnectionContext()
     const { dsProxy } = useDsProxyContext()
     const dssProxyActions = useContract('DssProxyActions')
     const manager = useContract('DssCdpManager')

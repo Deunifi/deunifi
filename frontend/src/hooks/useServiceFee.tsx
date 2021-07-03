@@ -59,7 +59,6 @@ export const useServiceFee = () => {
         const feeManagerAttachedPromise = feeManager.attach(feeManagerAddress)
 
         const feeManagerAttached = (yield feeManagerAttachedPromise) as Contract
-        const signerAddress = address
 
         const storageData = (yield provider.getStorageAt(feeManagerAddress, '0x1')) as string
         const offset = 34
@@ -70,17 +69,17 @@ export const useServiceFee = () => {
             getFeeFromGrossAmount: async (amount:BigNumber) => {
                 if (amount.isNegative())
                     return ethers.constants.Zero
-                return await feeManagerAttached.getFeeFromGrossAmount(signerAddress, amount)
+                return await feeManagerAttached.getFeeFromGrossAmount(address, amount)
             },
             getGrossAmountFromNetAmount: async (amount:BigNumber) => {
                 if (amount.isNegative())
                     return ethers.constants.Zero
-                return await feeManagerAttached.getGrossAmountFromNetAmount(signerAddress, amount)
+                return await feeManagerAttached.getGrossAmountFromNetAmount(address, amount)
             },
             serviceFeeRatio
         })
 
-    }, [feeManager, deunifi])
+    }, [feeManager, deunifi, address])
 
     return { ...serviceFee }
 

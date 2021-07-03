@@ -461,7 +461,7 @@ export const LockAndDraw = () => {
 
         setUpdateInProgress(false)
 
-    }, [form.cleanedValues, signer, dai, vaultInfo, router02, blocknumber])
+    }, [form.cleanedValues, signer, address,dai, vaultInfo, router02, blocknumber])
 
     const { setVaultExpectedOperation } = useVaultExpectedOperationContext()
 
