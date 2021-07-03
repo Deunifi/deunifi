@@ -49,6 +49,14 @@ export default function Menu() {
 
   };
 
+  const reportProblem = (event: React.MouseEvent<EventTarget>) => {
+
+    window.open(`https://github.com/Deunifi/deunifi-issues/issues/new/choose`, "_blank")
+
+    handleClose(event)
+
+  };
+
   function handleListKeyDown(event: React.KeyboardEvent) {
     if (event.key === 'Tab') {
       event.preventDefault();
@@ -90,7 +98,8 @@ export default function Menu() {
               <Paper>
                 <ClickAwayListener onClickAway={handleClose}>
                   <MenuList autoFocusItem={open} id="menu-list-grow" onKeyDown={handleListKeyDown}>
-                    <MenuItem onClick={openDocs}>Docs</MenuItem>
+                    <MenuItem onClick={openDocs}>Documentation</MenuItem>
+                    <MenuItem onClick={reportProblem}>Report A Problem</MenuItem>
                   </MenuList>
                 </ClickAwayListener>
               </Paper>
