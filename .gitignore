@@ -4,6 +4,3 @@ node_modules
 cache
 artifacts
 private.ts
-
-frontend/src/hardhat/deployments/localhost
-!frontend/src/hardhat/deployments/localhost/.chainId
