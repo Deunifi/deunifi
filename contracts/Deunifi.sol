@@ -16,6 +16,10 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { IFeeManager } from "./IFeeManager.sol";
 
+import { IERC3156FlashLender } from "./IERC3156FlashLender.sol";
+import { IERC3156FlashBorrower } from "./IERC3156FlashBorrower.sol";
+
+
 uint256 constant MAX_UINT256 = ~uint256(0);
 
 
@@ -43,7 +47,7 @@ interface IPsm{
     function sellGem(address usr, uint256 gemAmt) external;
 }
 
-contract Deunifi is IFlashLoanReceiver, Ownable {
+contract Deunifi is IERC3156FlashBorrower, IFlashLoanReceiver, Ownable {
 
     event LockAndDraw(address sender, uint cdp, uint collateral, uint debt);
     event WipeAndFree(address sender, uint cdp, uint collateral, uint debt);
@@ -639,9 +643,6 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
         bytes data;
     }
 
-    /**
-        This function is called after your contract has received the flash loan amount
-     */
     function executeOperation(
         address[] calldata assets,
         uint256[] calldata amounts,
@@ -661,9 +662,29 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
         else if(operation.operation == LOCK_AND_DRAW)
             lockAndDrawOperation(operation.data);
         else
-            revert('Easy Vault: Invalid operation.');
+            revert('Deunifi: Invalid operation.');
 
         return true;
+    }
+
+    function onFlashLoan(
+        address initiator,
+        address token,
+        uint256 amount,
+        uint256 fee,
+        bytes calldata params
+    ) external override returns (bytes32) {
+
+        ( Operation memory operation ) = abi.decode(params, (Operation));
+
+        if (operation.operation == WIPE_AND_FREE)
+            wipeAndFreeOperation(operation.data);
+        else if(operation.operation == LOCK_AND_DRAW)
+            lockAndDrawOperation(operation.data);
+        else
+            revert('Deunifi: Invalid operation.');
+
+        return keccak256("ERC3156FlashBorrower.onFlashLoan");
     }
 
     /**
@@ -679,7 +700,8 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
         uint[] memory loanAmounts,
         uint[] memory modes,
         bytes memory data,
-        address weth // When has to use or recive ETH, else should be address(0)
+        address weth, // When has to use or recive ETH, else should be address(0)
+        bool useAave
         ) public payable{
 
         if (msg.value > 0){
@@ -697,15 +719,24 @@ contract Deunifi is IFlashLoanReceiver, Ownable {
             );
         }
 
-        ILendingPool(lendingPool).flashLoan(
-            target,
-            loanTokens,
-            loanAmounts,
-            modes, // modes: 0 = no debt, 1 = stable, 2 = variable
-            target, // onBehalfOf
-            data,
-            0 // referralCode
-        );
+        if (useAave){
+
+            ILendingPool(lendingPool).flashLoan(
+                target,
+                loanTokens,
+                loanAmounts,
+                modes, // modes: 0 = no debt, 1 = stable, 2 = variable
+                target, // onBehalfOf
+                data,
+                0 // referralCode
+            );
+
+        } else {
+
+            IERC3156FlashLender(lendingPool).flashLoan(
+                IERC3156FlashBorrower(target), loanTokens[0], loanAmounts[0], data);
+
+        }
 
         IDSProxy(address(this)).setOwner(owner);
         

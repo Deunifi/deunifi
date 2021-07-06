@@ -4,6 +4,8 @@ import { etherscan } from "../private";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 
 import * as fs from "fs"
+import { BigNumber } from "ethers";
+import { formatUnits } from "ethers/lib/utils";
 
 task(
     "gastrack",
@@ -136,3 +138,24 @@ task(
 
     }
 )
+
+task(
+    "manager-set-fee",
+    "Sets the manager fee.",
+    async ({ gasprice, fee }, hre) => {
+
+        const { deployments, network } = hre
+
+        try {
+            const feeManager = await hre.ethers.getContract('FeeManager')
+            const transactionResponse: TransactionResponse = await feeManager.setFeeRatio(BigNumber.from(fee), {gasPrice: gasprice*ONE_GWEI})
+            console.log(`Setting fee ${formatUnits(BigNumber.from(fee), 4)} to FeeManager (${feeManager.address}) in transaction ${transactionResponse.hash}.`);
+            await transactionResponse.wait(1)    
+        } catch (error) {
+            console.error(error);
+        }
+    
+    }
+)
+.addParam("fee", "Fee. 1 means 0.01 %.")
+.addParam("gasprice", "Gas proce in gwei.")

@@ -694,7 +694,8 @@ export const LockAndDraw = () => {
                     expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
                     [BigNumber.from(0)], //modes
                     dataForExecuteOperationCallback, // Data to be used on executeOperation
-                    weth.address
+                    weth.address,
+                    lendingPool.useAave
                 ],
                 ethToUse.isZero() ? { gasLimit } : {value: ethToUse, gasLimit }
             )
@@ -1011,7 +1012,7 @@ export const LockAndDraw = () => {
                         <Box m={1}>
                             <Card variant="outlined">
                                 <SummaryValue
-                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
+                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 16)}%)`}
                                     value={formatEther(expectedResult.daiLoanFees)}
                                     units='DAI'
                                     />

@@ -639,7 +639,8 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
                 [BigNumber.from(0)], //modes
                 dataForExecuteOperationCallback, // Data to be used on executeOperation
-                ethers.constants.AddressZero
+                ethers.constants.AddressZero,
+                lendingPool.useAave
             ]
             )
             snackbar.transactionInProgress(transactionResponse)
@@ -1151,7 +1152,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                         <Box m={1}>
                             <Card variant="outlined">
                                 <SummaryValue
-                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 2)}%)`}
+                                    label={`Flash Loan Fees (${formatUnits(lendingPool.loanFeeRatio, 16)}%)`}
                                     value={formatEther(expectedResult.daiLoanFees)}
                                     units='DAI'
                                     />
