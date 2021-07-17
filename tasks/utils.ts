@@ -59,7 +59,7 @@ const ONE_GWEI = 1000000000
 task(
     "set-fee-manager",
     "Sets fee manager.",
-    async ({ gasprice }, hre) => {
+    async ({ gasprice, nonce }, hre) => {
 
         const { deployments, network } = hre
 
@@ -67,7 +67,7 @@ task(
             const feeManager = await hre.ethers.getContract('FeeManager')
             const deunifi = await hre.ethers.getContract('Deunifi')
             if ((await deunifi.feeManager()) != feeManager.address){
-                const transactionResponse: TransactionResponse = await deunifi.setFeeManager(feeManager.address, {gasPrice: gasprice*ONE_GWEI})
+                const transactionResponse: TransactionResponse = await deunifi.setFeeManager(feeManager.address, {gasPrice: gasprice*ONE_GWEI, nonce})
                 console.log(`Setting FeeManager (${feeManager.address}) in Unifi contract in transaction ${transactionResponse.hash}.`);
                 await transactionResponse.wait(1)    
             }
@@ -78,6 +78,7 @@ task(
     }
 )
 .addParam("gasprice", "Gas proce in gwei.")
+.addOptionalParam("nonce", "Nonce to use.")
 
 task(
     "remove-fee-manager",
