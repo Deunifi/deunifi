@@ -12,6 +12,14 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 
     const { deployer } = await getNamedAccounts();
 
+    const dai = await hre.ethers.getContract('Dai')
+
+    const soloMargin = await deploy('SoloMargin', {
+        from: deployer,
+        gasLimit: 9000000,
+        args: [ dai.address ]
+    });
+
     const lendingPoolDeployment = await deploy('LendingPool', {
         from: deployer,
         gasLimit: 9000000,

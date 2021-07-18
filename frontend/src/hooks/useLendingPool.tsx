@@ -84,7 +84,7 @@ const _getWithdrawAction = (marketId: BigNumber, amount: BigNumber, otherAddress
             },
             primaryMarketId: marketId,
             secondaryMarketId: ethers.constants.Zero,
-            otherAddress: otherAddress, //TODO address(this)
+            otherAddress: otherAddress,
             otherAccountId: ethers.constants.Zero,
             data: []
         };
@@ -102,7 +102,7 @@ const _getCallAction = (data: string, otherAddress: string): ActionArgs => {
         },
         primaryMarketId: ethers.constants.Zero,
         secondaryMarketId: ethers.constants.Zero,
-        otherAddress: otherAddress, //TODO address(this)
+        otherAddress: otherAddress,
         otherAccountId: ethers.constants.Zero,
         data: data
     };
