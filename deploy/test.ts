@@ -32,6 +32,7 @@ let deploy = async function deploy(hre: HardhatRuntimeEnvironment) {
 deploy.tags = []
 
 deploy.skip = async (env: HardhatRuntimeEnvironment) => {
+    return true
     return env.network.name !== 'localhost'
 }
 

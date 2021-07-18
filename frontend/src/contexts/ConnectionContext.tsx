@@ -49,6 +49,10 @@ export const ConnectionProvider: React.FC<Props> = ({ children }) => {
 
   useEffectAutoCancel(function* (){
 
+    if (provider){
+      provider.removeAllListeners()
+    }
+
     if (web3React.active){
       setChainId(web3React.chainId as number)
       const provider = web3React.library as ethers.providers.Web3Provider

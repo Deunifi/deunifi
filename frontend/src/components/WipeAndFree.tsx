@@ -540,7 +540,7 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
 
         setUpdateInProgress(false)
 
-    }, [params, blocknumber, vaultInfo, address])
+    }, [params, blocknumber, vaultInfo, address, lendingPool])
 
     const [updateInProgress, setUpdateInProgress] = useState(false)
 
@@ -635,12 +635,11 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                 params.daiFromSigner.isZero() ? [] : [dai.address], // owner tokens to transfer to target
                 params.daiFromSigner.isZero() ? [] : [params.daiFromSigner], // owner token amounts to transfer to target
                 lendingPool.contract.address,
-                expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
-                expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
-                [BigNumber.from(0)], //modes
-                dataForExecuteOperationCallback, // Data to be used on executeOperation
+                lendingPool.getAccountInfos(deunifi.address), //.map( acountInfoToTuple ), // Account.Info[] memory accountInfos
+                lendingPool.getFlashLoanOperations(
+                    expectedResult.daiFromFlashLoan, dataForExecuteOperationCallback, deunifi.address
+                    ), //.map( actionArgsToTuple ), // Actions.ActionArgs[] memory actions,
                 ethers.constants.AddressZero,
-                lendingPool.useAave
             ]
             )
             snackbar.transactionInProgress(transactionResponse)

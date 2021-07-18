@@ -461,7 +461,7 @@ export const LockAndDraw = () => {
 
         setUpdateInProgress(false)
 
-    }, [form.cleanedValues, signer, address,dai, vaultInfo, router02, blocknumber])
+    }, [form.cleanedValues, signer, address,dai, vaultInfo, router02, blocknumber, lendingPool])
 
     const { setVaultExpectedOperation } = useVaultExpectedOperationContext()
 
@@ -689,13 +689,12 @@ export const LockAndDraw = () => {
                     deunifi.address,
                     ownerTokens, // owner tokens to transfer to target
                     ownerTokensAmounts, // owner token amounts to transfer to target
-                    lendingPool.contract.address,
-                    expectedResult.daiFromFlashLoan.isZero() ? [] : [dai.address], // loanTokens
-                    expectedResult.daiFromFlashLoan.isZero() ? [] : [expectedResult.daiFromFlashLoan], // loanAmounts
-                    [BigNumber.from(0)], //modes
-                    dataForExecuteOperationCallback, // Data to be used on executeOperation
+                    lendingPool.contract.address, // solo margin
+                    lendingPool.getAccountInfos(deunifi.address), //.map( acountInfoToTuple ), // Account.Info[] memory accountInfos
+                    lendingPool.getFlashLoanOperations(
+                        expectedResult.daiFromFlashLoan, dataForExecuteOperationCallback, deunifi.address
+                        ), //.map( actionArgsToTuple ), // Actions.ActionArgs[] memory actions,
                     weth.address,
-                    lendingPool.useAave
                 ],
                 ethToUse.isZero() ? { gasLimit } : {value: ethToUse, gasLimit }
             )
@@ -943,6 +942,29 @@ export const LockAndDraw = () => {
                                         />
 
                                     </Box>
+
+                                {/* <Box
+                                    m={2}
+                                    >
+                                    <FormControlLabel
+                                        control={
+                                        <Switch
+                                            size="medium"
+                                            onChange={(e) => {
+                                                if (!lendingPool)
+                                                    return
+                                                lendingPool.setUseDyDx(e.target.checked)
+                                            }}
+                                            name="useDyDx"
+                                            color="secondary"
+                                            checked={lendingPool.useDyDx}
+                                        />
+                                        }
+                                        label="Use dydx Flash Loan"
+                                        labelPlacement="end"
+                                    />
+                                </Box> */}
+
                             </Card>
 
                         </Box>

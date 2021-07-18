@@ -19,6 +19,8 @@ import { IFeeManager } from "./IFeeManager.sol";
 import { IERC3156FlashLender } from "./IERC3156FlashLender.sol";
 import { IERC3156FlashBorrower } from "./IERC3156FlashBorrower.sol";
 
+import { Actions, Account, ISoloMargin } from "./money-legos/dydx/ISoloMargin.sol";
+import { ICallee } from "./money-legos/dydx/ICallee.sol";
 
 uint256 constant MAX_UINT256 = ~uint256(0);
 
@@ -47,7 +49,7 @@ interface IPsm{
     function sellGem(address usr, uint256 gemAmt) external;
 }
 
-contract Deunifi is IERC3156FlashBorrower, IFlashLoanReceiver, Ownable {
+contract Deunifi is Ownable, ICallee {
 
     event LockAndDraw(address sender, uint cdp, uint collateral, uint debt);
     event WipeAndFree(address sender, uint cdp, uint collateral, uint debt);
@@ -643,19 +645,13 @@ contract Deunifi is IERC3156FlashBorrower, IFlashLoanReceiver, Ownable {
         bytes data;
     }
 
-    function executeOperation(
-        address[] calldata assets,
-        uint256[] calldata amounts,
-        uint256[] calldata premiums,
-        address initiator,
-        bytes calldata params
-    )
-        external
-        override
-        returns (bool)
-    {
-
-        ( Operation memory operation ) = abi.decode(params, (Operation));
+    function callFunction(
+        address sender,
+        Account.Info memory account,
+        bytes memory data
+    ) external override {
+        
+        ( Operation memory operation ) = abi.decode(data, (Operation));
 
         if (operation.operation == WIPE_AND_FREE)
             wipeAndFreeOperation(operation.data);
@@ -664,27 +660,18 @@ contract Deunifi is IERC3156FlashBorrower, IFlashLoanReceiver, Ownable {
         else
             revert('Deunifi: Invalid operation.');
 
-        return true;
     }
 
-    function onFlashLoan(
-        address initiator,
-        address token,
-        uint256 amount,
-        uint256 fee,
-        bytes calldata params
-    ) external override returns (bytes32) {
+    /**
+    To call SoloMargin.operate from Deunifi, instead of DssProxy (required by SoloMargin).
+    */
+    function callOperate(
+        address soloMargin,
+        Account.Info[] memory accountInfos,
+        Actions.ActionArgs[] memory actions
+        ) public {
 
-        ( Operation memory operation ) = abi.decode(params, (Operation));
-
-        if (operation.operation == WIPE_AND_FREE)
-            wipeAndFreeOperation(operation.data);
-        else if(operation.operation == LOCK_AND_DRAW)
-            lockAndDrawOperation(operation.data);
-        else
-            revert('Deunifi: Invalid operation.');
-
-        return keccak256("ERC3156FlashBorrower.onFlashLoan");
+        ISoloMargin(soloMargin).operate(accountInfos, actions);
     }
 
     /**
@@ -692,16 +679,13 @@ contract Deunifi is IERC3156FlashBorrower, IFlashLoanReceiver, Ownable {
      */
     function flashLoanFromDSProxy(
         address owner, // Owner of DSProxy calling this function.
-        address target, // Target contract that will resolve the flash loan.
+        address payable target, // Target contract that will resolve the flash loan. // TODO check payable 
         address[] memory ownerTokens, // owner tokens to transfer to target
         uint[] memory ownerAmounts, // owner token amounts to transfer to target
-        address lendingPool,
-        address[] memory loanTokens,
-        uint[] memory loanAmounts,
-        uint[] memory modes,
-        bytes memory data,
-        address weth, // When has to use or recive ETH, else should be address(0)
-        bool useAave
+        address soloMargin,
+        Account.Info[] memory accountInfos,
+        Actions.ActionArgs[] memory actions,
+        address weth // When has to use or recive ETH, else should be address(0)
         ) public payable{
 
         if (msg.value > 0){
@@ -719,24 +703,7 @@ contract Deunifi is IERC3156FlashBorrower, IFlashLoanReceiver, Ownable {
             );
         }
 
-        if (useAave){
-
-            ILendingPool(lendingPool).flashLoan(
-                target,
-                loanTokens,
-                loanAmounts,
-                modes, // modes: 0 = no debt, 1 = stable, 2 = variable
-                target, // onBehalfOf
-                data,
-                0 // referralCode
-            );
-
-        } else {
-
-            IERC3156FlashLender(lendingPool).flashLoan(
-                IERC3156FlashBorrower(target), loanTokens[0], loanAmounts[0], data);
-
-        }
+        Deunifi(target).callOperate(soloMargin, accountInfos, actions);
 
         IDSProxy(address(this)).setOwner(owner);
         
