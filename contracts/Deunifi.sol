@@ -3,11 +3,6 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { IUniswapV2Router02 } from '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
-import { IUniswapV2Pair } from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
-import { IUniswapV2Callee } from '@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol';
-
-import { ILendingPool } from "./ILendingPool.sol";
-import { IFlashLoanReceiver } from "./IFlashLoanReceiver.sol";
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -15,9 +10,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 import { IFeeManager } from "./IFeeManager.sol";
-
-import { IERC3156FlashLender } from "./IERC3156FlashLender.sol";
-import { IERC3156FlashBorrower } from "./IERC3156FlashBorrower.sol";
 
 import { Actions, Account, ISoloMargin } from "./money-legos/dydx/ISoloMargin.sol";
 import { ICallee } from "./money-legos/dydx/ICallee.sol";
