@@ -24,6 +24,7 @@ import { useSnackbarContext } from "../contexts/SnackbarContext";
 import withWidth, { WithWidth } from '@material-ui/core/withWidth';
 import { tokenIconFontSizeDefault, DaiIcon } from "./Icons";
 
+export const GAS_LIMIT = 1600000
 
 interface Props { }
 
@@ -675,7 +676,8 @@ export const LockAndDraw = () => {
 
         const getGasLimit = (chainId: number): number|undefined => {
             // In kovan happens an out of gas exception because the amount of gas estimated by metamask is wrong.
-            return chainId == 42 ? 1500000 : undefined
+            // return chainId == 42 ? 1500000 : undefined
+            return GAS_LIMIT
         }
 
         const gasLimit = getGasLimit(chainId)

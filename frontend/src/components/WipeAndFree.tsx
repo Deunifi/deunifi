@@ -13,7 +13,7 @@ import { useDsProxyContext } from '../contexts/DsProxyContext';
 import { useVaultInfoContext } from '../contexts/VaultInfoContext';
 import { initialVaultExpectedOperation, useVaultExpectedOperationContext } from '../contexts/VaultExpectedOperationContext';
 import { useVaultExpectedStatusContext } from '../contexts/VaultExpectedStatusContext';
-import { BusyBackdrop, ErrorMessage, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors, apyToPercentage, TransactionGridContainer } from '../components/LockAndDraw'
+import { BusyBackdrop, ErrorMessage, getTokenSymbolForLabel, ApprovalButton, needsApproval, SummaryValue, hasErrors, apyToPercentage, TransactionGridContainer, GAS_LIMIT } from '../components/LockAndDraw'
 import { useLendingPool } from '../hooks/useLendingPool';
 import { useConnectionContext } from '../contexts/ConnectionContext';
 import { Box, Button, Card, FormControlLabel, Grid, InputAdornment, LinearProgress, Switch, TextField, Typography } from '@material-ui/core';
@@ -640,7 +640,9 @@ export const WipeAndFree: React.FC<Props> = ({ children }) => {
                     expectedResult.daiFromFlashLoan, dataForExecuteOperationCallback, deunifi.address
                     ), //.map( actionArgsToTuple ), // Actions.ActionArgs[] memory actions,
                 ethers.constants.AddressZero,
-            ]
+            ],{
+                gasLimit: GAS_LIMIT
+            }
             )
             snackbar.transactionInProgress(transactionResponse)
             await transactionResponse.wait(1)
