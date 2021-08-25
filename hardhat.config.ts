@@ -37,7 +37,7 @@ const config: HardhatUserConfig = {
       // throwOnCallFailures: true,
       allowUnlimitedContractSize: true,
       live: false,
-      hardfork: 'berlin',
+      // hardfork: 'berlin',
     },
     kovan: {
       url: kovan.url,
